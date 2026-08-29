@@ -30,19 +30,18 @@ input,select,textarea{color-scheme:dark}
 .progress{transition:width .25s ease}
 .small-stat{font-size:11px;color:#94a3b8}
 
-/* Fixed iOS Swipe Action Styles */
+/* Fixed Swipe Action Styles */
 .swipe-container {
   position: relative;
   overflow: hidden;
   border-radius: 0.75rem;
-  touch-action: pan-y;
-  background-color: rgba(15, 23, 42, 0.6);
+  background-color: #be123c; /* Rose red background for action */
 }
 .swipe-actions {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
+  left: 0;
   width: 80px;
   display: flex;
   align-items: center;
@@ -52,19 +51,15 @@ input,select,textarea{color-scheme:dark}
 .swipe-delete-btn {
   width: 100%;
   height: 100%;
-  background-color: rgba(225, 29, 72, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   cursor: pointer;
-  border-radius: 0.75rem;
 }
 .swipe-content {
   position: relative;
-  background-color: rgba(30, 41, 59, 1);
+  background-color: #1e293b;
   transition: transform 0.2s ease-out;
   z-index: 2;
   width: 100%;
@@ -189,7 +184,7 @@ input,select,textarea{color-scheme:dark}
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="font-bold mb-1">שערי מט"ח</h3>
-          <p class="text-xs text-slate-400">מתעדכנים אוטומטית פעם ביום לפי השער האחרון הזמין. אין צורך להזין שערים ידנית.</p>
+          <p class="text-xs text-slate-400">מתעדכנים אוטומטית פעם ביום לפי השער האחרון הזמין.</p>
         </div>
         <span id="fx-status" class="text-[10px] text-emerald-400 text-left"></span>
       </div>
@@ -207,7 +202,7 @@ input,select,textarea{color-scheme:dark}
 
 <div id="modal-root"></div>
 
-<div id="lock-screen" class="fixed inset-0 z-[9999] hidden bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-5" style="padding-top:max(20px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom));">
+<div id="lock-screen" class="fixed inset-0 z-[9999] hidden bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-5">
   <div class="w-full max-w-sm glass-card rounded-3xl p-6 text-center">
     <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-600 flex items-center justify-center mb-4">
       <i data-lucide="lock-keyhole" class="w-8 h-8"></i>
@@ -277,8 +272,7 @@ function monthLabel(m){const [y,mo]=m.split('-');return new Date(Number(y),Numbe
 
 function renderHeaderDate() {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  const formattedDate = new Date().toLocaleDateString('he-IL', options);
-  document.getElementById('header-date').innerText = formattedDate;
+  document.getElementById('header-date').innerText = new Date().toLocaleDateString('he-IL', options);
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
@@ -461,7 +455,7 @@ function openRecurringModal(id=null){
 function editRecurring(id){openRecurringModal(id)} 
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
 
-/* Robust RTL Touch-Swipe Engine */
+/* Ultra-stable RTL Swipe Handler */
 function attachSwipeEvents() {
   const containers = document.querySelectorAll('.swipe-container');
   containers.forEach(container => {
@@ -469,51 +463,49 @@ function attachSwipeEvents() {
     if(!content) return;
     
     let startX = 0;
-    let currentX = 0;
+    let currentDelta = 0;
     let isSwiping = false;
     let isOpen = false;
 
-    content.addEventListener('touchstart', e => {
+    content.ontouchstart = (e) => {
       startX = e.touches[0].clientX;
       isSwiping = true;
       content.style.transition = 'none';
-    }, {passive: true});
+    };
 
-    content.addEventListener('touchmove', e => {
+    content.ontouchmove = (e) => {
       if (!isSwiping) return;
-      currentX = e.touches[0].clientX;
-      const diffX = currentX - startX;
+      const currentX = e.touches[0].clientX;
+      const diff = currentX - startX;
       
-      // Right-to-Left RTL Swipe Logic
-      if (isOpen) {
-        let offset = 80 + diffX;
-        if (offset < 0) offset = 0;
-        if (offset > 100) offset = 100;
-        content.style.transform = `translateX(${offset}px)`;
+      // In RTL layout, moving finger to the right increases clientX (diff > 0)
+      if (!isOpen) {
+        if (diff > 0) {
+          currentDelta = Math.min(80, diff);
+          content.style.transform = `translateX(${currentDelta}px)`;
+        }
       } else {
-        if (diffX > 0) {
-          let offset = Math.min(100, diffX);
-          content.style.transform = `translateX(${offset}px)`;
+        if (diff < 0) {
+          currentDelta = Math.max(0, 80 + diff);
+          content.style.transform = `translateX(${currentDelta}px)`;
         }
       }
-    }, {passive: true});
+    };
 
-    content.addEventListener('touchend', e => {
+    content.ontouchend = () => {
       if (!isSwiping) return;
       isSwiping = false;
-      content.style.transition = 'transform 0.2s ease-out';
-      const diffX = currentX - startX;
-
-      if (!isOpen && diffX > 40) {
+      content.style.transition = 'transform 0.2s cubic-bezier(0,0,0.2,1)';
+      
+      if (!isOpen && currentDelta > 30) {
         content.style.transform = 'translateX(80px)';
         isOpen = true;
-      } else if (isOpen && diffX < -30) {
+      } else {
         content.style.transform = 'translateX(0px)';
         isOpen = false;
-      } else {
-        content.style.transform = isOpen ? 'translateX(80px)' : 'translateX(0px)';
       }
-    });
+      currentDelta = 0;
+    };
   });
 }
 
@@ -594,13 +586,13 @@ async function unlockApp(){
 }
 
 function openSecurityModal(){
-  openModal('נעילת אפליקציה',`<label class="text-sm">סיסמה חדשה<input id="sec-pass" type="password" autocomplete="new-password" placeholder="השאר ריק כדי לא לשנות" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl p-2"></label><label class="flex items-center gap-2 text-sm mt-2"><input id="sec-enable" type="checkbox" ${state.security.enabled?'checked':''}> דרוש סיסמה בכניסה</label><div class="text-[10px] text-slate-500 mt-2">הסיסמה נשמרת בצורה מוצפנת-פונקציונלית (SHA-256) בתוך הדפדפן. אין שרת אימות.</div>`,async()=>{
+  openModal('נעילת אפליקציה',`<label class="text-sm">סיסמה חדשה<input id="sec-pass" type="password" autocomplete="new-password" placeholder="השאר ריק כדי לא לשנות" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl p-2"></label><label class="flex items-center gap-2 text-sm mt-2"><input id="sec-enable" type="checkbox" ${state.security.enabled?'checked':''}> דרוש סיסמה בכניסה</label><div class="text-[10px] text-slate-500 mt-2">הסיסמה נשמרת בצורה מוצפנת.</div>`,async()=>{
     const p=v('sec-pass');
     const enabled=document.getElementById('sec-enable').checked;
     if(p) state.security.password=await hashPassword(p);
     state.security.enabled=enabled;
     if(enabled && !state.security.password){alert('כדי להפעיל נעילה יש להגדיר סיסמה');return;}
-    save();closeModal();alert(enabled?'הנעילה הופעלה. ברענון הבא ובפתיחה הבאה תתבקש סיסמה.':'הנעילה בוטלה');renderAll();
+    save();closeModal();alert(enabled?'הנעילה הופעלה.':'הנעילה בוטלה');renderAll();
   });
 }
 async function refreshFXRates(force=false){
@@ -621,16 +613,13 @@ async function refreshFXRates(force=false){
     state.settings.fxUpdatedAt=rows[0]?.date || todayUTC;
     save(); updateFXStatus(); convertFX();
   }catch(err){
-    console.warn('FX update failed; using last saved rates',err);
     updateFXStatus(true); convertFX();
   }
 }
 function updateFXStatus(failed=false){
   const el=document.getElementById('fx-status'); if(!el)return;
   const d=state.settings.fxUpdatedAt;
-  el.innerText=failed
-    ? (d?`עדכון אחרון: ${d}`:'אין חיבור — משתמש בשער שמור')
-    : (d?`עודכן: ${d}`:'עדיין לא עודכן');
+  el.innerText=failed ? (d?`עדכון אחרון: ${d}`:'אין חיבור') : (d?`עודכן: ${d}`:'עדיין לא עודכן');
   el.className='text-[10px] '+(failed?'text-amber-400':'text-emerald-400')+' text-left';
 }
 function syncSettingsUI(){updateFXStatus()}
