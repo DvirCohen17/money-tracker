@@ -30,45 +30,43 @@ input,select,textarea{color-scheme:dark}
 .progress{transition:width .25s ease}
 .small-stat{font-size:11px;color:#94a3b8}
 
-/* iOS Swipe Action Styles - RTL Fixed with Blur Background */
+/* Fixed iOS Swipe Action Styles */
 .swipe-container {
   position: relative;
   overflow: hidden;
   border-radius: 0.75rem;
   touch-action: pan-y;
-  background-color: transparent;
+  background-color: rgba(15, 23, 42, 0.6);
 }
 .swipe-actions {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0; /* Aligned to Right for RTL Swipe */
-  width: 75px;
+  right: 0;
+  width: 80px;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1;
-  opacity: 0; /* Hidden by default */
-  transition: opacity 0.2s ease;
 }
 .swipe-delete-btn {
   width: 100%;
   height: 100%;
-  background-color: rgba(239, 68, 68, 0.85); /* Blurred translucent red */
-  backdrop-filter: blur(8px);
-  border-radius: 0.75rem;
+  background-color: rgba(225, 29, 72, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   cursor: pointer;
-  box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
+  border-radius: 0.75rem;
 }
 .swipe-content {
   position: relative;
-  background-color: rgba(30, 41, 59, 0.95);
+  background-color: rgba(30, 41, 59, 1);
   transition: transform 0.2s ease-out;
-  z-index: 10;
+  z-index: 2;
   width: 100%;
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -463,21 +461,22 @@ function openRecurringModal(id=null){
 function editRecurring(id){openRecurringModal(id)} 
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
 
-/* Updated Swipe gesture implementation for RTL Swipe & Hidden Action Button */
+/* Robust RTL Touch-Swipe Engine */
 function attachSwipeEvents() {
   const containers = document.querySelectorAll('.swipe-container');
   containers.forEach(container => {
     const content = container.querySelector('.swipe-content');
-    const actions = container.querySelector('.swipe-actions');
-    if(!content || !actions) return;
+    if(!content) return;
     
     let startX = 0;
     let currentX = 0;
     let isSwiping = false;
+    let isOpen = false;
 
     content.addEventListener('touchstart', e => {
       startX = e.touches[0].clientX;
       isSwiping = true;
+      content.style.transition = 'none';
     }, {passive: true});
 
     content.addEventListener('touchmove', e => {
@@ -485,27 +484,34 @@ function attachSwipeEvents() {
       currentX = e.touches[0].clientX;
       const diffX = currentX - startX;
       
-      // Swipe Right for RTL Layout (reveals the action button on the right side)
-      if (diffX > 0 && diffX < 90) {
-        content.style.transform = `translateX(${diffX}px)`;
-        actions.style.opacity = Math.min(1, diffX / 40);
-      } else if (diffX < 0 && diffX > -90 && content.style.transform !== 'translateX(0px)') {
-        content.style.transform = `translateX(${Math.max(0, 75 + diffX)}px)`;
-        actions.style.opacity = Math.max(0, (75 + diffX) / 75);
+      // Right-to-Left RTL Swipe Logic
+      if (isOpen) {
+        let offset = 80 + diffX;
+        if (offset < 0) offset = 0;
+        if (offset > 100) offset = 100;
+        content.style.transform = `translateX(${offset}px)`;
+      } else {
+        if (diffX > 0) {
+          let offset = Math.min(100, diffX);
+          content.style.transform = `translateX(${offset}px)`;
+        }
       }
     }, {passive: true});
 
     content.addEventListener('touchend', e => {
       if (!isSwiping) return;
       isSwiping = false;
+      content.style.transition = 'transform 0.2s ease-out';
       const diffX = currentX - startX;
 
-      if (diffX > 35) {
-        content.style.transform = 'translateX(75px)';
-        actions.style.opacity = '1';
-      } else {
+      if (!isOpen && diffX > 40) {
+        content.style.transform = 'translateX(80px)';
+        isOpen = true;
+      } else if (isOpen && diffX < -30) {
         content.style.transform = 'translateX(0px)';
-        actions.style.opacity = '0';
+        isOpen = false;
+      } else {
+        content.style.transform = isOpen ? 'translateX(80px)' : 'translateX(0px)';
       }
     });
   });
