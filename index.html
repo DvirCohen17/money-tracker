@@ -7,14 +7,14 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Heebo',sans-serif;background:linear-gradient(180deg,#0b1220 0%,#111827 100%);color:#f8fafc;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
-.glass-card{background:rgba(24,34,52,.78);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.07);box-shadow:0 10px 30px rgba(0,0,0,.16)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Heebo',sans-serif;background:#030712;color:#f3f4f6;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+.glass-card{background:rgba(15, 23, 42, 0.75);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.05);box-shadow:0 12px 32px rgba(0,0,0,.35)}
 .nav-active{color:#38bdf8;border-top:2px solid #38bdf8}
-@media (min-width:700px){body{background:#08101d}.glass-card{border-radius:24px}}
+@media (min-width:700px){body{background:#020617}.glass-card{border-radius:24px}}
 @supports(padding:max(0px)){body{padding-bottom:max(86px,calc(70px + env(safe-area-inset-bottom)))}}
 input,select,button{min-height:44px}
 nav{padding-bottom:max(8px,env(safe-area-inset-bottom)) !important}
@@ -22,26 +22,23 @@ main{max-width:680px !important}
 .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{scrollbar-width:none}
 .discrete-blur{filter:blur(8px);user-select:none}
 body.discrete-mode .sensitive-analytics{filter:blur(10px);user-select:none;pointer-events:none}
-.receipt-preview{max-height:240px;width:100%;object-fit:contain;border-radius:16px;background:#0f172a}
-.modal{background:rgba(0,0,0,.72);backdrop-filter:blur(8px)}
+.modal{background:rgba(0,0,0,.85);backdrop-filter:blur(12px)}
 input,select,textarea{color-scheme:dark}
 .btn{transition:.18s}
 .btn:active{transform:scale(.98)}
 .progress{transition:width .25s ease}
-.small-stat{font-size:11px;color:#94a3b8}
+.small-stat{font-size:11px;color:#9ca3af}
 
-/* Fixed Swipe Action Styles */
+/* Swipe Action Styles */
 .swipe-container {
   position: relative;
   overflow: hidden;
   border-radius: 0.75rem;
-  background-color: #be123c; /* Rose red background for action */
+  background-color: #9f1239;
 }
 .swipe-actions {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
+  top: 0; bottom: 0; left: 0;
   width: 80px;
   display: flex;
   align-items: center;
@@ -49,8 +46,7 @@ input,select,textarea{color-scheme:dark}
   z-index: 1;
 }
 .swipe-delete-btn {
-  width: 100%;
-  height: 100%;
+  width: 100%; height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -59,132 +55,174 @@ input,select,textarea{color-scheme:dark}
 }
 .swipe-content {
   position: relative;
-  background-color: #1e293b;
+  background-color: #111827;
   transition: transform 0.2s ease-out;
   z-index: 2;
   width: 100%;
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 .chart-container-wrapper {
   position: relative;
   width: 100%;
   height: 220px;
 }
+
+/* Heatmap Grid */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.heatmap-day {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  border: 1px solid rgba(255,255,255,0.03);
+}
 </style>
 </head>
 <body class="pb-24">
 
-<header class="sticky top-0 z-40 glass-card px-4 py-3 flex items-center justify-between border-b border-slate-800">
+<header class="sticky top-0 z-40 glass-card px-4 py-3 flex items-center justify-between border-b border-gray-800/80">
   <div class="flex items-center gap-3">
-    <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold shadow-lg shadow-indigo-500/30"><i data-lucide="wallet" class="w-6 h-6"></i></div>
+    <div class="w-10 h-10 rounded-xl bg-indigo-600/80 flex items-center justify-center font-bold shadow-lg shadow-indigo-600/20"><i data-lucide="wallet" class="w-6 h-6"></i></div>
     <div>
-      <h1 class="font-bold text-lg leading-tight">התקציב שלי</h1>
+      <h1 class="font-bold text-lg leading-tight text-white">התקציב שלי</h1>
       <p id="header-date" class="text-xs text-sky-400 font-medium"></p>
     </div>
   </div>
   <div class="flex items-center gap-2">
-    <button onclick="openOverviewModal()" class="p-2 rounded-xl bg-slate-800 text-amber-400 btn" title="עריכת נתוני בסיס"><i data-lucide="edit-3" class="w-5 h-5"></i></button>
-    <button onclick="toggleDiscrete()" class="p-2 rounded-xl bg-slate-800 text-slate-300 btn" title="מצב דיסקרטי"><i id="discrete-icon" data-lucide="eye" class="w-5 h-5"></i></button>
+    <button onclick="openOverviewModal()" class="p-2 rounded-xl bg-gray-900 text-amber-400 btn border border-gray-800" title="עריכת נתוני בסיס"><i data-lucide="edit-3" class="w-5 h-5"></i></button>
+    <button onclick="toggleDiscrete()" class="p-2 rounded-xl bg-gray-900 text-slate-300 btn border border-gray-800" title="מצב דיסקרטי"><i id="discrete-icon" data-lucide="eye" class="w-5 h-5"></i></button>
   </div>
 </header>
 
 <main class="max-w-5xl mx-auto px-4 pt-4 space-y-5">
 <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
-  <div class="glass-card p-4 rounded-2xl"><p class="small-stat">יתרה כוללת</p><h3 id="overview-balance" class="text-xl font-extrabold mt-1 amount">₪0</h3><button onclick="openOverviewModal()" class="text-[10px] text-sky-400 mt-1">ערוך</button></div>
+  <div class="glass-card p-4 rounded-2xl"><p class="small-stat">יתרה כוללת</p><h3 id="overview-balance" class="text-xl font-extrabold mt-1 amount text-white">₪0</h3><button onclick="openOverviewModal()" class="text-[10px] text-sky-400 mt-1">ערוך</button></div>
   <div class="glass-card p-4 rounded-2xl"><p class="small-stat">הכנסות החודש</p><h3 id="overview-income" class="text-xl font-extrabold text-emerald-400 mt-1 amount">₪0</h3><button onclick="openIncomeModal()" class="text-[10px] text-sky-400 mt-1">ערוך סכום</button></div>
-  <div class="glass-card p-4 rounded-2xl"><p class="small-stat">הוצאות החודש</p><h3 id="overview-expense" class="text-xl font-extrabold text-rose-400 mt-1 amount">₪0</h3><span id="overview-budget-target" class="text-[10px] text-slate-400"></span></div>
-  <div class="glass-card p-4 rounded-2xl"><p class="small-stat">נשאר החודש</p><h3 id="overview-left" class="text-xl font-extrabold text-indigo-300 mt-1 amount">₪0</h3><span id="overview-rate" class="text-[10px] text-slate-400"></span></div>
+  <div class="glass-card p-4 rounded-2xl"><p class="small-stat">הוצאות החודש</p><h3 id="overview-expense" class="text-xl font-extrabold text-rose-400 mt-1 amount">₪0</h3><span id="overview-budget-target" class="text-[10px] text-gray-400"></span></div>
+  <div class="glass-card p-4 rounded-2xl"><p class="small-stat">נשאר החודש</p><h3 id="overview-left" class="text-xl font-extrabold text-indigo-300 mt-1 amount">₪0</h3><span id="overview-rate" class="text-[10px] text-gray-400"></span></div>
 </section>
 
-<section class="glass-card p-4 rounded-2xl bg-gradient-to-r from-indigo-900/40 to-slate-900/80 border border-indigo-500/20">
+<section class="glass-card p-4 rounded-2xl bg-gradient-to-r from-gray-900 to-indigo-950 border border-indigo-500/10">
   <div class="flex items-center justify-between gap-3">
-    <div><div class="flex items-center gap-2"><i data-lucide="sun" class="w-5 h-5 text-amber-400"></i><h2 class="font-bold">תקציב יומי</h2></div><p class="text-xs text-slate-400">לפי התקציב שנותר ומספר הימים שנותרו בחודש</p></div>
+    <div><div class="flex items-center gap-2"><i data-lucide="sun" class="w-5 h-5 text-amber-400"></i><h2 class="font-bold text-white">תקציב יומי</h2></div><p class="text-xs text-gray-400">לפי התקציב שנותר ומספר הימים שנותרו בחודש</p></div>
     <div class="text-left"><div class="small-stat">מומלץ להיום</div><div id="daily-budget-allowed" class="text-xl font-extrabold text-emerald-400 amount">₪0</div></div>
   </div>
 </section>
 
 <div id="tab-dashboard" class="tab-content space-y-5">
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm">מעקב חודשי</h2><input id="month-filter" type="month" onchange="renderAll()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs"></div>
+    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm text-white">מעקב חודשי</h2><input id="month-filter" type="month" onchange="renderAll()" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white"></div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <div class="bg-slate-800/60 rounded-xl p-3"><div class="small-stat">הכנסות</div><div id="month-income" class="font-bold amount"></div></div>
-      <div class="bg-slate-800/60 rounded-xl p-3"><div class="small-stat">הוצאות</div><div id="month-expense" class="font-bold amount"></div></div>
-      <div class="bg-slate-800/60 rounded-xl p-3"><div class="small-stat">תקציב</div><div id="month-budget" class="font-bold amount"></div></div>
-      <div class="bg-slate-800/60 rounded-xl p-3"><div class="small-stat">נשאר</div><div id="month-left" class="font-bold text-indigo-300 amount"></div></div>
+      <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800"><div class="small-stat">הכנסות</div><div id="month-income" class="font-bold amount"></div></div>
+      <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800"><div class="small-stat">הוצאות</div><div id="month-expense" class="font-bold amount"></div></div>
+      <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800"><div class="small-stat">תקציב</div><div id="month-budget" class="font-bold amount"></div></div>
+      <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800"><div class="small-stat">נשאר</div><div id="month-left" class="font-bold text-indigo-300 amount"></div></div>
     </div>
-    <div class="mt-4 bg-slate-800 rounded-full h-3 overflow-hidden"><div id="budget-progress" class="progress bg-gradient-to-r from-emerald-400 to-indigo-500 h-full" style="width:0%"></div></div>
-    <div class="flex justify-between items-center mt-2 text-xs"><span id="budget-progress-amount" class="font-semibold amount">₪0</span><span id="budget-progress-percent" class="text-slate-400">0%</span></div>
+    <div class="mt-4 bg-gray-900 rounded-full h-3 overflow-hidden border border-gray-800"><div id="budget-progress" class="progress bg-gradient-to-r from-emerald-500 to-indigo-500 h-full" style="width:0%"></div></div>
+    <div class="flex justify-between items-center mt-2 text-xs"><span id="budget-progress-amount" class="font-semibold amount">₪0</span><span id="budget-progress-percent" class="text-gray-400">0%</span></div>
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-4"><h2 class="font-bold text-sm">פילוח הוצאות</h2><span id="current-month-label" class="text-xs text-slate-400"></span></div>
+    <div class="flex justify-between items-center mb-4"><h2 class="font-bold text-sm text-white">פילוח הוצאות</h2><span id="current-month-label" class="text-xs text-gray-400"></span></div>
     <div class="chart-container-wrapper"><canvas id="categoryChart"></canvas></div>
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm">הוספת תנועה</h2><span class="text-xs text-slate-500">הוצאה / הכנסה / משכורת</span></div>
+    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm text-white">הוספת תנועה</h2><span class="text-xs text-gray-500">הוצאה / הכנסה</span></div>
     <form onsubmit="addTransaction(event)" class="grid grid-cols-2 md:grid-cols-6 gap-2">
-      <input id="tx-desc" required placeholder="תיאור" class="col-span-2 md:col-span-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm">
-      <input id="tx-amount" required type="number" step="0.01" placeholder="סכום" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm">
-      <select id="tx-type" onchange="toggleSalaryCategory()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm"><option value="expense">הוצאה</option><option value="income">הכנסה</option></select>
-      <select id="tx-cat" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm">
+      <input id="tx-desc" required placeholder="תיאור" class="col-span-2 md:col-span-2 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
+      <input id="tx-amount" required type="number" step="0.01" placeholder="סכום" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
+      <select id="tx-type" onchange="toggleSalaryCategory()" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white"><option value="expense">הוצאה</option><option value="income">הכנסה</option></select>
+      <select id="tx-cat" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
         <option>אוכל ומזון</option><option>מגורים וחשבונות</option><option>תחבורה</option><option>פנאי ובילויים</option><option>קניות</option><option>משכורת</option><option>עבודה/פרילנס</option><option>השקעות</option><option>שונות</option>
       </select>
-      <input id="tx-date" type="date" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm">
-      <button class="col-span-2 md:col-span-1 bg-indigo-600 hover:bg-indigo-500 rounded-xl px-4 py-2 text-sm font-semibold btn">שמור</button>
+      <input id="tx-date" type="date" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
+      <button class="col-span-2 md:col-span-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 py-2 text-sm font-semibold btn">שמור</button>
     </form>
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm">תנועות</h2><span class="text-xs text-slate-500">לחץ לעריכה, החלק ימינה למחיקה</span></div>
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <h2 class="font-bold text-sm text-white">תנועות חודשיות</h2>
+        <span class="text-[10px] text-gray-400">לחץ לעריכה, החלק ימינה למחיקה</span>
+      </div>
+      <button onclick="exportToPDF()" class="flex items-center gap-1.5 bg-rose-900/40 hover:bg-rose-900/60 border border-rose-700/50 text-rose-300 px-3 py-1.5 rounded-xl text-xs btn">
+        <i data-lucide="file-text" class="w-4 h-4"></i>
+        <span>ייצוא PDF</span>
+      </button>
+    </div>
     <div id="transactions-list" class="space-y-2 max-h-[30rem] overflow-y-auto no-scrollbar"></div>
   </section>
 </div>
 
 <div id="tab-analytics" class="tab-content hidden space-y-5 sensitive-analytics">
   <section class="glass-card p-4 rounded-2xl">
-    <h2 class="font-bold mb-3">מגמת הוצאות לאורך זמן</h2><div class="h-64"><canvas id="trendChart"></canvas></div>
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="calendar" class="w-4 h-4 text-sky-400"></i>מפת חום של הוצאות יומיות</h3>
+        <p class="text-xs text-gray-400">מעקב עמידה בתקציב יומי לאורך החודש</p>
+      </div>
+      <div class="flex items-center gap-2 text-[10px]">
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>עמד בתקציב</span>
+        <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-500"></span>חריגה</span>
+      </div>
+    </div>
+    <div id="monthly-heatmap" class="heatmap-grid pt-2"></div>
   </section>
+
+  <section class="glass-card p-4 rounded-2xl">
+    <h2 class="font-bold mb-3 text-white">מגמת הוצאות לאורך זמן</h2><div class="h-64"><canvas id="trendChart"></canvas></div>
+  </section>
+
   <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 flex items-center gap-2"><i data-lucide="map" class="w-4 h-4 text-amber-400"></i>מפת הוצאות / קטגוריות</h3><div id="category-map" class="space-y-2"></div></div>
-    <div class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3">תובנות</h3><div id="insights" class="space-y-2 text-sm text-slate-300"></div></div>
+    <div class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 text-white flex items-center gap-2"><i data-lucide="map" class="w-4 h-4 text-amber-400"></i>מפת הוצאות / קטגוריות</h3><div id="category-map" class="space-y-2"></div></div>
+    <div class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 text-white">תובנות</h3><div id="insights" class="space-y-2 text-sm text-gray-300"></div></div>
   </section>
 </div>
 
 <div id="tab-pockets" class="tab-content hidden space-y-5">
-  <section class="glass-card p-4 rounded-2xl"><div class="flex justify-between items-center mb-3"><h2 class="font-bold">הוצאות קבועות ומנויים</h2><button onclick="openRecurringModal()" class="text-purple-400 text-sm">+ הוסף</button></div><div id="recurring-list" class="space-y-2"></div></section>
-  <section class="glass-card p-4 rounded-2xl"><div class="flex justify-between items-center mb-3"><div><h2 class="font-bold">קופות חיסכון</h2><div class="text-xs text-slate-400">סה"כ בכל הקופות: <span id="pockets-total" class="font-bold amount">₪0</span></div></div><button onclick="openPocketModal()" class="text-amber-400 text-sm">+ קופה</button></div><div id="pockets-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div></section>
+  <section class="glass-card p-4 rounded-2xl"><div class="flex justify-between items-center mb-3"><h2 class="font-bold text-white">הוצאות קבועות ומנויים</h2><button onclick="openRecurringModal()" class="text-indigo-400 text-sm font-semibold">+ הוסף</button></div><div id="recurring-list" class="space-y-2"></div></section>
+  <section class="glass-card p-4 rounded-2xl"><div class="flex justify-between items-center mb-3"><div><h2 class="font-bold text-white">קופות חיסכון</h2><div class="text-xs text-gray-400">סה"כ בכל הקופות: <span id="pockets-total" class="font-bold amount">₪0</span></div></div><button onclick="openPocketModal()" class="text-amber-400 text-sm font-semibold">+ קופה</button></div><div id="pockets-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div></section>
 </div>
 
 <div id="tab-travel" class="tab-content hidden space-y-5">
-  <section class="glass-card p-4 rounded-2xl border-r-4 border-emerald-500"><div class="flex justify-between items-center mb-3"><div><h2 class="font-bold flex items-center gap-2"><i data-lucide="plane" class="w-5 h-5 text-emerald-400"></i>מצב טיול</h2><p class="text-xs text-slate-400">תקציב נפרד להוצאות בחו"ל</p></div><div class="flex items-center gap-2">
-<button onclick="openTripSettings()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs">תקציב</button>
-<button onclick="openTripModal()" class="bg-emerald-600 rounded-xl px-3 py-2 text-xs">+ הוצאה</button>
-</div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"><div class="bg-slate-800 rounded-xl p-3"><div class="small-stat">תקציב טיול</div><div id="trip-budget" class="font-bold amount"></div></div><div class="bg-slate-800 rounded-xl p-3"><div class="small-stat">הוצאות</div><div id="trip-total" class="font-bold amount"></div></div><div class="bg-slate-800 rounded-xl p-3"><div class="small-stat">נשאר</div><div id="trip-left" class="font-bold text-emerald-400 amount"></div></div><div class="bg-slate-800 rounded-xl p-3"><div class="small-stat">ימי טיול</div><div id="trip-days" class="font-bold"></div></div></div><div id="trip-expenses-list" class="space-y-2"></div></section>
+  <section class="glass-card p-4 rounded-2xl border-r-4 border-emerald-500"><div class="flex justify-between items-center mb-3"><div><h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="plane" class="w-5 h-5 text-emerald-400"></i>מצב טיול</h2><p class="text-xs text-gray-400">תקציב נפרד להוצאות בחו"ל</p></div><div class="flex items-center gap-2">
+<button onclick="openTripSettings()" class="bg-gray-900 border border-gray-800 text-white rounded-xl px-3 py-2 text-xs">תקציב</button>
+<button onclick="openTripModal()" class="bg-emerald-600 text-white rounded-xl px-3 py-2 text-xs">+ הוצאה</button>
+</div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">תקציב טיול</div><div id="trip-budget" class="font-bold amount"></div></div><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">הוצאות</div><div id="trip-total" class="font-bold amount"></div></div><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">נשאר</div><div id="trip-left" class="font-bold text-emerald-400 amount"></div></div><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">ימי טיול</div><div id="trip-days" class="font-bold"></div></div></div><div id="trip-expenses-list" class="space-y-2"></div></section>
 
   <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <section class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3">מחשבון המרת מט"ח</h3><div class="grid grid-cols-2 gap-2"><input id="fx-amount" type="number" value="100" oninput="convertFX()" class="bg-slate-800 border border-slate-700 rounded-xl p-2"><select id="fx-from" onchange="convertFX()" class="bg-slate-800 border border-slate-700 rounded-xl p-2"><option>USD</option><option>EUR</option><option>GBP</option><option>ILS</option></select></div><div class="mt-3 text-center bg-slate-800 rounded-xl p-3"><div class="small-stat">תוצאה בשקלים</div><div id="fx-result" class="text-xl font-bold text-emerald-400">₪0</div><div class="text-[10px] text-slate-500">שערים ניתנים לעריכה בהגדרות</div></div></section>
-    <section class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3">חלוקת חשבון</h3><div class="grid grid-cols-2 gap-2"><input id="split-total" type="number" placeholder="סה"כ חשבון" oninput="calculateSplit()" class="bg-slate-800 border border-slate-700 rounded-xl p-2"><input id="split-people" type="number" value="2" min="1" oninput="calculateSplit()" class="bg-slate-800 border border-slate-700 rounded-xl p-2"></div><div class="mt-3 text-center bg-slate-800 rounded-xl p-3"><div class="small-stat">כל אחד משלם</div><div id="split-result" class="text-xl font-bold text-indigo-300">₪0</div></div></section>
+    <section class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 text-white">מחשבון המרת מט"ח</h3><div class="grid grid-cols-2 gap-2"><input id="fx-amount" type="number" value="100" oninput="convertFX()" class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><select id="fx-from" onchange="convertFX()" class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option>USD</option><option>EUR</option><option>GBP</option><option>ILS</option></select></div><div class="mt-3 text-center bg-gray-900 border border-gray-800 rounded-xl p-3"><div class="small-stat">תוצאה בשקלים</div><div id="fx-result" class="text-xl font-bold text-emerald-400">₪0</div></div></section>
+    <section class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 text-white">חלוקת חשבון</h3><div class="grid grid-cols-2 gap-2"><input id="split-total" type="number" placeholder="סה"כ חשבון" oninput="calculateSplit()" class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="split-people" type="number" value="2" min="1" oninput="calculateSplit()" class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></div><div class="mt-3 text-center bg-gray-900 border border-gray-800 rounded-xl p-3"><div class="small-stat">כל אחד משלם</div><div id="split-result" class="text-xl font-bold text-indigo-300">₪0</div></div></section>
   </section>
 </div>
 
 <div id="tab-settings" class="tab-content hidden space-y-5">
-  <section class="glass-card p-4 rounded-2xl"><h2 class="font-bold mb-4 flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-indigo-400"></i>אבטחה, נתונים וייצוא</h2>
+  <section class="glass-card p-4 rounded-2xl"><h2 class="font-bold mb-4 text-white flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-indigo-400"></i>אבטחה, נתונים וייצוא</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <button onclick="openSecurityModal()" class="bg-slate-800 rounded-xl p-3 text-right btn"><b>הגנה</b><div class="text-xs text-slate-400">נעילה בסיסמה מקומית</div></button>
-      <button onclick="exportCSV()" class="bg-slate-800 rounded-xl p-3 text-right btn"><b>ייצוא CSV</b><div class="text-xs text-slate-400">תנועות, כולל תאריכים וקטגוריות</div></button>
-      <button onclick="exportJSON()" class="bg-slate-800 rounded-xl p-3 text-right btn"><b>גיבוי JSON</b><div class="text-xs text-slate-400">כל נתוני האפליקציה</div></button>
-      <label class="bg-slate-800 rounded-xl p-3 text-right btn cursor-pointer"><b>ייבוא JSON</b><div class="text-xs text-slate-400">שחזור מגיבוי</div><input type="file" accept=".json" onchange="importJSON(event)" class="hidden"></label>
-      <button onclick="openOverviewModal()" class="bg-slate-800 rounded-xl p-3 text-right btn"><b>הגדרות תקציב</b><div class="text-xs text-slate-400">יתרה, תקציב ומשכורת</div></button>
-      <button onclick="clearAllData()" class="bg-rose-950/50 border border-rose-900 rounded-xl p-3 text-right text-rose-300 btn"><b>איפוס הכל</b><div class="text-xs">מחיקה מלאה מהמכשיר</div></button>
+      <button onclick="openSecurityModal()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>הגנה</b><div class="text-xs text-gray-400">נעילה בסיסמה מקומית</div></button>
+      <button onclick="exportCSV()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>ייצוא CSV</b><div class="text-xs text-gray-400">תנועות, כולל תאריכים וקטגוריות</div></button>
+      <button onclick="exportJSON()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>גיבוי JSON</b><div class="text-xs text-gray-400">כל נתוני האפליקציה</div></button>
+      <label class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn cursor-pointer"><b>ייבוא JSON</b><div class="text-xs text-gray-400">שחזור מגיבוי</div><input type="file" accept=".json" onchange="importJSON(event)" class="hidden"></label>
+      <button onclick="openOverviewModal()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>הגדרות תקציב</b><div class="text-xs text-gray-400">יתרה, תקציב ומשכורת</div></button>
+      <button onclick="clearAllData()" class="bg-rose-950/40 border border-rose-900/50 rounded-xl p-3 text-right text-rose-300 btn"><b>איפוס הכל</b><div class="text-xs">מחיקה מלאה מהמכשיר</div></button>
     </div>
   </section>
   <section class="glass-card p-4 rounded-2xl">
       <div class="flex items-center justify-between gap-3">
         <div>
-          <h3 class="font-bold mb-1">שערי מט"ח</h3>
-          <p class="text-xs text-slate-400">מתעדכנים אוטומטית פעם ביום לפי השער האחרון הזמין.</p>
+          <h3 class="font-bold text-white mb-1">שערי מט"ח</h3>
+          <p class="text-xs text-gray-400">מתעדכנים אוטומטית פעם ביום.</p>
         </div>
         <span id="fx-status" class="text-[10px] text-emerald-400 text-left"></span>
       </div>
@@ -192,26 +230,26 @@ input,select,textarea{color-scheme:dark}
 </div>
 </main>
 
-<nav class="fixed bottom-0 left-0 right-0 glass-card border-t border-slate-800 py-2 px-2 flex justify-around z-50 text-xs">
+<nav class="fixed bottom-0 left-0 right-0 glass-card border-t border-gray-800/80 py-2 px-2 flex justify-around z-50 text-xs">
 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-active flex flex-col items-center gap-1 py-1 px-2"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>תקציב</span></button>
-<button onclick="switchTab('analytics')" id="nav-analytics" class="flex flex-col items-center gap-1 text-slate-400 py-1 px-2"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>ניתוחים</span></button>
-<button onclick="switchTab('pockets')" id="nav-pockets" class="flex flex-col items-center gap-1 text-slate-400 py-1 px-2"><i data-lucide="piggy-bank" class="w-5 h-5"></i><span>קבועות</span></button>
-<button onclick="switchTab('travel')" id="nav-travel" class="flex flex-col items-center gap-1 text-slate-400 py-1 px-2"><i data-lucide="plane" class="w-5 h-5"></i><span>טיול וכלים</span></button>
-<button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 text-slate-400 py-1 px-2"><i data-lucide="settings" class="w-5 h-5"></i><span>הגדרות</span></button>
+<button onclick="switchTab('analytics')" id="nav-analytics" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>ניתוחים</span></button>
+<button onclick="switchTab('pockets')" id="nav-pockets" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="piggy-bank" class="w-5 h-5"></i><span>קבועות</span></button>
+<button onclick="switchTab('travel')" id="nav-travel" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="plane" class="w-5 h-5"></i><span>טיול וכלים</span></button>
+<button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="settings" class="w-5 h-5"></i><span>הגדרות</span></button>
 </nav>
 
 <div id="modal-root"></div>
 
-<div id="lock-screen" class="fixed inset-0 z-[9999] hidden bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-5">
-  <div class="w-full max-w-sm glass-card rounded-3xl p-6 text-center">
+<div id="lock-screen" class="fixed inset-0 z-[9999] hidden bg-gray-950/95 backdrop-blur-xl flex items-center justify-center p-5">
+  <div class="w-full max-w-sm glass-card rounded-3xl p-6 text-center border border-gray-800">
     <div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-600 flex items-center justify-center mb-4">
-      <i data-lucide="lock-keyhole" class="w-8 h-8"></i>
+      <i data-lucide="lock-keyhole" class="w-8 h-8 text-white"></i>
     </div>
-    <h2 class="text-xl font-bold">האפליקציה נעולה</h2>
-    <p class="text-sm text-slate-400 mt-1 mb-5">הזן את הסיסמה כדי להמשיך</p>
+    <h2 class="text-xl font-bold text-white">האפליקציה נעולה</h2>
+    <p class="text-sm text-gray-400 mt-1 mb-5">הזן את הסיסמה כדי להמשיך</p>
     <input id="unlock-password" type="password" autocomplete="current-password" placeholder="סיסמה"
-      class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-center mb-3">
-    <button onclick="unlockApp()" class="w-full bg-indigo-600 hover:bg-indigo-500 rounded-2xl px-4 py-3 font-semibold">פתח</button>
+      class="w-full bg-gray-900 border border-gray-800 rounded-2xl px-4 py-3 text-center mb-3 text-white">
+    <button onclick="unlockApp()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl px-4 py-3 font-semibold">פתח</button>
     <p id="unlock-error" class="text-rose-400 text-xs mt-3 hidden">סיסמה שגויה</p>
   </div>
 </div>
@@ -291,7 +329,7 @@ function switchTab(tab){
   document.getElementById('tab-'+tab).classList.remove('hidden');
   document.getElementById('nav-'+tab).classList.add('nav-active');
   if(tab==='dashboard'){renderAll();}
-  if(tab==='analytics'){renderAnalytics();requestAnimationFrame(()=>{updateCharts();lucide.createIcons();});}
+  if(tab==='analytics'){renderAnalytics();requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();});}
   if(tab==='travel'){refreshFXRates(false);convertFX();}
 }
 
@@ -302,7 +340,7 @@ function toggleDiscrete(){
 }
 
 function renderAll(){
-  updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderPockets(); renderTrip(); renderAnalytics(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
+  updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderPockets(); renderTrip(); renderAnalytics(); renderHeatmap(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
 }
 
 function updateOverview(){
@@ -345,26 +383,126 @@ function renderTransactions(){
       </div>` : ''}
       <div class="swipe-content p-3 flex items-center justify-between gap-2 cursor-pointer" onclick="${editHandler}">
         <div class="flex-1 min-w-0">
-          <div class="font-semibold truncate">${esc(t.desc)}</div>
-          <div class="text-[10px] text-slate-400">${esc(t.cat)} • ${esc(t.date)}</div>
+          <div class="font-semibold text-gray-100 truncate">${esc(t.desc)}</div>
+          <div class="text-[10px] text-gray-400">${esc(t.cat)} • ${esc(t.date)}</div>
         </div>
         <div class="text-right">
           <div class="font-bold ${t.type==='income'?'text-emerald-400':'text-rose-400'} amount">${t.type==='income'?'+':'-'}${money(t.amount)}</div>
         </div>
       </div>
     </div>`;
-  }).join(''):'<div class="text-sm text-slate-500 text-center py-6">אין תנועות בחודש שנבחר</div>';
+  }).join(''):'<div class="text-sm text-gray-500 text-center py-6">אין תנועות בחודש שנבחר</div>';
+}
+
+/* PDF Export Feature */
+function exportToPDF() {
+  const m = document.getElementById('month-filter').value || currentMonth();
+  const rows = effectiveMonthTx(m).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const exp = expenseTotal(m);
+  const inc = incomeTotal(m);
+
+  const container = document.createElement('div');
+  container.style.padding = '20px';
+  container.style.fontFamily = 'Heebo, sans-serif';
+  container.style.direction = 'rtl';
+  container.style.color = '#000';
+  container.style.background = '#fff';
+
+  container.innerHTML = `
+    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
+      <h1 style="margin: 0; font-size: 22px;">דוח תנועות חודשי — ${monthLabel(m)}</h1>
+      <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">התקציב שלי • ניהול פיננסי</p>
+    </div>
+    
+    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; background: #f8fafc; padding: 10px; border-radius: 8px;">
+      <div><b>סה"כ הכנסות:</b> ${money(inc)}</div>
+      <div><b>סה"כ הוצאות:</b> ${money(exp)}</div>
+      <div><b>תקציב חודשי:</b> ${money(state.settings.monthlyBudgetTarget)}</div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+      <thead>
+        <tr style="background-color: #0f172a; color: white;">
+          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">תאריך</th>
+          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">תיאור</th>
+          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">קטגוריה</th>
+          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">סוג</th>
+          <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">סכום</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows.map(t => `
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${esc(t.date)}</td>
+            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${esc(t.desc)}</td>
+            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${esc(t.cat)}</td>
+            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${t.type==='income'?'הכנסה':'הוצאה'}</td>
+            <td style="padding: 6px; text-align: left; border: 1px solid #ddd; font-weight: bold; color: ${t.type==='income'?'#059669':'#e11d48'};">${money(t.amount)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+
+  const opt = {
+    margin:       10,
+    filename:     `doh-tnoot-${m}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2 },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(container).save();
+}
+
+/* Monthly Daily Budget Heatmap */
+function renderHeatmap(){
+  const m = document.getElementById('month-filter')?.value || currentMonth();
+  const [year, month] = m.split('-').map(Number);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const dailyBudget = state.settings.monthlyBudgetTarget / daysInMonth;
+  
+  const tx = monthTx(m).filter(t => t.type === 'expense');
+  const dailyExpenses = {};
+  
+  tx.forEach(t => {
+    const day = parseInt(t.date.split('-')[2], 10);
+    dailyExpenses[day] = (dailyExpenses[day] || 0) + Number(t.amount);
+  });
+
+  let html = '';
+  for(let day = 1; day <= daysInMonth; day++){
+    const exp = dailyExpenses[day] || 0;
+    const isOver = exp > dailyBudget;
+    
+    let bgColor = 'bg-gray-900 border-gray-800 text-gray-400';
+    if(exp > 0) {
+      bgColor = isOver 
+        ? 'bg-rose-950/80 border-rose-800 text-rose-300' 
+        : 'bg-emerald-950/80 border-emerald-800 text-emerald-300';
+    }
+
+    html += `
+      <div class="heatmap-day ${bgColor} p-1.5 flex flex-col justify-between" title="יום ${day}: ${money(exp)} (תקציב: ${money(dailyBudget)})">
+        <span class="opacity-60 text-[9px]">${day}</span>
+        <span class="text-[9px] truncate">${exp > 0 ? money(exp) : '-'}</span>
+      </div>
+    `;
+  }
+
+  const container = document.getElementById('monthly-heatmap');
+  if(container) container.innerHTML = html;
 }
 
 function editTransaction(id){
   const t=state.transactions.find(x=>x.id===id); if(!t)return;
   const body=`
     <div class="space-y-3">
-      <input id="m-desc" value="${attr(t.desc)}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">
-      <input id="m-amount" type="number" step="0.01" value="${t.amount}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">
-      <select id="m-type" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><option value="expense" ${t.type==='expense'?'selected':''}>הוצאה</option><option value="income" ${t.type==='income'?'selected':''}>הכנסה</option></select>
-      <input id="m-cat" value="${attr(t.cat)}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2" placeholder="קטגוריה">
-      <input id="m-date" type="date" value="${t.date}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">
+      <input id="m-desc" value="${attr(t.desc)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+      <input id="m-amount" type="number" step="0.01" value="${t.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+      <select id="m-type" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option value="expense" ${t.type==='expense'?'selected':''}>הוצאה</option><option value="income" ${t.type==='income'?'selected':''}>הכנסה</option></select>
+      <input id="m-cat" value="${attr(t.cat)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white" placeholder="קטגוריה">
+      <input id="m-date" type="date" value="${t.date}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
     </div>`;
   openModal('עריכת תנועה',body,()=>{t.desc=v('m-desc');t.amount=Number(v('m-amount'));t.type=v('m-type');t.cat=v('m-cat');t.date=v('m-date');save();closeModal();renderAll()});
 }
@@ -379,14 +517,14 @@ function renderAnalytics(){
   const m=document.getElementById('month-filter')?.value||currentMonth(), tx=monthTx(m).filter(t=>t.type==='expense'), by={};
   tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));
   const arr=Object.entries(by).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('category-map').innerHTML=arr.length?arr.map(([c,n])=>`<div><div class="flex justify-between text-xs"><span>${esc(c)}</span><b>${money(n)}</b></div><div class="bg-slate-800 rounded-full h-2 mt-1"><div class="bg-indigo-500 h-2 rounded-full" style="width:${Math.min(100,n/(arr[0]?.[1]||1)*100)}%"></div></div></div>`).join(''):'<span class="text-slate-500 text-sm">אין נתונים</span>';
+  document.getElementById('category-map').innerHTML=arr.length?arr.map(([c,n])=>`<div><div class="flex justify-between text-xs text-gray-300"><span>${esc(c)}</span><b>${money(n)}</b></div><div class="bg-gray-900 rounded-full h-2 mt-1 border border-gray-800"><div class="bg-indigo-500 h-2 rounded-full" style="width:${Math.min(100,n/(arr[0]?.[1]||1)*100)}%"></div></div></div>`).join(''):'<span class="text-gray-500 text-sm">אין נתונים</span>';
   const budget=state.settings.monthlyBudgetTarget, exp=expenseTotal(m);
   document.getElementById('insights').innerHTML=[
     `הוצאה חודשית: <b>${money(exp)}</b> מתוך ${money(budget)}.`,
     arr[0]?`הקטגוריה הגדולה ביותר: <b>${esc(arr[0][0])}</b> (${money(arr[0][1])}).`:'אין עדיין קטגוריה מובילה.',
     `נשאר לתקציב: <b>${money(budget-exp)}</b>.`,
     `הוצאות קבועות פעילות: <b>${money(sum(state.recurring.filter(r=>r.active!==false)))}</b> לחודש.`
-  ].map(x=>`<div class="bg-slate-800/50 rounded-xl p-3">${x}</div>`).join('');
+  ].map(x=>`<div class="bg-gray-900/60 rounded-xl p-3 border border-gray-800">${x}</div>`).join('');
 }
 
 function updateCharts(){
@@ -402,7 +540,7 @@ function updateCharts(){
         labels:Object.keys(by).length ? Object.keys(by) : ['אין נתונים'],
         datasets:[{
           data:Object.values(by).length ? Object.values(by) : [1],
-          backgroundColor:Object.keys(by).length ? ['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308'] : ['#334155'],
+          backgroundColor:Object.keys(by).length ? ['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308'] : ['#1f2937'],
           borderWidth:0
         }]
       },
@@ -412,7 +550,7 @@ function updateCharts(){
         plugins:{
           legend:{
             position:'bottom',
-            labels:{color:'#cbd5e1',font:{family:'Heebo',size:11}}
+            labels:{color:'#9ca3af',font:{family:'Heebo',size:11}}
           }
         }
       }
@@ -424,7 +562,7 @@ function updateCharts(){
   if(ctx){
     const months=[]; const base=new Date(); for(let i=5;i>=0;i--){const d=new Date(base.getFullYear(),base.getMonth()-i,1);months.push(d.toISOString().slice(0,7))}
     const exps=months.map(mm=>expenseTotal(mm)), incs=months.map(mm=>incomeTotal(mm));
-    trendChart=new Chart(ctx,{type:'line',data:{labels:months.map(monthLabel),datasets:[{label:'הוצאות',data:exps,tension:.35,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.15)',fill:true},{label:'הכנסות',data:incs,tension:.35,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.12)',fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#94a3b8'}},y:{ticks:{color:'#94a3b8'}}},plugins:{legend:{labels:{color:'#cbd5e1'}}}}});
+    trendChart=new Chart(ctx,{type:'line',data:{labels:months.map(monthLabel),datasets:[{label:'הוצאות',data:exps,tension:.35,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.1)',fill:true},{label:'הכנסות',data:incs,tension:.35,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#6b7280'}},y:{ticks:{color:'#6b7280'}}},plugins:{legend:{labels:{color:'#9ca3af'}}}}});
   }
 }
 
@@ -438,34 +576,29 @@ function renderRecurring(){
       </div>
       <div class="swipe-content p-3 flex justify-between items-center cursor-pointer" onclick="editRecurring(${r.id})">
         <div>
-          <b>${esc(r.name)}</b>
-          <div class="text-[10px] text-slate-400">${esc(r.date)} • ${r.active!==false?'פעיל':'מושהה'}</div>
+          <b class="text-gray-200">${esc(r.name)}</b>
+          <div class="text-[10px] text-gray-400">${esc(r.date)} • ${r.active!==false?'פעיל':'מושהה'}</div>
         </div>
         <div class="flex items-center gap-3">
-          <b class="amount">${money(r.amount)}</b>
+          <b class="amount text-white">${money(r.amount)}</b>
         </div>
       </div>
-    </div>`).join(''):'<div class="text-slate-500 text-sm">אין הוצאות קבועות</div>';
+    </div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות קבועות</div>';
 }
 
 function openRecurringModal(id=null){
   const r=id?state.recurring.find(x=>x.id===id):{name:'',amount:'',date:'1 לחודש',active:true};
-  openModal(id?'עריכת הוצאה קבועה':'הוצאה קבועה חדשה',`<input id="r-name" placeholder="שם" value="${attr(r.name)}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><input id="r-amount" type="number" step="0.01" placeholder="סכום חודשי" value="${r.amount}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><input id="r-date" placeholder="מועד חיוב" value="${attr(r.date)}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><label class="flex items-center gap-2 text-sm"><input id="r-active" type="checkbox" ${r.active!==false?'checked':''}> פעיל</label>`,()=>{if(id)Object.assign(r,{name:v('r-name'),amount:Number(v('r-amount')),date:v('r-date'),active:document.getElementById('r-active').checked});else state.recurring.push({id:Date.now(),name:v('r-name'),amount:Number(v('r-amount')),date:v('r-date'),active:document.getElementById('r-active').checked});save();closeModal();renderAll()});
+  openModal(id?'עריכת הוצאה קבועה':'הוצאה קבועה חדשה',`<input id="r-name" placeholder="שם" value="${attr(r.name)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="r-amount" type="number" step="0.01" placeholder="סכום חודשי" value="${r.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="r-date" placeholder="מועד חיוב" value="${attr(r.date)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><label class="flex items-center gap-2 text-sm text-gray-300"><input id="r-active" type="checkbox" ${r.active!==false?'checked':''}> פעיל</label>`,()=>{if(id)Object.assign(r,{name:v('r-name'),amount:Number(v('r-amount')),date:v('r-date'),active:document.getElementById('r-active').checked});else state.recurring.push({id:Date.now(),name:v('r-name'),amount:Number(v('r-amount')),date:v('r-date'),active:document.getElementById('r-active').checked});save();closeModal();renderAll()});
 }
 function editRecurring(id){openRecurringModal(id)} 
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
 
-/* Ultra-stable RTL Swipe Handler */
 function attachSwipeEvents() {
   const containers = document.querySelectorAll('.swipe-container');
   containers.forEach(container => {
     const content = container.querySelector('.swipe-content');
     if(!content) return;
-    
-    let startX = 0;
-    let currentDelta = 0;
-    let isSwiping = false;
-    let isOpen = false;
+    let startX = 0, currentDelta = 0, isSwiping = false, isOpen = false;
 
     content.ontouchstart = (e) => {
       startX = e.touches[0].clientX;
@@ -477,18 +610,10 @@ function attachSwipeEvents() {
       if (!isSwiping) return;
       const currentX = e.touches[0].clientX;
       const diff = currentX - startX;
-      
-      // In RTL layout, moving finger to the right increases clientX (diff > 0)
       if (!isOpen) {
-        if (diff > 0) {
-          currentDelta = Math.min(80, diff);
-          content.style.transform = `translateX(${currentDelta}px)`;
-        }
+        if (diff > 0) { currentDelta = Math.min(80, diff); content.style.transform = `translateX(${currentDelta}px)`; }
       } else {
-        if (diff < 0) {
-          currentDelta = Math.max(0, 80 + diff);
-          content.style.transform = `translateX(${currentDelta}px)`;
-        }
+        if (diff < 0) { currentDelta = Math.max(0, 80 + diff); content.style.transform = `translateX(${currentDelta}px)`; }
       }
     };
 
@@ -496,14 +621,8 @@ function attachSwipeEvents() {
       if (!isSwiping) return;
       isSwiping = false;
       content.style.transition = 'transform 0.2s cubic-bezier(0,0,0.2,1)';
-      
-      if (!isOpen && currentDelta > 30) {
-        content.style.transform = 'translateX(80px)';
-        isOpen = true;
-      } else {
-        content.style.transform = 'translateX(0px)';
-        isOpen = false;
-      }
+      if (!isOpen && currentDelta > 30) { content.style.transform = 'translateX(80px)'; isOpen = true; } 
+      else { content.style.transform = 'translateX(0px)'; isOpen = false; }
       currentDelta = 0;
     };
   });
@@ -511,29 +630,29 @@ function attachSwipeEvents() {
 
 function renderPockets(){
   setText('pockets-total',money(sum(state.pockets)));
-  document.getElementById('pockets-grid').innerHTML=state.pockets.length?state.pockets.map(p=>{const pct=p.target?Math.min(100,p.current/p.target*100):0;return`<div class="bg-slate-800/60 rounded-xl p-4"><div class="flex justify-between"><b>${esc(p.name)}</b><span class="text-xs text-slate-400">${pct.toFixed(0)}%</span></div><div class="flex justify-between mt-2 text-sm"><span class="amount">${money(p.current)}</span><span class="text-slate-400">יעד ${money(p.target)}</span></div><div class="h-2 bg-slate-700 rounded-full mt-2 overflow-hidden"><div class="bg-emerald-500 h-full" style="width:${pct}%"></div></div><div class="grid grid-cols-2 gap-2 mt-3"><button onclick="changePocket(${p.id},-1)" class="bg-rose-900/40 rounded-xl py-2 text-sm">− הורד</button><button onclick="changePocket(${p.id},1)" class="bg-emerald-900/40 rounded-xl py-2 text-sm">+ הוסף</button></div><div class="flex gap-3 mt-2"><button onclick="editPocket(${p.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deletePocket(${p.id})" class="text-rose-400 text-xs">מחק</button></div></div>`}).join(''):'<div class="text-slate-500 text-sm">אין קופות</div>';
+  document.getElementById('pockets-grid').innerHTML=state.pockets.length?state.pockets.map(p=>{const pct=p.target?Math.min(100,p.current/p.target*100):0;return`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-4"><div class="flex justify-between"><b class="text-white">${esc(p.name)}</b><span class="text-xs text-gray-400">${pct.toFixed(0)}%</span></div><div class="flex justify-between mt-2 text-sm"><span class="amount text-emerald-400 font-bold">${money(p.current)}</span><span class="text-gray-400">יעד ${money(p.target)}</span></div><div class="h-2 bg-gray-800 rounded-full mt-2 overflow-hidden"><div class="bg-emerald-500 h-full" style="width:${pct}%"></div></div><div class="grid grid-cols-2 gap-2 mt-3"><button onclick="changePocket(${p.id},-1)" class="bg-rose-950/40 border border-rose-900/40 text-rose-300 rounded-xl py-2 text-sm">− הורד</button><button onclick="changePocket(${p.id},1)" class="bg-emerald-950/40 border border-emerald-900/40 text-emerald-300 rounded-xl py-2 text-sm">+ הוסף</button></div><div class="flex gap-3 mt-2"><button onclick="editPocket(${p.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deletePocket(${p.id})" class="text-rose-400 text-xs">מחק</button></div></div>`}).join(''):'<div class="text-gray-500 text-sm">אין קופות</div>';
 }
-function changePocket(id,direction){const p=state.pockets.find(x=>x.id===id);if(!p)return;openModal(direction>0?'הוספה לקופה':'הורדה מהקופה',`<input id="p-change" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="סכום" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><div class="text-xs text-slate-400">יתרה נוכחית: ${money(p.current)}</div>`,()=>{const amount=Number(v('p-change'))||0;if(amount<=0)return;p.current=Math.max(0,Number(p.current)+direction*amount);save();closeModal();renderAll()})}
+function changePocket(id,direction){const p=state.pockets.find(x=>x.id===id);if(!p)return;openModal(direction>0?'הוספה לקופה':'הורדה מהקופה',`<input id="p-change" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="סכום" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><div class="text-xs text-gray-400">יתרה נוכחית: ${money(p.current)}</div>`,()=>{const amount=Number(v('p-change'))||0;if(amount<=0)return;p.current=Math.max(0,Number(p.current)+direction*amount);save();closeModal();renderAll()})}
 
 function openPocketModal(id=null){
   const p=id?state.pockets.find(x=>x.id===id):{name:'',current:0,target:0};
-  openModal(id?'עריכת קופה':'קופה חדשה',`<input id="p-name" placeholder="שם הקופה" value="${attr(p.name)}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><input id="p-current" type="number" step="0.01" placeholder="סכום נוכחי" value="${p.current}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><input id="p-target" type="number" step="0.01" placeholder="יעד" value="${p.target}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">`,()=>{if(id)Object.assign(p,{name:v('p-name'),current:Number(v('p-current')),target:Number(v('p-target'))});else state.pockets.push({id:Date.now(),name:v('p-name'),current:Number(v('p-current')),target:Number(v('p-target'))});save();closeModal();renderAll()});
+  openModal(id?'עריכת קופה':'קופה חדשה',`<input id="p-name" placeholder="שם הקופה" value="${attr(p.name)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="p-current" type="number" step="0.01" placeholder="סכום נוכחי" value="${p.current}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="p-target" type="number" step="0.01" placeholder="יעד" value="${p.target}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">`,()=>{if(id)Object.assign(p,{name:v('p-name'),current:Number(v('p-current')),target:Number(v('p-target'))});else state.pockets.push({id:Date.now(),name:v('p-name'),current:Number(v('p-current')),target:Number(v('p-target'))});save();closeModal();renderAll()});
 }
 function editPocket(id){openPocketModal(id)} function deletePocket(id){if(confirm('למחוק קופה?')){state.pockets=state.pockets.filter(x=>x.id!==id);save();renderAll()}}
 
 function renderTrip(){
   const t=state.trip; const total=sum(t.expenses.map(e=>({amount:Number(e.amount)*Number(e.rate||1)}))); const left=Number(t.budget)-total; const start=new Date(t.start),end=new Date(t.end); const days=isNaN(start)?0:Math.max(1,Math.round((end-start)/86400000)+1);
   setText('trip-budget',money(t.budget));setText('trip-total',money(total));setText('trip-left',money(left));setText('trip-days',days);
-  document.getElementById('trip-expenses-list').innerHTML=(t.expenses||[]).length?t.expenses.map(e=>`<div class="bg-slate-800/60 rounded-xl p-3 flex justify-between"><div><b>${esc(e.desc)}</b><div class="text-[10px] text-slate-400">${e.amount} ${e.currency} • ${e.date}</div></div><div class="text-right"><b class="text-emerald-400 amount">${money(Number(e.amount)*Number(e.rate||1))}</b><div><button onclick="editTrip(${e.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deleteTrip(${e.id})" class="text-rose-400 text-xs mr-2">מחק</button></div></div></div>`).join(''):'<div class="text-slate-500 text-sm">אין הוצאות טיול</div>';
+  document.getElementById('trip-expenses-list').innerHTML=(t.expenses||[]).length?t.expenses.map(e=>`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex justify-between"><div><b class="text-white">${esc(e.desc)}</b><div class="text-[10px] text-gray-400">${e.amount} ${e.currency} • ${e.date}</div></div><div class="text-right"><b class="text-emerald-400 amount">${money(Number(e.amount)*Number(e.rate||1))}</b><div><button onclick="editTrip(${e.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deleteTrip(${e.id})" class="text-rose-400 text-xs mr-2">מחק</button></div></div></div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות טיול</div>';
 }
-function openTripModal(id=null){const e=id?state.trip.expenses.find(x=>x.id===id):{desc:'',amount:0,currency:'EUR',rate:state.settings.rates.EUR,date:today()};openModal(id?'עריכת הוצאת טיול':'הוצאת טיול חדשה',`<input id="tr-desc" placeholder="תיאור" value="${attr(e.desc)}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><input id="tr-amount" type="number" step="0.01" placeholder="סכום במטבע" value="${e.amount}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><select id="tr-currency" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><option ${e.currency==='EUR'?'selected':''}>EUR</option><option ${e.currency==='USD'?'selected':''}>USD</option><option ${e.currency==='GBP'?'selected':''}>GBP</option></select><input id="tr-rate" type="number" step="0.0001" placeholder="שער לשקל" value="${e.rate}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><input id="tr-date" type="date" value="${e.date}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">`,()=>{const obj={desc:v('tr-desc'),amount:Number(v('tr-amount')),currency:v('tr-currency'),rate:Number(v('tr-rate')),date:v('tr-date')};if(id)Object.assign(e,obj);else state.trip.expenses.unshift({id:Date.now(),...obj});save();closeModal();renderAll()})}
+function openTripModal(id=null){const e=id?state.trip.expenses.find(x=>x.id===id):{desc:'',amount:0,currency:'EUR',rate:state.settings.rates.EUR,date:today()};openModal(id?'עריכת הוצאת טיול':'הוצאת טיול חדשה',`<input id="tr-desc" placeholder="תיאור" value="${attr(e.desc)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="tr-amount" type="number" step="0.01" placeholder="סכום במטבע" value="${e.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><select id="tr-currency" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option ${e.currency==='EUR'?'selected':''}>EUR</option><option ${e.currency==='USD'?'selected':''}>USD</option><option ${e.currency==='GBP'?'selected':''}>GBP</option></select><input id="tr-rate" type="number" step="0.0001" placeholder="שער לשקל" value="${e.rate}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="tr-date" type="date" value="${e.date}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">`,()=>{const obj={desc:v('tr-desc'),amount:Number(v('tr-amount')),currency:v('tr-currency'),rate:Number(v('tr-rate')),date:v('tr-date')};if(id)Object.assign(e,obj);else state.trip.expenses.unshift({id:Date.now(),...obj});save();closeModal();renderAll()})}
 function editTrip(id){openTripModal(id)} function deleteTrip(id){if(confirm('למחוק הוצאה?')){state.trip.expenses=state.trip.expenses.filter(x=>x.id!==id);save();renderAll()}}
 function openTripSettings(){
   const t=state.trip;
   openModal('הגדרות טיול',`
-    <input id="trip-budget-input" type="number" step="0.01" placeholder="תקציב טיול בשקלים" value="${Number(t.budget)||0}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">
-    <input id="trip-start-input" type="date" value="${attr(t.start||today())}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">
-    <input id="trip-end-input" type="date" value="${attr(t.end||today())}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2">
+    <input id="trip-budget-input" type="number" step="0.01" placeholder="תקציב טיול בשקלים" value="${Number(t.budget)||0}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    <input id="trip-start-input" type="date" value="${attr(t.start||today())}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    <input id="trip-end-input" type="date" value="${attr(t.end||today())}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
   `,()=>{
     state.trip.budget=Number(v('trip-budget-input'))||0;
     state.trip.start=v('trip-start-input')||today();
@@ -544,14 +663,14 @@ function openTripSettings(){
 
 function openOverviewModal(){
   openModal('הגדרות תקציב בסיס',`
-    <label class="text-sm">יתרה התחלתית<input id="ov-balance" type="number" step="0.01" value="${state.settings.initialBalance}" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl p-2"></label>
-    <label class="text-sm">תקציב חודשי<input id="ov-budget" type="number" step="0.01" value="${state.settings.monthlyBudgetTarget}" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl p-2"></label>
-    <label class="text-sm">משכורת חודשית ברירת מחדל<input id="ov-salary" type="number" step="0.01" value="${state.settings.monthlySalary}" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl p-2"></label>
+    <label class="text-sm text-gray-300">יתרה התחלתית<input id="ov-balance" type="number" step="0.01" value="${state.settings.initialBalance}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label>
+    <label class="text-sm text-gray-300">תקציב חודשי<input id="ov-budget" type="number" step="0.01" value="${state.settings.monthlyBudgetTarget}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label>
+    <label class="text-sm text-gray-300">משכורת חודשית ברירת מחדל<input id="ov-salary" type="number" step="0.01" value="${state.settings.monthlySalary}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label>
   `,()=>{state.settings.initialBalance=Number(v('ov-balance'));state.settings.monthlyBudgetTarget=Number(v('ov-budget'));state.settings.monthlySalary=Number(v('ov-salary'));save();closeModal();renderAll()});
 }
 function openIncomeModal(){
   const m=document.getElementById('month-filter')?.value||currentMonth(); const salary=state.transactions.find(t=>t.type==='income'&&t.cat==='משכורת'&&String(t.date).slice(0,7)===m); const value=salary?salary.amount:(Number(state.settings.monthlySalary)||0);
-  openModal('עריכת משכורת — '+monthLabel(m),`<input id="inc-total" type="number" inputmode="decimal" step="0.01" value="${value}" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2"><div class="text-xs text-slate-400">המשכורת תופיע אוטומטית בכל חודש. שינוי כאן יוצר/מעדכן את המשכורת של החודש שנבחר.</div>`,()=>{const amount=Number(v('inc-total'))||0; let tx=state.transactions.find(t=>t.type==='income'&&t.cat==='משכורת'&&String(t.date).slice(0,7)===m); if(tx)tx.amount=amount; else state.transactions.unshift({id:Date.now(),desc:'משכורת חודשית',amount,type:'income',cat:'משכורת',date:`${m}-01`}); state.settings.monthlySalary=amount;save();closeModal();renderAll()})
+  openModal('עריכת משכורת — '+monthLabel(m),`<input id="inc-total" type="number" inputmode="decimal" step="0.01" value="${value}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><div class="text-xs text-gray-400">המשכורת תופיע אוטומטית בכל חודש. שינוי כאן יוצר/מעדכן את המשכורת של החודש שנבחר.</div>`,()=>{const amount=Number(v('inc-total'))||0; let tx=state.transactions.find(t=>t.type==='income'&&t.cat==='משכורת'&&String(t.date).slice(0,7)===m); if(tx)tx.amount=amount; else state.transactions.unshift({id:Date.now(),desc:'משכורת חודשית',amount,type:'income',cat:'משכורת',date:`${m}-01`}); state.settings.monthlySalary=amount;save();closeModal();renderAll()})
 }
 
 async function hashPassword(p){
@@ -568,25 +687,18 @@ async function unlockApp(){
   const input=v('unlock-password');
   const stored=state.security?.password||'';
   let ok=false;
-  if(stored){
-    ok = stored.length===64 ? (await hashPassword(input))===stored : input===stored;
-  }
+  if(stored){ ok = stored.length===64 ? (await hashPassword(input))===stored : input===stored; }
   if(ok){
     document.getElementById('lock-screen').classList.add('hidden');
     document.body.style.overflow='';
     document.getElementById('unlock-error').classList.add('hidden');
     document.getElementById('unlock-password').value='';
-    if(stored.length!==64){
-      state.security.password=await hashPassword(input);
-      save();
-    }
-  }else{
-    document.getElementById('unlock-error').classList.remove('hidden');
-  }
+    if(stored.length!==64){ state.security.password=await hashPassword(input); save(); }
+  }else{ document.getElementById('unlock-error').classList.remove('hidden'); }
 }
 
 function openSecurityModal(){
-  openModal('נעילת אפליקציה',`<label class="text-sm">סיסמה חדשה<input id="sec-pass" type="password" autocomplete="new-password" placeholder="השאר ריק כדי לא לשנות" class="mt-1 w-full bg-slate-800 border border-slate-700 rounded-xl p-2"></label><label class="flex items-center gap-2 text-sm mt-2"><input id="sec-enable" type="checkbox" ${state.security.enabled?'checked':''}> דרוש סיסמה בכניסה</label><div class="text-[10px] text-slate-500 mt-2">הסיסמה נשמרת בצורה מוצפנת.</div>`,async()=>{
+  openModal('נעילת אפליקציה',`<label class="text-sm text-gray-300">סיסמה חדשה<input id="sec-pass" type="password" autocomplete="new-password" placeholder="השאר ריק כדי לא לשנות" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="flex items-center gap-2 text-sm text-gray-300 mt-2"><input id="sec-enable" type="checkbox" ${state.security.enabled?'checked':''}> דרוש סיסמה בכניסה</label>`,async()=>{
     const p=v('sec-pass');
     const enabled=document.getElementById('sec-enable').checked;
     if(p) state.security.password=await hashPassword(p);
@@ -612,9 +724,7 @@ async function refreshFXRates(force=false){
     state.settings.rates.ILS=1;
     state.settings.fxUpdatedAt=rows[0]?.date || todayUTC;
     save(); updateFXStatus(); convertFX();
-  }catch(err){
-    updateFXStatus(true); convertFX();
-  }
+  }catch(err){ updateFXStatus(true); convertFX(); }
 }
 function updateFXStatus(failed=false){
   const el=document.getElementById('fx-status'); if(!el)return;
@@ -637,7 +747,7 @@ function download(data,type,name){const a=document.createElement('a');a.href=URL
 function clearAllData(){if(confirm('למחוק את כל הנתונים? פעולה זו אינה הפיכה.')){localStorage.removeItem(KEY);location.reload()}}
 
 function openModal(title,body,onSave){
-  document.getElementById('modal-root').innerHTML=`<div class="modal fixed inset-0 z-[100] flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()"><div class="glass-card w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center"><h3 class="font-bold">${esc(title)}</h3><button onclick="closeModal()" class="text-slate-400"><i data-lucide="x"></i></button></div><div class="space-y-2">${body}</div><div class="flex justify-end gap-2"><button onclick="closeModal()" class="bg-slate-800 rounded-xl px-4 py-2 text-sm">ביטול</button><button id="modal-save" class="bg-indigo-600 rounded-xl px-4 py-2 text-sm">שמור</button></div></div></div>`;
+  document.getElementById('modal-root').innerHTML=`<div class="modal fixed inset-0 z-[100] flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()"><div class="glass-card border border-gray-800 w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center"><h3 class="font-bold text-white">${esc(title)}</h3><button onclick="closeModal()" class="text-gray-400"><i data-lucide="x"></i></button></div><div class="space-y-2">${body}</div><div class="flex justify-end gap-2"><button onclick="closeModal()" class="bg-gray-800 text-white rounded-xl px-4 py-2 text-sm">ביטול</button><button id="modal-save" class="bg-indigo-600 text-white rounded-xl px-4 py-2 text-sm font-semibold">שמור</button></div></div></div>`;
   document.getElementById('modal-save').onclick=onSave;lucide.createIcons();applyNumericKeyboard();
 }
 function closeModal(){document.getElementById('modal-root').innerHTML=''}
