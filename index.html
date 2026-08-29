@@ -81,7 +81,7 @@
 
   <div class="grid">
     <div class="card stat"><div class="label">משכורת נטו</div><div class="value" id="salary">₪0</div></div>
-    <div class="card stat"><div class="label">סה״כ הוצאות</div><div class="value red" id="spent">₪0</div></div>
+    <div class="card stat"><div class="label">סה״כ הוצאות (נטו)</div><div class="value red" id="spent">₪0</div></div>
     <div class="card stat"><div class="label">נשאר החודש</div><div class="value green" id="remaining">₪0</div></div>
     <div class="card stat"><div class="label">הוצאות קבועות</div><div class="value" id="fixedTotal">₪0</div></div>
   </div>
@@ -89,18 +89,18 @@
   <div class="main">
     <section class="card">
       <div class="section-title">
-        <h2>הוצאות משתנות</h2>
-        <button class="primary" id="addExpense">＋ הוצאה</button>
+        <h2>תנועות החודש</h2>
+        <button class="primary" id="addExpense">＋ תנועה</button>
       </div>
       <div id="expenseTable"></div>
     </section>
 
     <aside class="card">
       <div class="section-title"><h2>תקציב החודש</h2><button class="secondary" id="editMonth">עריכה</button></div>
-      <div class="budget-row"><span>הוצאות מתוך המשכורת</span><strong id="percent">0%</strong></div>
+      <div class="budget-row"><span>הוצאות נטו מתוך המשכורת</span><strong id="percent">0%</strong></div>
       <div class="progress"><div id="progressBar" style="width:0%"></div></div>
       <div class="budget-row"><span>משכורת חודש זה</span><strong id="salarySide">₪0</strong></div>
-      <div class="budget-row" style="margin-top:7px"><span>סה"כ הוצאות (כולל קבועות)</span><strong id="spentSide">₪0</strong></div>
+      <div class="budget-row" style="margin-top:7px"><span>סה"כ הוצאות נטו (כולל קבועות)</span><strong id="spentSide">₪0</strong></div>
       <div class="actions">
         <button class="secondary" id="fixedManager">ניהול הוצאות קבועות</button>
         <button class="secondary" id="backup">גיבוי</button>
@@ -119,22 +119,27 @@
 
 <nav class="bottom-nav" aria-label="ניווט">
   <button class="nav-item active" onclick="window.scrollTo({top:0,behavior:'smooth'})"><span>⌂</span><span>בית</span></button>
-  <button class="nav-item" onclick="document.getElementById('addExpense').click()"><span>＋</span><span>הוצאה</span></button>
+  <button class="nav-item" onclick="document.getElementById('addExpense').click()"><span>＋</span><span>תנועה</span></button>
   <button class="nav-item" onclick="document.getElementById('fixedList').scrollIntoView({behavior:'smooth'})"><span>↻</span><span>קבועות</span></button>
   <button class="nav-item" onclick="document.getElementById('backup').click()"><span>⚙</span><span>גיבוי</span></button>
 </nav>
-<button class="fab" id="mobileFab" aria-label="הוספת הוצאה">＋</button>
+<button class="fab" id="mobileFab" aria-label="הוספת תנועה">＋</button>
 
 <div class="modal-backdrop" id="expenseModal">
   <div class="modal">
-    <h2>הוצאה חדשה</h2>
+    <h2>תנועה חדשה</h2>
+    <label>סוג תנועה</label>
+    <select id="expenseType" class="field">
+      <option value="expense">🔴 הוצאה</option>
+      <option value="income">🟢 הכנסה (קבלת כסף)</option>
+    </select>
     <label>סכום</label><input id="expenseAmount" class="field" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0">
     <label>קטגוריה</label>
     <select id="expenseCategory" class="field">
       <option>🍔 אוכל</option><option>🚗 רכב</option><option>🛒 קניות</option><option>🎮 בילויים</option>
-      <option>🏠 בית</option><option>💻 מנויים</option><option>✈️ חופשות</option><option>💳 אחר</option>
+      <option>🏠 בית</option><option>💻 מנויים</option><option>✈️ חופשות</option><option>💰 הכנסה נוספת</option><option>💳 אחר</option>
     </select>
-    <label>תיאור</label><input id="expenseDescription" class="field" placeholder="למשל: מסעדה">
+    <label>תיאור</label><input id="expenseDescription" class="field" placeholder="למשל: החזר מחבר / מסעדה">
     <label>תאריך</label><input id="expenseDate" class="field" type="date">
     <div class="modal-actions"><button class="secondary" data-close>ביטול</button><button class="primary" id="saveExpense">שמירה</button></div>
   </div>
@@ -167,7 +172,6 @@
 const KEY='salary-expense-tracker-v1';
 const months=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
 
-// טעינת נתונים או יצירת ברירת מחדל (כולל defaultSalary)
 let state=JSON.parse(localStorage.getItem(KEY)||'null')||{months:{},fixed:[],defaultSalary:0};
 if(state.defaultSalary === undefined) state.defaultSalary = 0;
 
@@ -175,7 +179,6 @@ let current=new Date(); current=new Date(current.getFullYear(),current.getMonth(
 const money=n=>new Intl.NumberFormat('he-IL',{style:'currency',currency:'ILS',maximumFractionDigits:2}).format(Number(n)||0);
 const key=()=>`${current.getFullYear()}-${String(current.getMonth()+1).padStart(2,'0')}`;
 
-// יצירת חודש חדש עם המשכורת הקבועה במידה ולא הוגדר עדיין
 const data=()=>{
   const k = key();
   if(!state.months[k]){
@@ -189,42 +192,62 @@ function persist(){localStorage.setItem(KEY,JSON.stringify(state));}
 function render(){
   const d=data();
   const fixedTotal = state.fixed.reduce((s,x)=>s+Number(x.amount),0);
-  const variableSpent = d.expenses.reduce((s,x)=>s+Number(x.amount),0);
   
-  // סה"כ ההוצאות כולל קבועות
-  const totalSpent = variableSpent + fixedTotal;
-  const remaining = Number(d.salary) - totalSpent;
+  // חישוב הוצאות והכנסות משתנות
+  let variableExpenses = 0;
+  let variableIncome = 0;
+  
+  d.expenses.forEach(x => {
+    const amt = Number(x.amount) || 0;
+    if(x.type === 'income') {
+      variableIncome += amt;
+    } else {
+      variableExpenses += amt;
+    }
+  });
+
+  // הוצאות נטו = הוצאות משתנות + הוצאות קבועות - הכנסות נוספות
+  const totalNetSpent = (variableExpenses + fixedTotal) - variableIncome;
+  const remaining = Number(d.salary) - totalNetSpent;
 
   document.getElementById('monthLabel').textContent=`${months[current.getMonth()]} ${current.getFullYear()}`;
   document.getElementById('salary').textContent=money(d.salary);
-  document.getElementById('spent').textContent=money(totalSpent);
   
+  const spentEl = document.getElementById('spent');
+  spentEl.textContent = money(totalNetSpent);
+  spentEl.className = 'value ' + (totalNetSpent > 0 ? 'red' : 'green');
+
   const remEl = document.getElementById('remaining');
   remEl.textContent = money(remaining);
   remEl.className = 'value ' + (remaining >= 0 ? 'green' : 'red');
 
   document.getElementById('fixedTotal').textContent=money(fixedTotal);
   document.getElementById('salarySide').textContent=money(d.salary);
-  document.getElementById('spentSide').textContent=money(totalSpent);
+  document.getElementById('spentSide').textContent=money(totalNetSpent);
 
-  const pct = d.salary ? Math.min(100, (totalSpent / d.salary) * 100) : 0;
+  const pct = d.salary ? Math.max(0, Math.min(100, (totalNetSpent / d.salary) * 100)) : 0;
   document.getElementById('percent').textContent=`${Math.round(pct)}%`;
   document.getElementById('progressBar').style.width=pct+'%';
 
   const wrap=document.getElementById('expenseTable');
   if(!d.expenses.length){
-    wrap.innerHTML='<div class="empty">אין הוצאות משתנות החודש עדיין.<br>לחץ על ＋ הוצאה כדי להוסיף.</div>';
+    wrap.innerHTML='<div class="empty">אין תנועות החודש עדיין.<br>לחץ על ＋ תנועה כדי להוסיף.</div>';
   } else {
-    wrap.innerHTML=[...d.expenses].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`
-      <div class="expense-row">
-        <div class="expense-main">
-          <div class="expense-desc">${escapeHtml(e.description||e.category)}</div>
-          <div class="expense-meta">${escapeHtml(e.category)} · ${e.date}</div>
+    wrap.innerHTML=[...d.expenses].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{
+      const isIncome = e.type === 'income';
+      const colorClass = isIncome ? 'green' : 'red';
+      const sign = isIncome ? '+' : '-';
+      return `
+        <div class="expense-row">
+          <div class="expense-main">
+            <div class="expense-desc">${escapeHtml(e.description||e.category)}</div>
+            <div class="expense-meta">${escapeHtml(e.category)} · ${e.date}</div>
+          </div>
+          <div class="expense-amount ${colorClass}">${sign}${money(e.amount)}</div>
+          <button class="delete" onclick="removeExpense('${e.id}')" aria-label="מחיקה">×</button>
         </div>
-        <div class="expense-amount">${money(e.amount)}</div>
-        <button class="delete" onclick="removeExpense('${e.id}')" aria-label="מחיקה">×</button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   const fl=document.getElementById('fixedList');
@@ -262,11 +285,24 @@ document.getElementById('saveMonth').onclick=()=>{
   persist();closeAll();render();
 };
 
-document.getElementById('addExpense').onclick=()=>{document.getElementById('expenseDate').value=new Date().toISOString().slice(0,10);open('expenseModal');document.getElementById('expenseAmount').focus()};
+document.getElementById('addExpense').onclick=()=>{
+  document.getElementById('expenseDate').value=new Date().toISOString().slice(0,10);
+  document.getElementById('expenseType').value='expense';
+  open('expenseModal');
+  document.getElementById('expenseAmount').focus();
+};
+
 document.getElementById('saveExpense').onclick=()=>{
   const amount=Number(document.getElementById('expenseAmount').value);
   if(!amount||amount<0)return alert('הזן סכום תקין');
-  data().expenses.push({id:crypto.randomUUID(),amount,category:document.getElementById('expenseCategory').value,description:document.getElementById('expenseDescription').value,date:document.getElementById('expenseDate').value||new Date().toISOString().slice(0,10)});
+  data().expenses.push({
+    id:crypto.randomUUID(),
+    type: document.getElementById('expenseType').value,
+    amount,
+    category:document.getElementById('expenseCategory').value,
+    description:document.getElementById('expenseDescription').value,
+    date:document.getElementById('expenseDate').value||new Date().toISOString().slice(0,10)
+  });
   persist();closeAll();['expenseAmount','expenseDescription'].forEach(id=>document.getElementById(id).value='');render();
 };
 
