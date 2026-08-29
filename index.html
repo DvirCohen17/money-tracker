@@ -30,7 +30,7 @@ input,select,textarea{color-scheme:dark}
 .progress{transition:width .25s ease}
 .small-stat{font-size:11px;color:#94a3b8}
 
-/* iOS Swipe Action Styles Fixed */
+/* iOS Swipe Action Styles - RTL Fixed with Blur Background */
 .swipe-container {
   position: relative;
   overflow: hidden;
@@ -42,23 +42,27 @@ input,select,textarea{color-scheme:dark}
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
+  right: 0; /* Aligned to Right for RTL Swipe */
   width: 75px;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1;
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.2s ease;
 }
 .swipe-delete-btn {
   width: 100%;
   height: 100%;
-  background-color: #ef4444;
+  background-color: rgba(239, 68, 68, 0.85); /* Blurred translucent red */
+  backdrop-filter: blur(8px);
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   cursor: pointer;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
 }
 .swipe-content {
   position: relative;
@@ -69,7 +73,6 @@ input,select,textarea{color-scheme:dark}
   border-radius: 0.75rem;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
-/* Chart container fix for mobile */
 .chart-container-wrapper {
   position: relative;
   width: 100%;
@@ -141,7 +144,7 @@ input,select,textarea{color-scheme:dark}
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm">תנועות</h2><span class="text-xs text-slate-500">לחץ לעריכה, החלק למחיקה</span></div>
+    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm">תנועות</h2><span class="text-xs text-slate-500">לחץ לעריכה, החלק ימינה למחיקה</span></div>
     <div id="transactions-list" class="space-y-2 max-h-[30rem] overflow-y-auto no-scrollbar"></div>
   </section>
 </div>
@@ -460,12 +463,13 @@ function openRecurringModal(id=null){
 function editRecurring(id){openRecurringModal(id)} 
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
 
-/* Fixed Swipe gesture implementation */
+/* Updated Swipe gesture implementation for RTL Swipe & Hidden Action Button */
 function attachSwipeEvents() {
   const containers = document.querySelectorAll('.swipe-container');
   containers.forEach(container => {
     const content = container.querySelector('.swipe-content');
-    if(!content) return;
+    const actions = container.querySelector('.swipe-actions');
+    if(!content || !actions) return;
     
     let startX = 0;
     let currentX = 0;
@@ -481,11 +485,13 @@ function attachSwipeEvents() {
       currentX = e.touches[0].clientX;
       const diffX = currentX - startX;
       
-      // Swipe left (reveals the delete button on the left)
-      if (diffX < 0 && diffX > -90) {
+      // Swipe Right for RTL Layout (reveals the action button on the right side)
+      if (diffX > 0 && diffX < 90) {
         content.style.transform = `translateX(${diffX}px)`;
-      } else if (diffX > 0 && diffX < 90 && content.style.transform !== 'translateX(0px)') {
-        content.style.transform = `translateX(${Math.min(0, -75 + diffX)}px)`;
+        actions.style.opacity = Math.min(1, diffX / 40);
+      } else if (diffX < 0 && diffX > -90 && content.style.transform !== 'translateX(0px)') {
+        content.style.transform = `translateX(${Math.max(0, 75 + diffX)}px)`;
+        actions.style.opacity = Math.max(0, (75 + diffX) / 75);
       }
     }, {passive: true});
 
@@ -494,10 +500,12 @@ function attachSwipeEvents() {
       isSwiping = false;
       const diffX = currentX - startX;
 
-      if (diffX < -35) {
-        content.style.transform = 'translateX(-75px)';
+      if (diffX > 35) {
+        content.style.transform = 'translateX(75px)';
+        actions.style.opacity = '1';
       } else {
         content.style.transform = 'translateX(0px)';
+        actions.style.opacity = '0';
       }
     });
   });
