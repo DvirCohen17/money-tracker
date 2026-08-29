@@ -30,41 +30,44 @@ input,select,textarea{color-scheme:dark}
 .progress{transition:width .25s ease}
 .small-stat{font-size:11px;color:#94a3b8}
 
-/* iOS Swipe Action Styles */
+/* iOS Swipe Action Styles Fixed */
 .swipe-container {
   position: relative;
   overflow: hidden;
   border-radius: 0.75rem;
   touch-action: pan-y;
+  background-color: transparent;
 }
 .swipe-actions {
   position: absolute;
   top: 0;
   bottom: 0;
   left: 0;
-  right: 0;
+  width: 75px;
   display: flex;
-  justify-content: flex-end;
-  background-color: #ef4444;
-  border-radius: 0.75rem;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
 }
 .swipe-delete-btn {
-  width: 80px;
+  width: 100%;
   height: 100%;
+  background-color: #ef4444;
+  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-weight: bold;
-  font-size: 0.875rem;
   cursor: pointer;
 }
 .swipe-content {
   position: relative;
-  background-color: rgba(30, 41, 59, 0.8);
+  background-color: rgba(30, 41, 59, 0.95);
   transition: transform 0.2s ease-out;
   z-index: 10;
   width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 /* Chart container fix for mobile */
 .chart-container-wrapper {
@@ -79,7 +82,10 @@ input,select,textarea{color-scheme:dark}
 <header class="sticky top-0 z-40 glass-card px-4 py-3 flex items-center justify-between border-b border-slate-800">
   <div class="flex items-center gap-3">
     <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center font-bold shadow-lg shadow-indigo-500/30"><i data-lucide="wallet" class="w-6 h-6"></i></div>
-    <div><h1 class="font-bold text-lg leading-tight">התקציב שלי</h1><p class="text-xs text-slate-400">ניהול פיננסי אישי</p></div>
+    <div>
+      <h1 class="font-bold text-lg leading-tight">התקציב שלי</h1>
+      <p id="header-date" class="text-xs text-sky-400 font-medium"></p>
+    </div>
   </div>
   <div class="flex items-center gap-2">
     <button onclick="openOverviewModal()" class="p-2 rounded-xl bg-slate-800 text-amber-400 btn" title="עריכת נתוני בסיס"><i data-lucide="edit-3" class="w-5 h-5"></i></button>
@@ -198,9 +204,7 @@ input,select,textarea{color-scheme:dark}
 <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 text-slate-400 py-1 px-2"><i data-lucide="settings" class="w-5 h-5"></i><span>הגדרות</span></button>
 </nav>
 
-<!-- Generic modal -->
 <div id="modal-root"></div>
-
 
 <div id="lock-screen" class="fixed inset-0 z-[9999] hidden bg-slate-950/95 backdrop-blur-xl flex items-center justify-center p-5" style="padding-top:max(20px,env(safe-area-inset-top));padding-bottom:max(20px,env(safe-area-inset-bottom));">
   <div class="w-full max-w-sm glass-card rounded-3xl p-6 text-center">
@@ -215,6 +219,7 @@ input,select,textarea{color-scheme:dark}
     <p id="unlock-error" class="text-rose-400 text-xs mt-3 hidden">סיסמה שגויה</p>
   </div>
 </div>
+
 <script>
 const KEY='budget_app_v3';
 const today=()=>new Date().toISOString().slice(0,10);
@@ -246,6 +251,7 @@ const defaults={
   ]},
   security:{enabled:false,password:''}
 };
+
 function load(){try{const s=JSON.parse(localStorage.getItem(KEY)); return s?{...clone(defaults),...s,settings:{...defaults.settings,...(s.settings||{}),rates:{...defaults.settings.rates,...((s.settings||{}).rates||{})}}}:clone(defaults)}catch{return clone(defaults)}}
 let state=load();
 state.settings = state.settings || {};
@@ -268,7 +274,14 @@ function expenseTotal(m=currentMonth()){return sum(effectiveMonthTx(m).filter(t=
 function incomeTotal(m=currentMonth()){return sum(effectiveMonthTx(m).filter(t=>t.type==='income'))}
 function monthLabel(m){const [y,mo]=m.split('-');return new Date(Number(y),Number(mo)-1,1).toLocaleDateString('he-IL',{month:'long',year:'numeric'})}
 
+function renderHeaderDate() {
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  const formattedDate = new Date().toLocaleDateString('he-IL', options);
+  document.getElementById('header-date').innerText = formattedDate;
+}
+
 document.addEventListener('DOMContentLoaded',async()=>{
+  renderHeaderDate();
   document.getElementById('month-filter').value=currentMonth();
   document.getElementById('tx-date').value=today();
   syncSettingsUI(); renderAll(); lucide.createIcons(); applyNumericKeyboard(); convertFX(); calculateSplit();
@@ -276,6 +289,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   setInterval(()=>refreshFXRates(false),6*60*60*1000);
   if(state.security?.enabled) lockApp();
 });
+
 function switchTab(tab){
   document.querySelectorAll('.tab-content').forEach(x=>x.classList.add('hidden'));
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
@@ -285,14 +299,17 @@ function switchTab(tab){
   if(tab==='analytics'){renderAnalytics();requestAnimationFrame(()=>{updateCharts();lucide.createIcons();});}
   if(tab==='travel'){refreshFXRates(false);convertFX();}
 }
+
 function toggleDiscrete(){
   isDiscrete=!isDiscrete; document.body.classList.toggle('discrete-mode',isDiscrete);
   document.querySelectorAll('.amount').forEach(e=>e.classList.toggle('discrete-blur',isDiscrete));
   document.getElementById('discrete-icon').setAttribute('data-lucide',isDiscrete?'eye-off':'eye'); lucide.createIcons();
 }
+
 function renderAll(){
   updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderPockets(); renderTrip(); renderAnalytics(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
 }
+
 function updateOverview(){
   const income=incomeTotal(), expense=expenseTotal(), left=state.settings.monthlyBudgetTarget-expense;
   const balance=Number(state.settings.initialBalance)+sum(state.transactions.filter(t=>t.type==='income'))-sum(state.transactions.filter(t=>t.type==='expense'))+Number(state.settings.monthlySalary||0)-sum(state.recurring.filter(r=>r.active!==false));
@@ -302,11 +319,13 @@ function updateOverview(){
   const now=new Date(), days=new Date(now.getFullYear(),now.getMonth()+1,0).getDate()-now.getDate()+1;
   setText('daily-budget-allowed',money(Math.max(0,left/days)));
 }
+
 function renderMonthly(){
   const m=document.getElementById('month-filter').value||currentMonth(), inc=incomeTotal(m), exp=expenseTotal(m), left=state.settings.monthlyBudgetTarget-exp;
   setText('month-income',money(inc));setText('month-expense',money(exp));setText('month-budget',money(state.settings.monthlyBudgetTarget));setText('month-left',money(left));setText('current-month-label',monthLabel(m));
   const pct=state.settings.monthlyBudgetTarget?(exp/state.settings.monthlyBudgetTarget*100):0; document.getElementById('budget-progress').style.width=Math.min(100,Math.max(0,pct))+'%'; setText('budget-progress-amount',money(exp)+' מתוך '+money(state.settings.monthlyBudgetTarget)); setText('budget-progress-percent',Math.round(pct)+'%');
 }
+
 function addTransaction(e){
   e.preventDefault();
   const tx={id:Date.now(),desc:v('tx-desc'),amount:Number(v('tx-amount')),type:v('tx-type'),cat:v('tx-cat'),date:v('tx-date')||today()};
@@ -323,9 +342,12 @@ function renderTransactions(){
       : `editTransaction(${t.id})`;
     return `
     <div class="swipe-container">
+      ${!t.virtual ? `
       <div class="swipe-actions">
-        ${!t.virtual ? `<div class="swipe-delete-btn" onclick="deleteTransaction(${t.id})"><i data-lucide="trash-2" class="w-5 h-5"></i></div>` : ''}
-      </div>
+        <div class="swipe-delete-btn" onclick="deleteTransaction(${t.id})">
+          <i data-lucide="trash-2" class="w-5 h-5"></i>
+        </div>
+      </div>` : ''}
       <div class="swipe-content p-3 flex items-center justify-between gap-2 cursor-pointer" onclick="${editHandler}">
         <div class="flex-1 min-w-0">
           <div class="font-semibold truncate">${esc(t.desc)}</div>
@@ -351,6 +373,7 @@ function editTransaction(id){
     </div>`;
   openModal('עריכת תנועה',body,()=>{t.desc=v('m-desc');t.amount=Number(v('m-amount'));t.type=v('m-type');t.cat=v('m-cat');t.date=v('m-date');save();closeModal();renderAll()});
 }
+
 function deleteTransaction(id){
   state.transactions=state.transactions.filter(t=>t.id!==id);
   save();
@@ -414,7 +437,9 @@ function renderRecurring(){
   document.getElementById('recurring-list').innerHTML=state.recurring.length?state.recurring.map(r=>`
     <div class="swipe-container">
       <div class="swipe-actions">
-        <div class="swipe-delete-btn" onclick="deleteRecurring(${r.id})"><i data-lucide="trash-2" class="w-5 h-5"></i></div>
+        <div class="swipe-delete-btn" onclick="deleteRecurring(${r.id})">
+          <i data-lucide="trash-2" class="w-5 h-5"></i>
+        </div>
       </div>
       <div class="swipe-content p-3 flex justify-between items-center cursor-pointer" onclick="editRecurring(${r.id})">
         <div>
@@ -435,7 +460,7 @@ function openRecurringModal(id=null){
 function editRecurring(id){openRecurringModal(id)} 
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
 
-/* Swipe gesture implementation */
+/* Fixed Swipe gesture implementation */
 function attachSwipeEvents() {
   const containers = document.querySelectorAll('.swipe-container');
   containers.forEach(container => {
@@ -456,11 +481,11 @@ function attachSwipeEvents() {
       currentX = e.touches[0].clientX;
       const diffX = currentX - startX;
       
-      // Swipe left (reveals right-aligned button in RTL or left-aligned button)
-      if (diffX < 0 && diffX > -100) {
+      // Swipe left (reveals the delete button on the left)
+      if (diffX < 0 && diffX > -90) {
         content.style.transform = `translateX(${diffX}px)`;
-      } else if (diffX > 0 && diffX < 100 && content.style.transform !== 'translateX(0px)') {
-        content.style.transform = `translateX(${-80 + diffX}px)`;
+      } else if (diffX > 0 && diffX < 90 && content.style.transform !== 'translateX(0px)') {
+        content.style.transform = `translateX(${Math.min(0, -75 + diffX)}px)`;
       }
     }, {passive: true});
 
@@ -469,8 +494,8 @@ function attachSwipeEvents() {
       isSwiping = false;
       const diffX = currentX - startX;
 
-      if (diffX < -40) {
-        content.style.transform = 'translateX(-80px)';
+      if (diffX < -35) {
+        content.style.transform = 'translateX(-75px)';
       } else {
         content.style.transform = 'translateX(0px)';
       }
