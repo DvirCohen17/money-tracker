@@ -7,7 +7,6 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box}
@@ -137,7 +136,7 @@ input,select,textarea{color-scheme:dark}
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm text-white">הוספת תנועה</h2><span class="text-xs text-gray-500">הוצאה / הכנסה</span></div>
+    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm text-white">הוספת תנועה ידנית</h2><span class="text-xs text-gray-500">הוצאה / הכנסה</span></div>
     <form onsubmit="addTransaction(event)" class="grid grid-cols-2 md:grid-cols-6 gap-2">
       <input id="tx-desc" required placeholder="תיאור" class="col-span-2 md:col-span-2 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
       <input id="tx-amount" required type="number" step="0.01" placeholder="סכום" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
@@ -156,16 +155,15 @@ input,select,textarea{color-scheme:dark}
         <h2 class="font-bold text-sm text-white">תנועות חודשיות</h2>
         <span class="text-[10px] text-gray-400">לחץ לעריכה, החלק ימינה למחיקה</span>
       </div>
-      <button onclick="exportToPDF()" class="flex items-center gap-1.5 bg-rose-900/40 hover:bg-rose-900/60 border border-rose-700/50 text-rose-300 px-3 py-1.5 rounded-xl text-xs btn">
-        <i data-lucide="file-text" class="w-4 h-4"></i>
-        <span>ייצוא PDF</span>
-      </button>
     </div>
     <div id="transactions-list" class="space-y-2 max-h-[30rem] overflow-y-auto no-scrollbar"></div>
   </section>
 </div>
 
 <div id="tab-analytics" class="tab-content hidden space-y-5 sensitive-analytics">
+  <!-- רכיב השוואה חודשית ותובנות חכמות -->
+  <div id="analytics-comparison-container"></div>
+
   <section class="glass-card p-4 rounded-2xl">
     <div class="flex justify-between items-center mb-3">
       <div>
@@ -329,7 +327,7 @@ function switchTab(tab){
   document.getElementById('tab-'+tab).classList.remove('hidden');
   document.getElementById('nav-'+tab).classList.add('nav-active');
   if(tab==='dashboard'){renderAll();}
-  if(tab==='analytics'){renderAnalytics();requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();});}
+  if(tab==='analytics'){renderAnalytics();renderMonthlyComparison();requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();});}
   if(tab==='travel'){refreshFXRates(false);convertFX();}
 }
 
@@ -340,7 +338,7 @@ function toggleDiscrete(){
 }
 
 function renderAll(){
-  updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderPockets(); renderTrip(); renderAnalytics(); renderHeatmap(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
+  updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderPockets(); renderTrip(); renderAnalytics(); renderMonthlyComparison(); renderHeatmap(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
 }
 
 function updateOverview(){
@@ -360,10 +358,21 @@ function renderMonthly(){
 }
 
 function addTransaction(e){
-  e.preventDefault();
+  if(e) e.preventDefault();
   const tx={id:Date.now(),desc:v('tx-desc'),amount:Number(v('tx-amount')),type:v('tx-type'),cat:v('tx-cat'),date:v('tx-date')||today()};
   if(!tx.desc||tx.amount<=0)return alert('הזן תיאור וסכום תקינים');
-  state.transactions.unshift(tx); save(); e.target.reset(); document.getElementById('tx-date').value=today(); renderAll();
+  state.transactions.unshift(tx); save(); if(e&&e.target) e.target.reset(); document.getElementById('tx-date').value=today(); renderAll();
+}
+
+function formatDateToISO(dateStr) {
+  const parts = dateStr.split(/[\/\.-]/);
+  if (parts.length === 3) {
+    let day = parts[0].padStart(2, '0');
+    let month = parts[1].padStart(2, '0');
+    let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+    return `${year}-${month}-${day}`;
+  }
+  return today();
 }
 
 function renderTransactions(){
@@ -394,68 +403,6 @@ function renderTransactions(){
   }).join(''):'<div class="text-sm text-gray-500 text-center py-6">אין תנועות בחודש שנבחר</div>';
 }
 
-/* PDF Export Feature */
-function exportToPDF() {
-  const m = document.getElementById('month-filter').value || currentMonth();
-  const rows = effectiveMonthTx(m).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
-  const exp = expenseTotal(m);
-  const inc = incomeTotal(m);
-
-  const container = document.createElement('div');
-  container.style.padding = '20px';
-  container.style.fontFamily = 'Heebo, sans-serif';
-  container.style.direction = 'rtl';
-  container.style.color = '#000';
-  container.style.background = '#fff';
-
-  container.innerHTML = `
-    <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
-      <h1 style="margin: 0; font-size: 22px;">דוח תנועות חודשי — ${monthLabel(m)}</h1>
-      <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">התקציב שלי • ניהול פיננסי</p>
-    </div>
-    
-    <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; background: #f8fafc; padding: 10px; border-radius: 8px;">
-      <div><b>סה"כ הכנסות:</b> ${money(inc)}</div>
-      <div><b>סה"כ הוצאות:</b> ${money(exp)}</div>
-      <div><b>תקציב חודשי:</b> ${money(state.settings.monthlyBudgetTarget)}</div>
-    </div>
-
-    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-      <thead>
-        <tr style="background-color: #0f172a; color: white;">
-          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">תאריך</th>
-          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">תיאור</th>
-          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">קטגוריה</th>
-          <th style="padding: 8px; text-align: right; border: 1px solid #ddd;">סוג</th>
-          <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">סכום</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${rows.map(t => `
-          <tr style="border-bottom: 1px solid #ddd;">
-            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${esc(t.date)}</td>
-            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${esc(t.desc)}</td>
-            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${esc(t.cat)}</td>
-            <td style="padding: 6px; text-align: right; border: 1px solid #ddd;">${t.type==='income'?'הכנסה':'הוצאה'}</td>
-            <td style="padding: 6px; text-align: left; border: 1px solid #ddd; font-weight: bold; color: ${t.type==='income'?'#059669':'#e11d48'};">${money(t.amount)}</td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
-  `;
-
-  const opt = {
-    margin:       10,
-    filename:     `doh-tnoot-${m}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2 },
-    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-  };
-
-  html2pdf().set(opt).from(container).save();
-}
-
-/* Monthly Daily Budget Heatmap */
 function renderHeatmap(){
   const m = document.getElementById('month-filter')?.value || currentMonth();
   const [year, month] = m.split('-').map(Number);
@@ -492,6 +439,88 @@ function renderHeatmap(){
 
   const container = document.getElementById('monthly-heatmap');
   if(container) container.innerHTML = html;
+}
+
+/* השוואה חודשית ותובנות חכמות בלשונית הניתוחים */
+function getMonthComparisonData(currentMonthStr) {
+  const d = new Date(currentMonthStr + '-01');
+  d.setMonth(d.getMonth() - 1);
+  const prevMonthStr = d.toISOString().slice(0, 7);
+
+  const currTx = effectiveMonthTx(currentMonthStr).filter(t => t.type === 'expense');
+  const prevTx = effectiveMonthTx(prevMonthStr).filter(t => t.type === 'expense');
+
+  const categories = [...new Set([...currTx.map(t=>t.cat), ...prevTx.map(t=>t.cat)])];
+  
+  return categories.map(cat => {
+    const currSum = currTx.filter(t => t.cat === cat).reduce((sum, t) => sum + Number(t.amount), 0);
+    const prevSum = prevTx.filter(t => t.cat === cat).reduce((sum, t) => sum + Number(t.amount), 0);
+    
+    let changePct = 0;
+    if (prevSum > 0) {
+      changePct = Math.round(((currSum - prevSum) / prevSum) * 100);
+    } else if (currSum > 0) {
+      changePct = 100;
+    }
+
+    return { cat, prevSum, currSum, changePct };
+  });
+}
+
+function renderMonthlyComparison() {
+  const m = document.getElementById('month-filter')?.value || currentMonth();
+  const data = getMonthComparisonData(m);
+  
+  const insights = data
+    .filter(d => Math.abs(d.changePct) >= 10 && d.currSum > 0)
+    .map(d => {
+      const direction = d.changePct > 0 ? 'עלו' : 'ירדו';
+      return `<li class="mb-1 text-gray-200">
+        ההוצאות על <b class="text-sky-300">${esc(d.cat)}</b> ${direction} ב-<b class="${d.changePct > 0 ? 'text-rose-400' : 'text-emerald-400'}">${Math.abs(d.changePct)}%</b> לעומת חודש שעבר (סה"כ החודש: <b class="amount">${money(d.currSum)}</b>).
+      </li>`;
+    });
+
+  const html = `
+    <section class="glass-card p-4 rounded-2xl mb-5 space-y-4">
+      <div>
+        <h3 class="font-bold text-white text-sm flex items-center gap-2 mb-2"><i data-lucide="lightbulb" class="w-4 h-4 text-amber-400"></i>תובנות חכמות בהשוואה לחודש שעבר</h3>
+        <ul class="list-disc pr-5 text-xs">
+          ${insights.length ? insights.join('') : '<li class="text-gray-400">אין שינויים משמעותיים בהוצאות בהשוואה לחודש שעבר.</li>'}
+        </ul>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-white text-sm mb-2">השוואת הוצאות חודשית לפי קטגוריה</h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs text-right border-collapse">
+            <thead>
+              <tr class="border-b border-gray-800 text-gray-400">
+                <th class="p-2">קטגוריה</th>
+                <th class="p-2">חודש קודם</th>
+                <th class="p-2">חודש נוכחי</th>
+                <th class="p-2">שינוי</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map(d => `
+                <tr class="border-b border-gray-900/60">
+                  <td class="p-2 font-medium text-gray-200">${esc(d.cat)}</td>
+                  <td class="p-2 text-gray-400 amount">${money(d.prevSum)}</td>
+                  <td class="p-2 font-bold text-gray-100 amount">${money(d.currSum)}</td>
+                  <td class="p-2 font-bold ${d.changePct > 0 ? 'text-rose-400' : d.changePct < 0 ? 'text-emerald-400' : 'text-gray-400'}">
+                    ${d.changePct > 0 ? '+' : ''}${d.changePct}%
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  `;
+
+  const container = document.getElementById('analytics-comparison-container');
+  if (container) container.innerHTML = html;
 }
 
 function editTransaction(id){
