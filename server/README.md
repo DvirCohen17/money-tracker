@@ -1,22 +1,26 @@
-# MoneyTracker optional backend
+# MoneyTracker backend
 
-The frontend remains fully local/offline-first. This folder provides an optional real multi-device backend using SQLite.
+שרת Node/Express עם SQLite ו-JWT. אותו שירות יכול להגיש גם את קבצי האפליקציה.
 
-## Run
-
+## הרצה מקומית
 1. `cd server`
 2. `npm install`
-3. Set `JWT_SECRET` to a long random value.
+3. הגדירו `JWT_SECRET` לערך אקראי ארוך
 4. `npm start`
 
-The server creates `moneytracker.db` next to `server.js`.
+פתחו את כתובת השרת (למשל `http://localhost:3000`).
 
-Endpoints:
-- `POST /api/register` — create account
-- `POST /api/login` — receive JWT
-- `GET /api/state` — load the user's app state
-- `PUT /api/state` — save the user's app state
+## API
+- `POST /api/register`
+- `POST /api/login`
 - `GET /api/me`
+- `GET /api/state`
+- `PUT /api/state`
 - `GET /api/health`
 
-For production, use HTTPS, a real secret, rate limiting, backups, and a managed database if the project grows. Do not expose the SQLite file publicly.
+## פריסה
+אפשר לחבר את מאגר ה-Git לשירות Node כמו Render / Railway / Fly.io. כל push ל-Git יכול להפעיל deploy אוטומטי.
+
+SQLite מתאים לאב-טיפוס או לשרת עם דיסק persistent. לפרויקט רב-משתמשים רציני עדיף לעבור ל-PostgreSQL מנוהל.
+
+יש להפעיל HTTPS, secret חזק, rate limiting, גיבויים, ו-CORS מוגבל לדומיין האפליקציה.

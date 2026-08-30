@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: moneytracker-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: /opt/render/project/src/server/data/moneytracker.db
+    disk:
+      name: moneytracker-data
+      mountPath: /opt/render/project/src/server/data
+      sizeGB: 1

@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="./config.js" onerror="this.remove()"></script>
 <script src="./script.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
@@ -89,6 +90,30 @@ input,select,textarea{color-scheme:dark}
   border: 1px solid rgba(255,255,255,0.03);
 }
 
+/* MoneyTracker v1.2 visual system */
+body{--bg-1:#030712;--bg-2:#0b1120;--card-bg:rgba(15,23,42,.76);--card-border:rgba(255,255,255,.07);background:radial-gradient(900px 500px at 100% -10%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 65%),radial-gradient(700px 500px at 0% 20%,rgba(99,102,241,.10),transparent 65%),linear-gradient(135deg,var(--bg-1),var(--bg-2)) fixed;transition:background .35s ease,color .2s ease}
+body.theme-ocean{--accent:#38bdf8;--accent-soft:#0c4a6e;--bg-1:#020617;--bg-2:#082f49;--surface:rgba(8,47,73,.72)}
+body.theme-forest{--accent:#34d399;--accent-soft:#064e3b;--bg-1:#02130d;--bg-2:#052e24;--surface:rgba(6,78,59,.72)}
+body.theme-violet{--accent:#c084fc;--accent-soft:#4c1d95;--bg-1:#0b0614;--bg-2:#241044;--surface:rgba(76,29,149,.62)}
+body.theme-amber{--accent:#fbbf24;--accent-soft:#78350f;--bg-1:#140d03;--bg-2:#3b2205;--surface:rgba(120,53,15,.62)}
+body.theme-rose{--accent:#fb7185;--accent-soft:#881337;--bg-1:#16050b;--bg-2:#3f0714;--surface:rgba(136,19,55,.62)}
+body.theme-slate{--accent:#94a3b8;--accent-soft:#334155;--bg-1:#020617;--bg-2:#111827;--surface:rgba(17,24,39,.78)}
+body.theme-sunset{--accent:#fb923c;--accent-soft:#7c2d12;--bg-1:#160704;--bg-2:#431407;--surface:rgba(124,45,18,.66)}
+body .glass-card{background:linear-gradient(145deg,color-mix(in srgb,var(--surface,rgba(15,23,42,.75)) 92%,transparent),rgba(15,23,42,.60));border-color:var(--card-border);box-shadow:0 16px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.025);transition:background .35s,border-color .35s,box-shadow .35s}
+body .bg-gray-900{background-color:color-mix(in srgb,var(--surface,rgba(17,24,39,.8)) 78%,#111827 22%)!important}
+body .bg-indigo-600,body .bg-indigo-600\/80{background-color:var(--accent)!important}
+body .text-indigo-300,body .text-indigo-400,body .text-sky-400{color:var(--accent)!important}
+body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,transparent)!important}
+.theme-swatch{height:54px;border-radius:14px;border:1px solid rgba(255,255,255,.10);cursor:pointer;position:relative;overflow:hidden}
+.theme-swatch span{position:absolute;bottom:7px;right:9px;font-size:11px;font-weight:700;color:#fff;text-shadow:0 1px 4px #000}
+.theme-swatch.ocean{background:linear-gradient(135deg,#020617,#0c4a6e,#38bdf8)}.theme-swatch.forest{background:linear-gradient(135deg,#02130d,#064e3b,#34d399)}.theme-swatch.violet{background:linear-gradient(135deg,#0b0614,#4c1d95,#c084fc)}.theme-swatch.amber{background:linear-gradient(135deg,#140d03,#78350f,#fbbf24)}.theme-swatch.rose{background:linear-gradient(135deg,#16050b,#881337,#fb7185)}.theme-swatch.slate{background:linear-gradient(135deg,#020617,#334155,#94a3b8)}.theme-swatch.sunset{background:linear-gradient(135deg,#160704,#7c2d12,#fb923c)}
+.notification-popover{position:fixed;top:72px;left:16px;right:16px;margin:auto;max-width:420px;z-index:500;display:none}.notification-popover.active{display:block;animation:popoverIn .18s ease-out}@keyframes popoverIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.notification-backdrop{position:fixed;inset:0;z-index:490;display:none}.notification-backdrop.active{display:block}
+.profile-screen{position:fixed;inset:0;z-index:600;background:linear-gradient(135deg,var(--bg-1),var(--bg-2));overflow:auto;display:none}.profile-screen.active{display:block;animation:profileIn .2s ease-out}@keyframes profileIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+.auth-gate{position:fixed;inset:0;z-index:10000;background:radial-gradient(900px 600px at 50% 0%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 65%),linear-gradient(135deg,var(--bg-1),var(--bg-2));display:flex;align-items:center;justify-content:center;padding:20px}.auth-gate.hidden{display:none}.auth-card{width:100%;max-width:430px}.auth-tab{flex:1;border-radius:12px;padding:10px;font-size:13px;color:#9ca3af}.auth-tab.active{background:color-mix(in srgb,var(--accent) 18%,transparent);color:#fff}
+.mini-heatmap .heatmap-day{min-height:32px;font-size:10px}.heatmap-day.large-heat{min-width:44px;min-height:44px;font-size:11px}.heatmap-day.large-heat span:last-child{font-size:9px}
+.month-heat-details{font-size:9px;color:#cbd5e1;line-height:1.35}
+
 /* MoneyTracker v1.1 feature layer */
 :root{--accent:#38bdf8;--accent-soft:#0c4a6e}.theme-ocean{--accent:#38bdf8;--accent-soft:#0c4a6e} .theme-forest{--accent:#10b981;--accent-soft:#064e3b}.theme-violet{--accent:#a78bfa;--accent-soft:#4c1d95}.theme-amber{--accent:#f59e0b;--accent-soft:#78350f}.theme-rose{--accent:#fb7185;--accent-soft:#881337}.text-sky-400{color:var(--accent)!important}.bg-indigo-600{background-color:var(--accent)!important}.border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 20%,transparent)!important}
 .theme-forest{--accent:#10b981;--accent-soft:#064e3b}.theme-ocean{--accent:#38bdf8;--accent-soft:#0c4a6e}.theme-violet{--accent:#a78bfa;--accent-soft:#4c1d95}.theme-amber{--accent:#f59e0b;--accent-soft:#78350f}.theme-rose{--accent:#fb7185;--accent-soft:#881337}
@@ -107,9 +132,10 @@ input,select,textarea{color-scheme:dark}
     </div>
   </div>
   <div class="flex items-center gap-2">
+    <button onclick="openProfileScreen()" class="profile-header-btn p-2 rounded-xl bg-gray-900 text-sky-300 btn border border-gray-800" title="הפרופיל שלי"><i data-lucide="user-circle" class="w-5 h-5"></i></button>
     <button onclick="openOverviewModal()" class="p-2 rounded-xl bg-gray-900 text-amber-400 btn border border-gray-800" title="עריכת נתוני בסיס"><i data-lucide="edit-3" class="w-5 h-5"></i></button>
     <button onclick="toggleDiscrete()" class="p-2 rounded-xl bg-gray-900 text-slate-300 btn border border-gray-800" title="מצב דיסקרטי"><i id="discrete-icon" data-lucide="eye" class="w-5 h-5"></i></button>
-    <button onclick="switchTab('notifications')" class="p-2 rounded-xl bg-gray-900 text-amber-300 btn border border-gray-800 relative" title="הודעות"><i data-lucide="bell" class="w-5 h-5"></i><span id="header-notification-dot" class="hidden absolute top-1 right-1 notification-dot bg-rose-500"></span></button>
+    <button onclick="toggleNotificationPopover(event)" class="p-2 rounded-xl bg-gray-900 text-amber-300 btn border border-gray-800 relative" title="הודעות"><i data-lucide="bell" class="w-5 h-5"></i><span id="header-notification-dot" class="hidden absolute top-1 right-1 notification-dot bg-rose-500"></span></button>
   </div>
 </header>
 
@@ -321,6 +347,10 @@ input,select,textarea{color-scheme:dark}
     </div>
   </section>
   <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="lock-keyhole" class="w-4 h-4 text-rose-400"></i>אבטחה</h3><p class="text-xs text-gray-400">סיסמה, נעילה אוטומטית והגנה על המידע המקומי.</p></div><button onclick="openSecurityModal()" class="text-xs text-rose-300">ניהול אבטחה</button></div>
+    <div class="feature-grid"><div class="feature-stat"><div class="small-stat">מצב</div><b id="security-status" class="text-white">כבוי</b></div><div class="feature-stat"><div class="small-stat">נעילה אוטומטית</div><b id="security-timeout" class="text-white">30 דקות</b></div></div>
+  </section>
+  <section class="glass-card p-4 rounded-2xl">
     <div class="flex items-center justify-between gap-3">
       <div>
         <h3 class="font-bold text-white mb-1">עדכוני אפליקציה</h3>
@@ -344,17 +374,12 @@ input,select,textarea{color-scheme:dark}
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-sky-400"></i>משתמשים ומסד נתונים</h3><p class="text-xs text-gray-400">פרופילים מקומיים מבודדים, עם גיבוי וסנכרון במכשיר.</p></div><button onclick="openUserManager()" class="text-xs text-sky-400">ניהול</button></div>
-    <div class="feature-grid"><div class="feature-stat"><div class="small-stat">משתמש פעיל</div><b id="active-user-name" class="text-white">—</b></div><div class="feature-stat"><div class="small-stat">מסד נתונים</div><b id="db-status" class="text-emerald-400">מקומי</b></div></div>
-  </section>
-
-  <section class="glass-card p-4 rounded-2xl">
     <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="palette" class="w-4 h-4 text-violet-400"></i>עיצוב ותצוגה</h3><p class="text-xs text-gray-400">Theme, נגישות ומצב דיסקרטי.</p></div></div>
     <div class="grid grid-cols-2 gap-2"><select id="theme-select" onchange="setAppTheme(this.value)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white"><option value="ocean">Ocean</option><option value="forest">Forest</option><option value="violet">Violet</option><option value="amber">Amber</option><option value="rose">Rose</option></select><button onclick="toggleDiscrete()" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">מצב דיסקרטי</button></div>
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4 text-emerald-400"></i>אפליקציה והתקנה</h3><p class="text-xs text-gray-400">PWA, עבודה גם ללא חיבור, ונעילה אוטומטית.</p></div></div>
+    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4 text-emerald-400"></i>אפליקציה והתקנה</h3><p class="text-xs text-gray-400">התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.</p></div></div>
     <div class="grid grid-cols-2 gap-2"><button id="install-app-btn" onclick="installPWA()" class="bg-indigo-600 text-white rounded-xl px-3 py-2 text-sm font-semibold">התקן כאפליקציה</button><button onclick="lockNow()" class="bg-gray-900 border border-gray-800 text-white rounded-xl px-3 py-2 text-sm">נעל עכשיו</button></div>
     <div id="connection-status" class="text-xs text-gray-500 mt-2">בדיקת חיבור...</div>
   </section>
@@ -397,6 +422,38 @@ input,select,textarea{color-scheme:dark}
 <button onclick="switchTab('travel')" id="nav-travel" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="plane" class="w-5 h-5"></i><span>טיול וכלים</span></button>
 <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="settings" class="w-5 h-5"></i><span>הגדרות</span></button>
 </nav>
+
+
+<div id="notification-backdrop" class="notification-backdrop" onclick="closeNotificationPopover()"></div>
+<div id="notification-popover" class="notification-popover">
+  <div class="glass-card rounded-2xl p-4 border border-gray-700/60">
+    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white">הודעות אחרונות</h3><p class="text-[11px] text-gray-500">3 ההודעות האחרונות</p></div><button onclick="switchTab('notifications');closeNotificationPopover()" class="text-xs text-sky-400">כל ההודעות</button></div>
+    <div id="notification-popover-list" class="space-y-2"></div>
+  </div>
+</div>
+
+<div id="profile-screen" class="profile-screen">
+  <div class="max-w-3xl mx-auto p-4 md:p-8">
+    <div class="flex items-center justify-between mb-5"><button onclick="closeProfileScreen()" class="p-2 rounded-xl bg-gray-900 border border-gray-800 text-white"><i data-lucide="arrow-right" class="w-5 h-5"></i></button><div class="text-right"><div class="text-xs text-gray-500">חשבון</div><h2 class="text-2xl font-extrabold text-white">הפרופיל שלי</h2></div></div>
+    <section class="glass-card rounded-3xl p-5 mb-4"><div class="flex items-center gap-4"><div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-600 text-white"><i data-lucide="user-round" class="w-8 h-8"></i></div><div><h3 id="profile-name" class="text-xl font-bold text-white">—</h3><p id="profile-email" class="text-sm text-gray-400">—</p><p id="profile-source" class="text-xs text-emerald-400 mt-1">מסד נתונים מקומי</p></div></div></section>
+    <section class="glass-card rounded-3xl p-5 mb-4"><div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white">נתוני המשתמש</h3><p class="text-xs text-gray-400">הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.</p></div><button onclick="openProfileEditor()" class="text-xs text-sky-400">עריכה</button></div><div id="profile-stats" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div></section>
+    <section class="glass-card rounded-3xl p-5 mb-4"><h3 class="font-bold text-white mb-3">משתמשים במכשיר</h3><div id="profile-users-list" class="space-y-2"></div><button onclick="openUserManager()" class="w-full mt-3 bg-gray-900 border border-gray-800 rounded-xl py-3 text-sm text-white">ניהול משתמשים</button></section>
+    <div class="grid grid-cols-2 gap-2"><button onclick="syncUserToServer(true)" class="bg-emerald-600 text-white rounded-xl py-3 font-semibold">סנכרן עם השרת</button><button onclick="logoutUser()" class="bg-rose-950/50 border border-rose-900/50 text-rose-300 rounded-xl py-3 font-semibold">התנתק</button></div>
+  </div>
+</div>
+
+<div id="auth-gate" class="auth-gate hidden">
+  <div class="auth-card glass-card rounded-3xl p-6">
+    <div class="text-center mb-5"><div class="w-16 h-16 mx-auto rounded-2xl bg-indigo-600 flex items-center justify-center text-white mb-3"><i data-lucide="wallet-cards" class="w-8 h-8"></i></div><h1 class="text-2xl font-extrabold text-white">MoneyTracker</h1><p class="text-sm text-gray-400 mt-1">התחבר כדי לטעון את הנתונים שלך</p></div>
+    <div class="flex gap-2 bg-gray-900/70 rounded-2xl p-1 mb-4"><button id="auth-login-tab" class="auth-tab active" onclick="showAuthMode('login')">התחברות</button><button id="auth-register-tab" class="auth-tab" onclick="showAuthMode('register')">יצירת משתמש</button></div>
+    <div id="auth-register-name-wrap" class="hidden"><label class="text-xs text-gray-400">שם<input id="auth-name" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white mt-1" placeholder="השם שלך"></label></div>
+    <label class="text-xs text-gray-400 block mt-2">אימייל<input id="auth-email" type="email" autocomplete="username" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white mt-1" placeholder="you@example.com"></label>
+    <label class="text-xs text-gray-400 block mt-2">סיסמה<input id="auth-password" type="password" autocomplete="current-password" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white mt-1" placeholder="לפחות 6 תווים"></label>
+    <button id="auth-submit" onclick="submitAuth()" class="w-full bg-indigo-600 text-white rounded-xl py-3 mt-4 font-bold">התחבר</button><button id="auth-local-continue" onclick="continueLegacyLocalUser()" class="hidden w-full bg-gray-900 border border-gray-800 text-white rounded-xl py-3 mt-2 text-sm">המשך עם הנתונים הקיימים במכשיר</button>
+    <p id="auth-message" class="text-xs text-center text-rose-300 mt-3 min-h-4"></p>
+    <p id="auth-db-note" class="text-[10px] text-center text-gray-500 mt-2">התחברות מקומית פעילה. לאחר הגדרת כתובת API, המשתמש והנתונים יישמרו בשרת.</p>
+  </div>
+</div>
 
 <div id="modal-root"></div>
 
@@ -1248,8 +1305,70 @@ function showMonthlySummaryNotification(){const m=currentMonth(),key=`summary-${
 function upgradeFeatureState(){state.settings=state.settings||{};state.settings.autoLockMinutes=Number(state.settings.autoLockMinutes||30);state.settings.theme=state.settings.theme||'ocean';ensureHistoryContainers();initializePeriodHistory(false);persistUserState();}
 // Override security modal to include auto-lock policy.
 const originalOpenSecurityModal=openSecurityModal;openSecurityModal=function(){openModal('נעילת אפליקציה',`<label class="text-sm text-gray-300">סיסמה חדשה<input id="sec-pass" type="password" autocomplete="new-password" placeholder="השאר ריק כדי לא לשנות" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="flex items-center gap-2 text-sm text-gray-300 mt-2"><input id="sec-enable" type="checkbox" ${state.security.enabled?'checked':''}> דרוש סיסמה בכניסה</label><label class="text-sm text-gray-300 block mt-2">נעילה אוטומטית<select id="sec-timeout" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option value="15">15 דקות</option><option value="30">30 דקות</option><option value="60">60 דקות</option></select></label>`,async()=>{const p=v('sec-pass'),enabled=document.getElementById('sec-enable').checked;state.settings.autoLockMinutes=Number(v('sec-timeout'))||30;if(p)state.security.password=await hashPassword(p);state.security.enabled=enabled;if(enabled&&!state.security.password){alert('כדי להפעיל נעילה יש להגדיר סיסמה');return;}save();closeModal();scheduleAutoLock();renderAll();alert(enabled?'הנעילה הופעלה.':'הנעילה בוטלה');});setTimeout(()=>{const s=document.getElementById('sec-timeout');if(s)s.value=String(state.settings.autoLockMinutes||30)},0);};
+
+/* ===================== v1.2 UX + account layer ===================== */
+const API_BASE_URL = (window.MONEYTRACKER_API_URL || localStorage.getItem('moneytracker_api_url') || '').replace(/\/$/,'');
+let authMode='login';
+let remoteSession=false;
+let profileOpen=false;
+
+function apiUrl(path){return API_BASE_URL ? API_BASE_URL + path : path;}
+function getAuthToken(){return localStorage.getItem('moneytracker_auth_token')||'';}
+function setAuthToken(t){if(t)localStorage.setItem('moneytracker_auth_token',t);else localStorage.removeItem('moneytracker_auth_token');}
+async function verifyPassword(input,stored){if(!stored)return true;return (await hashPassword(input))===stored;}
+async function apiFetch(path,options={}){const headers={...(options.headers||{}),'Content-Type':'application/json'};const token=getAuthToken();if(token)headers.Authorization='Bearer '+token;const r=await fetch(apiUrl(path),{...options,headers});if(!r.ok){let msg='שגיאת שרת';try{msg=(await r.json()).error||msg}catch{}throw new Error(msg)}return r.json();}
+
+function showAuthGate(){const gate=document.getElementById('auth-gate');if(!gate)return;gate.classList.remove('hidden');document.body.classList.add('auth-locked');const hasLegacy=!!(localStorage.getItem(KEY)||localStorage.getItem(DB_KEY));document.getElementById('auth-local-continue')?.classList.toggle('hidden',!hasLegacy);if(window.lucide)lucide.createIcons();}
+function hideAuthGate(){document.getElementById('auth-gate')?.classList.add('hidden');document.body.classList.remove('auth-locked');}
+function showAuthMode(mode){authMode=mode;document.getElementById('auth-login-tab')?.classList.toggle('active',mode==='login');document.getElementById('auth-register-tab')?.classList.toggle('active',mode==='register');document.getElementById('auth-register-name-wrap')?.classList.toggle('hidden',mode!=='register');const submit=document.getElementById('auth-submit');if(submit)submit.textContent=mode==='register'?'צור משתמש':'התחבר';const pass=document.getElementById('auth-password');if(pass)pass.autocomplete=mode==='register'?'new-password':'current-password';document.getElementById('auth-message').textContent='';}
+async function submitAuth(){const email=v('auth-email').trim().toLowerCase(),password=v('auth-password'),name=v('auth-name').trim();const msg=document.getElementById('auth-message');if(!email||!password||(authMode==='register'&&!name)){msg.textContent='מלא את כל השדות.';return;}if(password.length<6){msg.textContent='הסיסמה צריכה להכיל לפחות 6 תווים.';return;}const btn=document.getElementById('auth-submit');btn.disabled=true;btn.textContent='מתחבר...';try{if(API_BASE_URL){const data=await apiFetch(authMode==='register'?'/api/register':'/api/login',{method:'POST',body:JSON.stringify(authMode==='register'?{email,name,password}:{email,password})});if(authMode==='register'){const login=await apiFetch('/api/login',{method:'POST',body:JSON.stringify({email,password})});setAuthToken(login.token);remoteSession=true;await loadRemoteUserState(login.user);}else{setAuthToken(data.token);remoteSession=true;await loadRemoteUserState(data.user);}hideAuthGate();renderAll();syncSettingsUI();}else{ensureFeatureDB();if(authMode==='register'){if(dbState.users.some(u=>String(u.email||'').toLowerCase()===email)){throw new Error('האימייל כבר קיים במכשיר');}const uid='user-'+Date.now();dbState.users.push({id:uid,name,email,createdAt:Date.now(),state:clone(defaults),passwordHash:await hashPassword(password)});activeUserId=uid;dbState.activeUserId=uid;state=mergeFeatureState(defaults);writeDB();save();}else{const u=dbState.users.find(u=>String(u.email||'').toLowerCase()===email);if(!u)throw new Error('לא נמצא משתמש מקומי עם האימייל הזה');if(u.passwordHash&&!(await verifyPassword(password,u.passwordHash)))throw new Error('אימייל או סיסמה שגויים');activeUserId=u.id;dbState.activeUserId=activeUserId;state=mergeFeatureState(u.state);writeDB();save();}remoteSession=false;hideAuthGate();renderAll();syncSettingsUI();}msg.textContent='';}catch(e){console.error(e);msg.textContent=e.message||'לא ניתן להתחבר כרגע.';}finally{btn.disabled=false;btn.textContent=authMode==='register'?'צור משתמש':'התחבר';}}
+async function loadRemoteUserState(user){const result=await apiFetch('/api/state');remoteSession=true;state=mergeFeatureState(result.state||defaults);dbState=readDB();dbState.users=Array.isArray(dbState.users)?dbState.users:[];const localId='remote-'+user.id;let u=dbState.users.find(x=>x.id===localId);if(!u){u={id:localId,name:user.name,email:user.email||'',remoteId:user.id,createdAt:Date.now(),state:clone(state)};dbState.users.push(u);}else{u.name=user.name||u.name;u.email=user.email||u.email;u.state=clone(state);}activeUserId=localId;dbState.activeUserId=localId;writeDB();localStorage.setItem('money_tracker_remote_user',JSON.stringify(user));save();}
+async function syncUserToServer(showAlert=false){if(!API_BASE_URL||!getAuthToken()){if(showAlert)alert('לא הוגדר שרת. הנתונים נשמרים מקומית כרגע.');return false;}try{persistUserState();await apiFetch('/api/state',{method:'PUT',body:JSON.stringify({state})});if(showAlert)alert('הנתונים סונכרנו בהצלחה.');return true}catch(e){if(showAlert)alert('הסנכרון נכשל: '+e.message);return false;}}
+function continueLegacyLocalUser(){ensureFeatureDB();const u=dbState.users[0];activeUserId=u.id;dbState.activeUserId=activeUserId;state=mergeFeatureState(u.state||state);writeDB();save();hideAuthGate();renderAll();syncSettingsUI();}
+function logoutUser(){persistUserState();setAuthToken(null);localStorage.removeItem('money_tracker_remote_user');remoteSession=false;closeProfileScreen();showAuthGate();showAuthMode('login');}
+
+/* Full visual themes: each theme controls background + surfaces + accents together. */
+function setAppTheme(theme){const allowed=['ocean','forest','violet','amber','rose','slate','sunset'];if(!allowed.includes(theme))theme='ocean';document.body.classList.remove(...allowed.map(x=>'theme-'+x));document.body.classList.add('theme-'+theme);state.theme=theme;state.settings=state.settings||{};state.settings.theme=theme;save();renderThemeSwatches();}
+function renderThemeSwatches(){const c=document.getElementById('theme-swatches');if(!c)return;const themes=[['ocean','Ocean'],['forest','Forest'],['violet','Violet'],['amber','Amber'],['rose','Rose'],['slate','Slate'],['sunset','Sunset']];c.innerHTML=themes.map(([id,name])=>`<button type="button" class="theme-swatch ${id} ${state.settings?.theme===id?'ring-2 ring-white':''}" onclick="setAppTheme('${id}')"><span>${name}</span></button>`).join('');}
+function openThemePicker(){openModal('ערכות עיצוב',`<div class="grid grid-cols-2 gap-2">${['ocean','forest','violet','amber','rose','slate','sunset'].map(t=>`<button type="button" onclick="setAppTheme('${t}');closeModal()" class="theme-swatch ${t}"><span>${t}</span></button>`).join('')}</div>`,()=>closeModal());}
+function loadTheme(){const t=state.settings?.theme||state.theme||'ocean';setAppTheme(t);renderThemeSwatches();}
+
+/* Notification tray like a phone: header shows three latest, full tab keeps everything. */
+function notificationAction(n){if(n.action==='analytics'){closeNotificationPopover();switchTab('analytics');if(n.month)analyticsMonth=n.month;if(n.period)analyticsPeriod=n.period;setTimeout(()=>{renderPeriodSummary();renderAnnualSummary();renderAdvancedHeatmap();},0);return;}if(n.action==='recurring'){closeNotificationPopover();switchTab('pockets');return;}markNotificationRead(n.id);}
+function notificationItemHTML(n,compact=false){const read=!!dbState?.notificationRead?.[n.id];const tone=n.type==='warning'?'bg-amber-400':n.type==='success'?'bg-emerald-400':'bg-sky-400';const inferredAction=n.action||(String(n.title||'').includes('תקציב')||String(n.title||'').includes('מגמת')||String(n.title||'').includes('סיכום')||String(n.title||'').includes('חריגה')?'analytics':String(n.title||'').includes('קבועה')?'recurring':''); const nn={...n,action:inferredAction,month:n.month||currentMonth(),period:n.period||'month'}; const action=inferredAction?`<button type="button" onclick='notificationAction(${JSON.stringify(nn).replace(/'/g,"&#39;")})' class="text-[11px] text-sky-300 mt-2">${inferredAction==='analytics'?'פתח ניתוח':'פתח'}</button>`:'';return `<div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3 ${read?'opacity-60':''}"><div class="flex gap-3"><span class="notification-dot mt-1.5 ${tone}"></span><div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><b class="text-white text-sm">${esc(n.title)}</b>${!read?'<span class="text-[9px] text-sky-300">חדש</span>':''}</div><p class="text-xs text-gray-400 mt-1">${esc(n.body)}</p>${action}<button type="button" onclick="markNotificationRead('${attr(n.id)}')" class="block text-[10px] text-gray-500 mt-1">${read?'סומן כנקרא':'סמן כנקרא'}</button></div></div></div>`;}
+function markNotificationRead(id){if(!dbState)return;dbState.notificationRead=dbState.notificationRead||{};dbState.notificationRead[id]=true;writeDB();renderNotifications();renderNotificationPopover();}
+function renderNotificationPopover(){const c=document.getElementById('notification-popover-list');if(!c)return;const list=(dbState?.notifications||[]).slice(0,3);c.innerHTML=list.length?list.map(n=>notificationItemHTML(n,true)).join(''):'<div class="text-sm text-gray-500 text-center py-5">אין הודעות 🎉</div>';}
+function renderNotifications(){const c=document.getElementById('notifications-list');const list=(dbState?.notifications||[]).slice(0,40);const unread=list.filter(n=>!dbState.notificationRead?.[n.id]).length;document.getElementById('notification-count')?.classList.toggle('hidden',!unread);document.getElementById('header-notification-dot')?.classList.toggle('hidden',!unread);if(c)c.innerHTML=list.length?list.map(n=>notificationItemHTML(n)).join(''):'<div class="text-sm text-gray-500 text-center py-8">אין הודעות חדשות 🎉</div>';renderNotificationPopover();}
+function markNotificationsRead(){if(!dbState)return;dbState.notificationRead=dbState.notificationRead||{};(dbState.notifications||[]).forEach(n=>dbState.notificationRead[n.id]=true);writeDB();renderNotifications();}
+function toggleNotificationPopover(e){e?.stopPropagation();const p=document.getElementById('notification-popover'),b=document.getElementById('notification-backdrop');if(!p)return;const open=!p.classList.contains('active');if(open){renderNotificationPopover();p.classList.add('active');b?.classList.add('active');}else closeNotificationPopover();}
+function closeNotificationPopover(){document.getElementById('notification-popover')?.classList.remove('active');document.getElementById('notification-backdrop')?.classList.remove('active');}
+
+/* Profile screen separate from system settings. */
+function openProfileScreen(){closeNotificationPopover();profileOpen=true;const s=document.getElementById('profile-screen');s?.classList.add('active');renderProfileScreen();if(window.lucide)lucide.createIcons();}
+function closeProfileScreen(){profileOpen=false;document.getElementById('profile-screen')?.classList.remove('active');}
+function renderProfileScreen(){const u=dbState?.users?.find(x=>x.id===activeUserId);if(!u)return;setText('profile-name',u.name||'המשתמש שלי');setText('profile-email',u.email||'משתמש מקומי');setText('profile-source',API_BASE_URL&&getAuthToken()?'מסונכרן עם מסד הנתונים בשרת':'מסד נתונים מקומי במכשיר');const tx=state.transactions||[];const income=tx.filter(t=>t.type==='income').reduce((a,t)=>a+Number(t.amount||0),0),exp=tx.filter(t=>t.type==='expense').reduce((a,t)=>a+Number(t.amount||0),0);const el=document.getElementById('profile-stats');if(el)el.innerHTML=`<div class="feature-stat"><div class="small-stat">תנועות</div><b class="text-white">${tx.length}</b></div><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400">${money(income)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400">${money(exp)}</b></div><div class="feature-stat"><div class="small-stat">משתמשים</div><b class="text-white">${dbState?.users?.length||1}</b></div>`;const ul=document.getElementById('profile-users-list');if(ul)ul.innerHTML=(dbState?.users||[]).map(x=>`<button type="button" onclick="switchLocalProfile('${attr(x.id)}')" class="w-full flex items-center justify-between bg-gray-900 border border-gray-800 rounded-xl p-3 text-right ${x.id===activeUserId?'border-sky-500/50':''}"><span><b class="text-white">${esc(x.name)}</b><small class="block text-gray-500">${esc(x.email||'מקומי')}</small></span><span class="text-xs text-sky-300">${x.id===activeUserId?'פעיל':'עבור'}</span></button>`).join('');}
+function switchLocalProfile(id){const u=dbState?.users?.find(x=>x.id===id);if(!u)return;persistUserState();activeUserId=id;dbState.activeUserId=id;state=mergeFeatureState(u.state||defaults);writeDB();save();renderAll();syncSettingsUI();renderProfileScreen();}
+function openProfileEditor(){const u=dbState?.users?.find(x=>x.id===activeUserId)||{};openModal('פרטי משתמש',`<label class="text-sm text-gray-300">שם<input id="profile-edit-name" value="${attr(u.name||'')}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="text-sm text-gray-300">אימייל<input id="profile-edit-email" type="email" value="${attr(u.email||'')}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label>`,()=>{const x=dbState.users.find(y=>y.id===activeUserId);if(x){x.name=v('profile-edit-name').trim()||x.name;x.email=v('profile-edit-email').trim()||x.email;writeDB();renderProfileScreen();syncSettingsUI();closeModal();}});}
+
+/* Automatic monthly details in the heatmap. */
+const _renderAdvancedHeatmap=renderAdvancedHeatmap;
+renderAdvancedHeatmap=function(){_renderAdvancedHeatmap();if(analyticsPeriod==='month'){const c=document.getElementById('monthly-heatmap');c?.querySelectorAll('.heatmap-day').forEach(el=>el.classList.add('large-heat'));const m=analyticsMonth||currentMonth(),[y,mo]=m.split('-').map(Number),days=new Date(y,mo,0).getDate();const budget=getMonthlyBudget(m),dailyFallback=days?budget/days:0;c?.querySelectorAll('.heatmap-day').forEach(el=>{const day=Number(el.querySelector('span')?.textContent||0);if(!day)return;const date=`${m}-${String(day).padStart(2,'0')}`,exp=monthTx(m).filter(t=>t.type==='expense'&&String(t.date).slice(0,10)===date).reduce((a,t)=>a+Number(t.amount||0),0),b=getDailyBudgetSnapshot(date)||dailyFallback,pct=b?Math.round(exp/b*100):0;const detail=document.createElement('div');detail.className='month-heat-details';detail.textContent=`${money(b)} • ${pct}%`;el.appendChild(detail);el.title=`${date} • הוצאה ${money(exp)} • תקציב יומי ${money(b)} • ${pct}%`;});}};
+
+/* Automatic synchronization and cross-tab refresh without a manual refresh button. */
+function scheduleRemoteSync(){clearTimeout(window.__mtSyncTimer);if(!API_BASE_URL||!getAuthToken())return;window.__mtSyncTimer=setTimeout(()=>syncUserToServer(false),900);}
+const _persistUserState=persistUserState;
+persistUserState=function(){_persistUserState();scheduleRemoteSync();};
+window.addEventListener('storage',e=>{if(e.key===DB_KEY&&e.newValue){dbState=readDB();const u=dbState.users?.find(x=>x.id===activeUserId);if(u){state=mergeFeatureState(u.state);renderAll();}}});
+
+/* Better security status panel. */
+const _syncSettingsUI=syncSettingsUI;
+syncSettingsUI=function(){_syncSettingsUI();setText('security-status',state.security?.enabled?'מופעל':'כבוי');setText('security-timeout',(state.settings?.autoLockMinutes||30)+' דקות');renderThemeSwatches();renderProfileScreen();};
+
+/* Initial account boot: remote token -> DB, otherwise local login. */
+async function bootAccountLayer(){ensureFeatureDB();renderThemeSwatches();if(API_BASE_URL&&getAuthToken()){try{const me=await apiFetch('/api/me');await loadRemoteUserState(me);hideAuthGate();renderAll();syncSettingsUI();return;}catch{setAuthToken(null);}}showAuthGate();}
+
 // Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
-window.addEventListener('load',()=>{setTimeout(()=>{ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();},50);});
+window.addEventListener('load',()=>{setTimeout(async()=>{ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();await bootAccountLayer();if(window.lucide)lucide.createIcons();},50);});
 </script>
 </body>
 </html>

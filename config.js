@@ -1,0 +1,1 @@
+window.MONEYTRACKER_API_URL = '';
