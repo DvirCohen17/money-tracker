@@ -1,19 +1,26 @@
-# MoneyTracker API
+# MoneyTracker server
+
+Deploy the repository root as one Render Web Service. The server serves the frontend and `/api/*` from the same origin, so no API URL is required.
+
+## Required
+- Node 20+
+- `JWT_SECRET` (Render can generate it)
+- Persistent disk mounted at `server/data` or set `DB_PATH`
 
 ## Local
 ```bash
 npm install
-JWT_SECRET='change-me' npm start
+npm start
 ```
+Open `http://localhost:3000`.
 
-The API stores data in SQLite. Set `DB_PATH` to a persistent directory in production.
+The SQLite DB is created automatically, WAL is enabled, and rotating backups are written to `server/data/backups`.
 
-## Production / Render
-`render.yaml` mounts a persistent disk at `/opt/render/project/src/server/data`, so the SQLite DB survives deploys/restarts. The server automatically creates the directory, enables WAL mode and checkpoints the WAL periodically.
+## Authentication
+- POST `/api/register`
+- POST `/api/login`
+- GET/PUT `/api/me`
+- GET/POST/PUT/DELETE `/api/household/*`
+- GET/PUT `/api/state`
 
-## Security model
-- Login returns a JWT.
-- Every protected request is scoped to the authenticated account's household.
-- There is no endpoint that lists all registered users.
-- The household state is shared by the account's devices and is saved automatically.
-- Household members are names/profiles inside the account; they are not separate global users.
+Only the authenticated account owner can access its household. No endpoint lists all accounts.

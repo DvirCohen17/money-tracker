@@ -1,8 +1,7 @@
 services:
   - type: web
-    name: moneytracker-api
+    name: moneytracker
     runtime: node
-    rootDir: server
     buildCommand: npm install
     startCommand: npm start
     envVars:

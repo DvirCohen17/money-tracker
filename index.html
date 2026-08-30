@@ -275,11 +275,13 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
 
 <div id="tab-pockets" class="tab-content hidden space-y-5">
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-3">
-      <h2 class="font-bold text-white">הוצאות קבועות ומנויים</h2>
-      <button onclick="openRecurringModal()" class="text-indigo-400 text-sm font-semibold">+ הוסף</button>
-    </div>
-    <div id="recurring-list" class="space-y-2"></div>
+    <div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-white">הוצאות חודשיות קבועות</h2><p class="text-xs text-gray-400">שכר דירה, חשבונות, ביטוחים והוראות קבע.</p></div><button onclick="openRecurringModal('expense')" class="text-indigo-400 text-sm font-semibold">+ הוצאה</button></div>
+    <div id="recurring-fixed-list" class="space-y-2"></div>
+  </section>
+  <section class="glass-card p-4 rounded-2xl border border-sky-900/40">
+    <div class="flex justify-between items-center mb-4"><div><h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="tv" class="w-5 h-5 text-sky-400"></i>מנויים</h2><p class="text-xs text-gray-400">בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.</p></div><button onclick="openRecurringModal('subscription')" class="text-sky-400 text-sm font-semibold">+ מנוי</button></div>
+    <div id="subscription-widget-summary" class="feature-grid mb-3"></div>
+    <div id="subscription-list" class="space-y-2"></div>
   </section>
 
   <section class="glass-card p-4 rounded-2xl border-r-4 border-amber-500">
@@ -448,9 +450,10 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
     <div id="auth-register-name-wrap" class="hidden"><label class="text-xs text-gray-400">שם<input id="auth-name" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white mt-1" placeholder="השם שלך"></label></div>
     <label class="text-xs text-gray-400 block mt-2">אימייל<input id="auth-email" type="email" autocomplete="username" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white mt-1" placeholder="you@example.com"></label>
     <label class="text-xs text-gray-400 block mt-2">סיסמה<input id="auth-password" type="password" autocomplete="current-password" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-3 text-white mt-1" placeholder="לפחות 6 תווים"></label>
+    <label class="flex items-center gap-2 text-xs text-gray-400 mt-3"><input id="auth-remember" type="checkbox" checked class="accent-indigo-500"> השאר אותי מחובר במכשיר הזה</label>
     <button id="auth-submit" onclick="submitAuth()" class="w-full bg-indigo-600 text-white rounded-xl py-3 mt-4 font-bold">התחבר</button><button id="auth-local-continue" onclick="continueLegacyLocalUser()" class="hidden w-full bg-gray-900 border border-gray-800 text-white rounded-xl py-3 mt-2 text-sm">המשך עם הנתונים הקיימים במכשיר</button>
     <p id="auth-message" class="text-xs text-center text-rose-300 mt-3 min-h-4"></p>
-    <p id="auth-db-note" class="text-[10px] text-center text-gray-500 mt-2">התחברות מקומית פעילה. לאחר הגדרת כתובת API, המשתמש והנתונים יישמרו בשרת.</p>
+    <p id="auth-db-note" class="text-[10px] text-center text-gray-500 mt-2">המערכת תתחבר אוטומטית לשרת כאשר האפליקציה מתארחת בשרת; במצב מקומי היא שומרת במכשיר.</p>
   </div>
 </div>
 
@@ -715,20 +718,26 @@ function ensureHistoryContainers(){
 function getMonthlyBudget(m){ensureHistoryContainers();const snap=state.history.monthlySnapshots[m];return snap&&Number.isFinite(Number(snap.budgetTarget))?Number(snap.budgetTarget):Number(state.settings.monthlyBudgetTarget)||0;}
 function calculateDailyBudgetAtStartOfDay(dateStr=today()){
   const m=String(dateStr).slice(0,7);
-  const todayExpense=sum(state.transactions.filter(t=>String(t.date)===dateStr&&t.type==='expense'&&!t.isTripSummary));
-  const monthExpensesExceptToday=expenseTotal(m)-todayExpense;
   const budget=getMonthlyBudget(m);
   const [y,mo]=m.split('-').map(Number); const daysInMonth=new Date(y,mo,0).getDate();
-  const day=Number(String(dateStr).slice(8,10)); const daysLeft=Math.max(1,daysInMonth-day+1);
-  return Math.max(0,(budget-monthExpensesExceptToday)/daysLeft);
+  const day=Number(String(dateStr).slice(8,10));
+  const beforeDate=sum(state.transactions.filter(t=>String(t.date).slice(0,10)<dateStr&&String(t.date).slice(0,7)===m&&t.type==='expense'&&!t.isTripSummary));
+  const daysLeft=Math.max(1,daysInMonth-day+1);
+  return Math.max(0,(budget-beforeDate)/daysLeft);
+}
+function calculateHistoricalDailyBudget(dateStr){
+  ensureHistoryContainers();
+  const snap=state.history.dailySnapshots[dateStr];
+  if(snap&&Number.isFinite(Number(snap.amount))) return Number(snap.amount);
+  return calculateDailyBudgetAtStartOfDay(dateStr);
 }
 function initializePeriodHistory(force=false){
   ensureHistoryContainers(); const d=today(),m=currentMonth(); let changed=false;
-  if(force||!state.history.dailySnapshots[d]){const amount=calculateDailyBudgetAtStartOfDay(d);state.history.dailySnapshots[d]={date:d,amount,createdAt:Date.now()};state.dailySnapshot={date:d,amount};changed=true;}
+  if(force||!state.history.dailySnapshots[d]){const amount=calculateDailyBudgetAtStartOfDay(d);state.history.dailySnapshots[d]={date:d,amount,createdAt:Date.now(),basis:'start-of-day'};state.dailySnapshot={date:d,amount};changed=true;}
   if(force||!state.history.monthlySnapshots[m]){state.history.monthlySnapshots[m]={month:m,budgetTarget:Number(state.settings.monthlyBudgetTarget)||0,createdAt:Date.now()};changed=true;}
   if(changed)save();
 }
-function getDailyBudgetSnapshot(dateStr=today()){ensureHistoryContainers();if(state.history.dailySnapshots[dateStr])return Number(state.history.dailySnapshots[dateStr].amount)||0;initializePeriodHistory(false);return Number(state.history.dailySnapshots[dateStr]?.amount)||0;}
+function getDailyBudgetSnapshot(dateStr=today()){ensureHistoryContainers();if(state.history.dailySnapshots[dateStr])return Number(state.history.dailySnapshots[dateStr].amount)||0;if(dateStr===today()){initializePeriodHistory(false);return Number(state.history.dailySnapshots[dateStr]?.amount)||0;}return calculateHistoricalDailyBudget(dateStr);}
 function renderHeatmap(){
   const m=document.getElementById('analytics-month-filter')?.value||document.getElementById('month-filter')?.value||currentMonth();
   const [year,month]=m.split('-').map(Number),daysInMonth=new Date(year,month,0).getDate(),baseDaily=getMonthlyBudget(m)/daysInMonth;
@@ -819,34 +828,29 @@ function updateCharts(){
 }
 
 function renderRecurring(){
-  document.getElementById('recurring-list').innerHTML=state.recurring.length?state.recurring.map(r=>`
-    <div class="swipe-container">
-      <div class="swipe-actions">
-        <div class="swipe-delete-btn" onclick="deleteRecurring(${r.id})">
-          <i data-lucide="trash-2" class="w-5 h-5"></i>
-        </div>
-      </div>
-      <div class="swipe-content p-3 flex justify-between items-center cursor-pointer" onclick="editRecurring(${r.id})">
-        <div>
-          <b class="text-gray-200">${esc(r.name)}</b>
-          <div class="text-[10px] text-gray-400">${esc(r.date)} • ${r.active!==false?'פעיל':'מושהה'}</div>
-        </div>
-        <div class="flex items-center gap-3">
-          <b class="amount text-white">${money(r.amount)}</b>
-        </div>
-      </div>
-    </div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות קבועות</div>';
+  const fixed=state.recurring.filter(r=>!r.subscriptionType);
+  const subs=state.recurring.filter(r=>!!r.subscriptionType);
+  const fixedEl=document.getElementById('recurring-fixed-list')||document.getElementById('recurring-list');
+  if(fixedEl) fixedEl.innerHTML=fixed.length?fixed.map(r=>`<div class="swipe-container"><div class="swipe-actions"><div class="swipe-delete-btn" onclick="deleteRecurring(${r.id})"><i data-lucide="trash-2" class="w-5 h-5"></i></div></div><div class="swipe-content p-3 flex justify-between items-center cursor-pointer" onclick="editRecurring(${r.id})"><div><b class="text-gray-200">${esc(r.name)}</b><div class="text-[10px] text-gray-400">${esc(r.date)} • ${r.active!==false?'פעיל':'מושהה'}</div></div><b class="amount text-white">${money(r.amount)}</b></div></div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות חודשיות קבועות.</div>';
+  const subEl=document.getElementById('subscription-list');
+  if(subEl) subEl.innerHTML=subs.length?subs.map(r=>{const service=subscriptionCatalog[r.subscriptionType];const plan=service?.plans?.find(p=>p.id===r.subscriptionPlan);return `<div class="swipe-container"><div class="swipe-actions"><div class="swipe-delete-btn" onclick="deleteRecurring(${r.id})"><i data-lucide="trash-2" class="w-5 h-5"></i></div></div><div class="swipe-content p-3 flex justify-between items-center cursor-pointer" onclick="editRecurring(${r.id})"><div><b class="text-gray-200">${esc(r.name)}</b><div class="text-[10px] text-gray-400">${esc(service?.name||r.subscriptionType)}${plan?' • '+esc(plan.name):''} • ${esc(r.date)}</div></div><b class="amount text-sky-300">${money(r.amount)}</b></div></div>`}).join(''):'<div class="text-gray-500 text-sm">אין מנויים מוגדרים.</div>';
+  const summary=document.getElementById('subscription-widget-summary');
+  if(summary){const total=subs.filter(r=>r.active!==false).reduce((a,r)=>a+Number(r.amount||0),0);summary.innerHTML=`<div class="feature-stat"><div class="small-stat">מנויים פעילים</div><b class="text-white">${subs.filter(r=>r.active!==false).length}</b></div><div class="feature-stat"><div class="small-stat">עלות חודשית</div><b class="text-sky-300 amount">${money(total)}</b></div>`;}
 }
-
-function openRecurringModal(id=null){
-  const r=id?state.recurring.find(x=>x.id===id):{name:'',amount:'',date:'1 לחודש',active:true,subscriptionType:'',subscriptionPlan:'',priceSource:'manual'};
-  const serviceOptions=['','netflix','spotify'].map(x=>`<option value="${x}" ${r.subscriptionType===x?'selected':''}>${x===''?'לא מנוי / הזנה ידנית':x==='netflix'?'Netflix':'Spotify'}</option>`).join('');
-  const planBox=r.subscriptionType?`<div id="r-plan-wrap"><label class="text-sm text-gray-300">חבילה<select id="r-plan" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option value="">טוען חבילות...</option></select></label></div>`:'<div id="r-plan-wrap" class="hidden"></div>';
-  openModal(id?'עריכת הוצאה קבועה':'הוצאה קבועה חדשה',`<label class="text-sm text-gray-300">שם<input id="r-name" placeholder="לדוגמה Netflix" value="${attr(r.name)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="text-sm text-gray-300">סוג מנוי<select id="r-subscription-type" onchange="loadSubscriptionPlansIntoRecurring()" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">${serviceOptions}</select></label>${planBox}<label class="text-sm text-gray-300">סכום חודשי<input id="r-amount" type="number" step="0.01" placeholder="סכום חודשי" value="${r.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><div id="r-price-source" class="text-[10px] text-gray-500"></div><input id="r-date" placeholder="מועד חיוב" value="${attr(r.date)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><label class="flex items-center gap-2 text-sm text-gray-300"><input id="r-active" type="checkbox" ${r.active!==false?'checked':''}> פעיל</label>`,()=>{const subscriptionType=v('r-subscription-type'),plan=v('r-plan');const obj={name:v('r-name'),amount:Number(v('r-amount')),date:v('r-date'),active:document.getElementById('r-active').checked,subscriptionType,subscriptionPlan:plan,priceSource:subscriptionType?'catalog':'manual',priceCheckedAt:subscriptionType?new Date().toISOString():''};if(id)Object.assign(r,obj);else state.recurring.push({id:Date.now(),...obj});save();closeModal();renderAll()});
-  setTimeout(()=>{if(r.subscriptionType)loadSubscriptionPlansIntoRecurring(r.subscriptionPlan)},30);
+function openRecurringModal(mode='expense',id=null){
+  const existing=id?state.recurring.find(x=>x.id===id):null;
+  const r=existing||{name:'',amount:'',date:'1 לחודש',active:true,subscriptionType:mode==='subscription'?'':'',subscriptionPlan:'',priceSource:'manual'};
+  const isSub=mode==='subscription'||!!r.subscriptionType;
+  const keys=Object.keys(subscriptionCatalog);
+  const serviceOptions=['',...keys].map(x=>`<option value="${x}" ${r.subscriptionType===x?'selected':''}>${x===''?'בחר שירות':esc(subscriptionCatalog[x].name)}</option>`).join('');
+  const planBox=isSub?`<div id="r-plan-wrap" class="mt-2"><label class="text-sm text-gray-300">תוכנית<select id="r-plan" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option value="">בחר תוכנית</option></select></label></div>`:'<div id="r-plan-wrap" class="hidden"></div>';
+  const subFields=isSub?`<label class="text-sm text-gray-300 block mt-2">חיפוש מנוי<input id="r-subscription-search" oninput="filterSubscriptionOptions()" placeholder="Netflix, Disney, iCloud..." class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="text-sm text-gray-300 block mt-2">שירות<select id="r-subscription-type" onchange="loadSubscriptionPlansIntoRecurring()" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">${serviceOptions}</select></label>${planBox}`:'';
+  openModal(existing?'עריכת הוצאה חודשית':isSub?'מנוי חדש':'הוצאה חודשית קבועה',`${isSub?subFields:''}<label class="text-sm text-gray-300 block mt-2">שם<input id="r-name" placeholder="לדוגמה שכר דירה" value="${attr(r.name)}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="text-sm text-gray-300 block mt-2">סכום חודשי<input id="r-amount" type="number" step="0.01" placeholder="סכום חודשי" value="${r.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><div id="r-price-source" class="text-[10px] text-gray-500 mt-1"></div><label class="text-sm text-gray-300 block mt-2">מועד חיוב<input id="r-date" placeholder="למשל 1 לחודש" value="${attr(r.date)}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="flex items-center gap-2 text-sm text-gray-300 mt-2"><input id="r-active" type="checkbox" ${r.active!==false?'checked':''}> פעיל</label>`,()=>{const subscriptionType=v('r-subscription-type'),plan=v('r-plan');const obj={name:v('r-name').trim(),amount:Number(v('r-amount')),date:v('r-date').trim(),active:document.getElementById('r-active').checked,subscriptionType,subscriptionPlan:plan,priceSource:subscriptionType?'catalog':'manual',priceCheckedAt:subscriptionType?new Date().toISOString():''};if(!obj.name||!Number.isFinite(obj.amount)||obj.amount<0){alert('יש להזין שם וסכום תקין');return;}if(id)Object.assign(r,obj);else state.recurring.push({id:Date.now(),...obj});save();closeModal();renderAll()});
+  setTimeout(()=>{if(isSub&&r.subscriptionType)loadSubscriptionPlansIntoRecurring(r.subscriptionPlan);if(isSub)filterSubscriptionOptions();},30);
 }
-function editRecurring(id){openRecurringModal(id)} 
+function editRecurring(id){const r=state.recurring.find(x=>x.id===id);openRecurringModal(r?.subscriptionType?'subscription':'expense',id)}
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
+function filterSubscriptionOptions(){const input=document.getElementById('r-subscription-search'),sel=document.getElementById('r-subscription-type');if(!input||!sel)return;const q=input.value.trim().toLowerCase();Array.from(sel.options).forEach(o=>{if(!o.value){o.hidden=false;return;}o.hidden=!!q&&!subscriptionCatalog[o.value].name.toLowerCase().includes(q)&&!o.value.toLowerCase().includes(q);});}
 
 function renderSavingsAllocations() {
   const container = document.getElementById('savings-allocations-list');
@@ -1285,7 +1289,7 @@ function markNotificationsRead(){if(!dbState)return;dbState.notificationRead=dbS
 function showPeriodSummary(){renderPeriodSummary(true);}
 function renderPeriodSummary(){const c=document.getElementById('period-summary');if(!c)return;const months=getAnalyticsMonths(),exp=months.reduce((a,m)=>a+expenseTotal(m),0),inc=months.reduce((a,m)=>a+incomeTotal(m),0),saveAmt=inc-exp,budget=months.reduce((a,m)=>a+getMonthlyBudget(m),0);const top=Object.entries(getAnalyticsTransactions().reduce((o,t)=>(o[t.cat]=(o[t.cat]||0)+Number(t.amount),o),{})).sort((a,b)=>b[1]-a[1])[0];const title=analyticsPeriod==='month'?monthLabel(analyticsMonth):analyticsPeriod==='year'?`שנת ${analyticsYear}`:'36 חודשים';c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(inc)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(exp)}</b></div><div class="feature-stat"><div class="small-stat">נטו</div><b class="${saveAmt>=0?'text-emerald-400':'text-rose-400'} amount">${money(saveAmt)}</b></div><div class="feature-stat"><div class="small-stat">ניצול תקציב</div><b class="text-white">${budget?Math.round(exp/budget*100):0}%</b></div></div><div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 text-xs text-gray-300">${esc(title)}: ${top?`הקטגוריה המובילה היא <b class="text-white">${esc(top[0])}</b> עם ${money(top[1])}.`:'אין עדיין מספיק נתונים לקטגוריה מובילה'} ${saveAmt>=0?'המאזן בתקופה חיובי.':'ההוצאות גבוהות מההכנסות בתקופה.'}</div>`;}
 function renderAnnualSummary(){const c=document.getElementById('annual-summary');if(!c)return;const y=analyticsYear,months=analyticsMonthsForYear(y),rows=months.map(m=>({m,inc:incomeTotal(m),exp:expenseTotal(m)}));const totalI=rows.reduce((a,x)=>a+x.inc,0),totalE=rows.reduce((a,x)=>a+x.exp,0),top=rows.slice().sort((a,b)=>b.exp-a.exp)[0];setText('annual-summary-year',String(y));c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(totalI)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(totalE)}</b></div><div class="feature-stat"><div class="small-stat">חיסכון / נטו</div><b class="${totalI-totalE>=0?'text-emerald-400':'text-rose-400'} amount">${money(totalI-totalE)}</b></div><div class="feature-stat"><div class="small-stat">חודש יקר</div><b class="text-white">${top?monthLabel(top.m):'—'}</b></div></div><div class="space-y-1">${rows.map(x=>`<div class="flex items-center gap-2 text-xs"><span class="w-20 text-gray-400">${esc(monthLabel(x.m))}</span><div class="flex-1 bg-gray-900 rounded-full h-2 overflow-hidden"><div class="bg-rose-500 h-full" style="width:${Math.min(100,totalE?x.exp/Math.max(...rows.map(r=>r.exp),1)*100:0)}%"></div></div><b class="w-20 text-left amount">${money(x.exp)}</b></div>`).join('')}</div>`;}
-function renderAdvancedHeatmap(){const c=document.getElementById('monthly-heatmap');if(!c)return;const m=analyticsMonth||currentMonth();if(analyticsPeriod==='month'){const [y,mo]=m.split('-').map(Number),days=new Date(y,mo,0).getDate(),first=new Date(y,mo-1,1).getDay();const ex={};monthTx(m).filter(t=>t.type==='expense').forEach(t=>{const d=Number(String(t.date).slice(8,10));ex[d]=(ex[d]||0)+Number(t.amount)});let h='';for(let i=0;i<first;i++)h+='<div></div>';for(let d=1;d<=days;d++){const date=`${m}-${String(d).padStart(2,'0')}`,v=ex[d]||0,b=getDailyBudgetSnapshot(date)||getMonthlyBudget(m)/days,ratio=b?v/b:0,cls=ratio<=1?'heat-day-green':'heat-day-red',pct=b?Math.round(ratio*100):0;h+=`<button type="button" class="heatmap-day ${cls} p-2 border rounded-xl flex flex-col justify-between text-right" onclick="openDailyExpensesModal('${date}')" title="${date} • ${money(v)} • תקציב ${money(b)}"><span class="opacity-70 text-[10px]">${d}</span><span class="text-[10px] truncate">${v?money(v):'—'}</span><span class="month-heat-details">${money(b)} • ${pct}%</span></button>`;}c.className='heatmap-grid pt-2';c.innerHTML=h;return;}const years=analyticsPeriod==='year'?[analyticsYear]:[...new Set(analyticsMonthsForHistory().map(m=>Number(m.slice(0,4))))];c.className='heatmap-year pt-2';c.innerHTML=years.map(y=>`<div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-3"><div class="flex justify-between items-center mb-3"><div class="text-sm font-bold text-white">${y}</div><div class="text-[10px] text-gray-500">12 חודשים</div></div><div class="mini-heatmap">${analyticsMonthsForYear(y).map(mm=>{const e=expenseTotal(mm),b=getMonthlyBudget(mm),ratio=b?e/b:0;const cls=ratio<=1?'heat-day-green':'heat-day-red';return `<button type="button" class="heatmap-day ${cls}" onclick="selectAnalyticsMonth('${mm}')" title="${monthLabel(mm)} • ${money(e)} מתוך ${money(b)}"><span class="text-[10px] font-semibold">${mm.slice(5)}</span></button>`}).join('')}</div></div>`).join('');}
+function renderAdvancedHeatmap(){const c=document.getElementById('monthly-heatmap');if(!c)return;const m=analyticsMonth||currentMonth();if(analyticsPeriod==='month'){const [y,mo]=m.split('-').map(Number),days=new Date(y,mo,0).getDate(),first=new Date(y,mo-1,1).getDay();const ex={};monthTx(m).filter(t=>t.type==='expense').forEach(t=>{const d=Number(String(t.date).slice(8,10));ex[d]=(ex[d]||0)+Number(t.amount)});let h='';for(let i=0;i<first;i++)h+='<div></div>';for(let d=1;d<=days;d++){const date=`${m}-${String(d).padStart(2,'0')}`,v=ex[d]||0,b=getDailyBudgetSnapshot(date),ratio=b?v/b:0,cls=ratio<=1?'heat-day-green':'heat-day-red',pct=b?Math.round(ratio*100):0;h+=`<button type="button" class="heatmap-day ${cls} p-2 border rounded-xl flex flex-col justify-between text-right" onclick="openDailyExpensesModal('${date}')" title="${date} • ${money(v)} • תקציב ${money(b)}"><span class="opacity-70 text-[10px]">${d}</span><span class="text-[10px] truncate">${v?money(v):'—'}</span><span class="month-heat-details">${money(b)} • ${pct}%</span></button>`;}c.className='heatmap-grid pt-2';c.innerHTML=h;return;}const years=analyticsPeriod==='year'?[analyticsYear]:[...new Set(analyticsMonthsForHistory().map(m=>Number(m.slice(0,4))))];c.className='heatmap-year pt-2';c.innerHTML=years.map(y=>`<div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-3"><div class="flex justify-between items-center mb-3"><div class="text-sm font-bold text-white">${y}</div><div class="text-[10px] text-gray-500">12 חודשים</div></div><div class="mini-heatmap">${analyticsMonthsForYear(y).map(mm=>{const e=expenseTotal(mm),b=getMonthlyBudget(mm),ratio=b?e/b:0;const cls=ratio<=1?'heat-day-green':'heat-day-red';return `<button type="button" class="heatmap-day ${cls}" onclick="selectAnalyticsMonth('${mm}')" title="${monthLabel(mm)} • ${money(e)} מתוך ${money(b)}"><span class="text-[10px] font-semibold">${mm.slice(5)}</span></button>`}).join('')}</div></div>`).join('');}
 function enhanceHeatmapStyles(){const st=document.createElement('style');st.textContent='.heat-0{background:#111827;border-color:#1f2937;color:#6b7280}.heat-1{background:#064e3b;border-color:#065f46;color:#a7f3d0}.heat-2{background:#047857;border-color:#059669;color:#d1fae5}.heat-3{background:#92400e;border-color:#b45309;color:#fde68a}.heat-4{background:#881337;border-color:#be123c;color:#fecdd3}';document.head.appendChild(st);}
 const originalRenderAnalytics=renderAnalytics;renderAnalytics=function(){originalRenderAnalytics();renderPeriodSummary();renderAnnualSummary();renderNotifications();};
 renderHeatmap=renderAdvancedHeatmap;
@@ -1311,37 +1315,44 @@ const originalOpenSecurityModal=openSecurityModal;openSecurityModal=function(){o
 
 /* ===================== v1.2 UX + account layer ===================== */
 const API_BASE_URL = (window.MONEYTRACKER_API_URL || localStorage.getItem('moneytracker_api_url') || '').replace(/\/$/,'');
+let REMOTE_API_ENABLED=!!API_BASE_URL;
 let authMode='login';
 let remoteSession=false;
 let profileOpen=false;
 
 function apiUrl(path){return API_BASE_URL ? API_BASE_URL + path : path;}
-function getAuthToken(){return localStorage.getItem('moneytracker_auth_token')||'';}
-function setAuthToken(t){if(t)localStorage.setItem('moneytracker_auth_token',t);else localStorage.removeItem('moneytracker_auth_token');}
+function isRemoteReady(){return REMOTE_API_ENABLED;}
+async function detectServer(){
+  if(isRemoteReady()){REMOTE_API_ENABLED=true;return true;}
+  if(location.protocol==='file:'){REMOTE_API_ENABLED=false;return false;}
+  try{const r=await fetch('/api/health',{cache:'no-store'});REMOTE_API_ENABLED=r.ok;return REMOTE_API_ENABLED;}catch{REMOTE_API_ENABLED=false;return false;}
+}
+function getAuthToken(){return localStorage.getItem('moneytracker_auth_token')||sessionStorage.getItem('moneytracker_auth_token')||'';}
+function setAuthToken(t,remember=true){localStorage.removeItem('moneytracker_auth_token');sessionStorage.removeItem('moneytracker_auth_token');if(t)(remember?localStorage:sessionStorage).setItem('moneytracker_auth_token',t);}
 async function verifyPassword(input,stored){if(!stored)return true;return (await hashPassword(input))===stored;}
 async function apiFetch(path,options={}){const headers={...(options.headers||{}),'Content-Type':'application/json'};const token=getAuthToken();if(token)headers.Authorization='Bearer '+token;const r=await fetch(apiUrl(path),{...options,headers});if(!r.ok){let msg='שגיאת שרת';try{msg=(await r.json()).error||msg}catch{}throw new Error(msg)}return r.json();}
 
 function showAuthGate(){const gate=document.getElementById('auth-gate');if(!gate)return;gate.classList.remove('hidden');document.body.classList.add('auth-locked');const hasLegacy=!!(localStorage.getItem(KEY)||localStorage.getItem(DB_KEY));document.getElementById('auth-local-continue')?.classList.toggle('hidden',!hasLegacy);if(window.lucide)lucide.createIcons();}
 function hideAuthGate(){document.getElementById('auth-gate')?.classList.add('hidden');document.body.classList.remove('auth-locked');}
 function showAuthMode(mode){authMode=mode;document.getElementById('auth-login-tab')?.classList.toggle('active',mode==='login');document.getElementById('auth-register-tab')?.classList.toggle('active',mode==='register');document.getElementById('auth-register-name-wrap')?.classList.toggle('hidden',mode!=='register');const submit=document.getElementById('auth-submit');if(submit)submit.textContent=mode==='register'?'צור משתמש':'התחבר';const pass=document.getElementById('auth-password');if(pass)pass.autocomplete=mode==='register'?'new-password':'current-password';document.getElementById('auth-message').textContent='';}
-async function submitAuth(){const email=v('auth-email').trim().toLowerCase(),password=v('auth-password'),name=v('auth-name').trim();const msg=document.getElementById('auth-message');if(!email||!password||(authMode==='register'&&!name)){msg.textContent='מלא את כל השדות.';return;}if(password.length<6){msg.textContent='הסיסמה צריכה להכיל לפחות 6 תווים.';return;}const btn=document.getElementById('auth-submit');btn.disabled=true;btn.textContent='מתחבר...';try{if(API_BASE_URL){const data=await apiFetch(authMode==='register'?'/api/register':'/api/login',{method:'POST',body:JSON.stringify(authMode==='register'?{email,name,password}:{email,password})});if(authMode==='register'){const login=await apiFetch('/api/login',{method:'POST',body:JSON.stringify({email,password})});setAuthToken(login.token);remoteSession=true;await loadRemoteUserState(login.user);}else{setAuthToken(data.token);remoteSession=true;await loadRemoteUserState(data.user);}hideAuthGate();renderAll();syncSettingsUI();}else{ensureFeatureDB();if(authMode==='register'){if(dbState.users.some(u=>String(u.email||'').toLowerCase()===email)){throw new Error('האימייל כבר קיים במכשיר');}const uid='user-'+Date.now();dbState.users.push({id:uid,name,email,createdAt:Date.now(),state:clone(defaults),passwordHash:await hashPassword(password)});activeUserId=uid;dbState.activeUserId=uid;state=mergeFeatureState(defaults);writeDB();save();}else{const u=dbState.users.find(u=>String(u.email||'').toLowerCase()===email);if(!u)throw new Error('לא נמצא משתמש מקומי עם האימייל הזה');if(u.passwordHash&&!(await verifyPassword(password,u.passwordHash)))throw new Error('אימייל או סיסמה שגויים');activeUserId=u.id;dbState.activeUserId=activeUserId;state=mergeFeatureState(u.state);writeDB();save();}remoteSession=false;hideAuthGate();renderAll();syncSettingsUI();}msg.textContent='';}catch(e){console.error(e);msg.textContent=e.message||'לא ניתן להתחבר כרגע.';}finally{btn.disabled=false;btn.textContent=authMode==='register'?'צור משתמש':'התחבר';}}
+async function submitAuth(){const email=v('auth-email').trim().toLowerCase(),password=v('auth-password'),name=v('auth-name').trim();const msg=document.getElementById('auth-message');if(!email||!password||(authMode==='register'&&!name)){msg.textContent='מלא את כל השדות.';return;}if(password.length<6){msg.textContent='הסיסמה צריכה להכיל לפחות 6 תווים.';return;}const btn=document.getElementById('auth-submit');btn.disabled=true;btn.textContent='מתחבר...';try{if(isRemoteReady()){const data=await apiFetch(authMode==='register'?'/api/register':'/api/login',{method:'POST',body:JSON.stringify(authMode==='register'?{email,name,password}:{email,password})});if(authMode==='register'){const login=await apiFetch('/api/login',{method:'POST',body:JSON.stringify({email,password})});setAuthToken(login.token,document.getElementById('auth-remember')?.checked!==false);remoteSession=true;await loadRemoteUserState(login.user);}else{setAuthToken(data.token,document.getElementById('auth-remember')?.checked!==false);remoteSession=true;await loadRemoteUserState(data.user);}hideAuthGate();renderAll();syncSettingsUI();}else{ensureFeatureDB();if(authMode==='register'){if(dbState.users.some(u=>String(u.email||'').toLowerCase()===email)){throw new Error('האימייל כבר קיים במכשיר');}const uid='user-'+Date.now();dbState.users.push({id:uid,name,email,createdAt:Date.now(),state:clone(defaults),passwordHash:await hashPassword(password)});activeUserId=uid;dbState.activeUserId=uid;state=mergeFeatureState(defaults);writeDB();save();}else{const u=dbState.users.find(u=>String(u.email||'').toLowerCase()===email);if(!u)throw new Error('לא נמצא משתמש מקומי עם האימייל הזה');if(u.passwordHash&&!(await verifyPassword(password,u.passwordHash)))throw new Error('אימייל או סיסמה שגויים');activeUserId=u.id;dbState.activeUserId=activeUserId;state=mergeFeatureState(u.state);writeDB();save();}remoteSession=false;hideAuthGate();renderAll();syncSettingsUI();}msg.textContent='';}catch(e){console.error(e);msg.textContent=e.message||'לא ניתן להתחבר כרגע.';}finally{btn.disabled=false;btn.textContent=authMode==='register'?'צור משתמש':'התחבר';}}
 async function loadRemoteUserState(user){
   const result=await apiFetch('/api/state');
   remoteSession=true;remoteAccountUser=user;window.remoteAccountUser=user;window.remoteStateUpdatedAt=result.updatedAt||null;
   state=mergeFeatureState(result.state||defaults);dbState=readDB();dbState.householdMembers=dbState.householdMembers||[];dbState.accountUser={id:'remote-account',name:user.name,email:user.email,remoteId:user.id};activeUserId='remote-account';dbState.activeUserId=activeUserId;writeDB();
   await loadHouseholdMembers();save();
 }
-async function syncUserToServer(showAlert=false){if(!API_BASE_URL||!getAuthToken()){if(showAlert)alert('לא הוגדר שרת. הנתונים נשמרים מקומית כרגע.');return false;}try{persistUserState();const r=await apiFetch('/api/state',{method:'PUT',body:JSON.stringify({state,updatedAt:window.remoteStateUpdatedAt||null})});window.remoteStateUpdatedAt=r.updatedAt||window.remoteStateUpdatedAt;if(showAlert)alert('הנתונים נשמרו בשרת בהצלחה.');return true}catch(e){if(showAlert)alert('השמירה לשרת נכשלה: '+e.message);return false;}}
-async function pullRemoteState(){if(!API_BASE_URL||!getAuthToken()||window.__mtPulling)return;window.__mtPulling=true;try{const r=await apiFetch('/api/state');if(r.updatedAt&&r.updatedAt!==window.remoteStateUpdatedAt){state=mergeFeatureState(r.state||defaults);window.remoteStateUpdatedAt=r.updatedAt;persistUserState();renderAll();syncSettingsUI();}}catch(e){console.warn('remote pull failed',e)}finally{window.__mtPulling=false;}}
-function startRemoteSyncLoop(){clearInterval(window.__mtRemotePoll);if(!API_BASE_URL||!getAuthToken())return;window.__mtRemotePoll=setInterval(()=>{if(document.visibilityState!=='hidden')pullRemoteState();},10000);window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullRemoteState();});}
-async function updateRemoteProfile(name,email){if(API_BASE_URL&&getAuthToken()){const r=await apiFetch('/api/me',{method:'PUT',body:JSON.stringify({name,email})});window.remoteAccountUser=r.user;window.remoteHouseholdMembers=r.household||window.remoteHouseholdMembers;localStorage.setItem('money_tracker_remote_user',JSON.stringify(r.user));renderProfileScreen();syncSettingsUI();return;}const u=dbState.accountUser;if(u){u.name=name;u.email=email;writeDB();renderProfileScreen();}}
+async function syncUserToServer(showAlert=false){if(!isRemoteReady()||!getAuthToken()){if(showAlert)alert('לא הוגדר שרת. הנתונים נשמרים מקומית כרגע.');return false;}try{persistUserState();const r=await apiFetch('/api/state',{method:'PUT',body:JSON.stringify({state,updatedAt:window.remoteStateUpdatedAt||null})});window.remoteStateUpdatedAt=r.updatedAt||window.remoteStateUpdatedAt;if(showAlert)alert('הנתונים נשמרו בשרת בהצלחה.');return true}catch(e){if(showAlert)alert('השמירה לשרת נכשלה: '+e.message);return false;}}
+async function pullRemoteState(){if(!isRemoteReady()||!getAuthToken()||window.__mtPulling)return;window.__mtPulling=true;try{const r=await apiFetch('/api/state');if(r.updatedAt&&r.updatedAt!==window.remoteStateUpdatedAt){state=mergeFeatureState(r.state||defaults);window.remoteStateUpdatedAt=r.updatedAt;persistUserState();renderAll();syncSettingsUI();}}catch(e){console.warn('remote pull failed',e)}finally{window.__mtPulling=false;}}
+function startRemoteSyncLoop(){clearInterval(window.__mtRemotePoll);if(!isRemoteReady()||!getAuthToken())return;window.__mtRemotePoll=setInterval(()=>{if(document.visibilityState!=='hidden')pullRemoteState();},10000);window.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')pullRemoteState();});}
+async function updateRemoteProfile(name,email){if(isRemoteReady()&&getAuthToken()){const r=await apiFetch('/api/me',{method:'PUT',body:JSON.stringify({name,email})});window.remoteAccountUser=r.user;window.remoteHouseholdMembers=r.household||window.remoteHouseholdMembers;localStorage.setItem('money_tracker_remote_user',JSON.stringify(r.user));renderProfileScreen();syncSettingsUI();return;}const u=dbState.accountUser;if(u){u.name=name;u.email=email;writeDB();renderProfileScreen();}}
 async function openHouseholdMemberModal(){
-  openModal('הוספת אדם לחשבון משותף',`<p class="text-xs text-gray-400">הנתונים הפיננסיים נשארים משותפים לכל האנשים בחשבון. כאן מוסיפים רק את השמות שיופיעו במערכת.</p><input id="household-member-name" placeholder="לדוגמה: דנה" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">`,async()=>{const name=v('household-member-name').trim();if(!name)return alert('הזן שם');try{if(API_BASE_URL&&getAuthToken()){const r=await apiFetch('/api/household/members',{method:'POST',body:JSON.stringify({name})});window.remoteHouseholdMembers=r.members||[];}else{dbState.householdMembers=dbState.householdMembers||[];dbState.householdMembers.push({id:Date.now(),name,role:'member',createdAt:Date.now()});writeDB();window.remoteHouseholdMembers=dbState.householdMembers;}closeModal();renderProfileScreen();}catch(e){alert('לא ניתן להוסיף אדם: '+e.message);}});
+  openModal('הוספת אדם לחשבון משותף',`<p class="text-xs text-gray-400">הנתונים הפיננסיים נשארים משותפים לכל האנשים בחשבון. כאן מוסיפים רק את השמות שיופיעו במערכת.</p><input id="household-member-name" placeholder="לדוגמה: דנה" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">`,async()=>{const name=v('household-member-name').trim();if(!name)return alert('הזן שם');try{if(isRemoteReady()&&getAuthToken()){const r=await apiFetch('/api/household/members',{method:'POST',body:JSON.stringify({name})});window.remoteHouseholdMembers=r.members||[];}else{dbState.householdMembers=dbState.householdMembers||[];dbState.householdMembers.push({id:Date.now(),name,role:'member',createdAt:Date.now()});writeDB();window.remoteHouseholdMembers=dbState.householdMembers;}closeModal();renderProfileScreen();}catch(e){alert('לא ניתן להוסיף אדם: '+e.message);}});
 }
-async function editHouseholdMember(id,name){openModal('עריכת אדם',`<input id="household-member-name" value="${attr(name)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">`,async()=>{const n=v('household-member-name').trim();if(!n)return;if(API_BASE_URL&&getAuthToken()){const r=await apiFetch('/api/household/members/'+id,{method:'PUT',body:JSON.stringify({name:n})});window.remoteHouseholdMembers=r.members||[];}else{const m=(dbState.householdMembers||[]).find(x=>x.id===id);if(m)m.name=n;writeDB();window.remoteHouseholdMembers=dbState.householdMembers;}closeModal();renderProfileScreen();});}
-async function deleteHouseholdMember(id){if(!confirm('למחוק את האדם מהחשבון המשותף?'))return;if(API_BASE_URL&&getAuthToken()){const r=await apiFetch('/api/household/members/'+id,{method:'DELETE'});window.remoteHouseholdMembers=r.members||[];}else{dbState.householdMembers=(dbState.householdMembers||[]).filter(x=>x.id!==id);writeDB();window.remoteHouseholdMembers=dbState.householdMembers;}renderProfileScreen();}
+async function editHouseholdMember(id,name){openModal('עריכת אדם',`<input id="household-member-name" value="${attr(name)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">`,async()=>{const n=v('household-member-name').trim();if(!n)return;if(isRemoteReady()&&getAuthToken()){const r=await apiFetch('/api/household/members/'+id,{method:'PUT',body:JSON.stringify({name:n})});window.remoteHouseholdMembers=r.members||[];}else{const m=(dbState.householdMembers||[]).find(x=>x.id===id);if(m)m.name=n;writeDB();window.remoteHouseholdMembers=dbState.householdMembers;}closeModal();renderProfileScreen();});}
+async function deleteHouseholdMember(id){if(!confirm('למחוק את האדם מהחשבון המשותף?'))return;if(isRemoteReady()&&getAuthToken()){const r=await apiFetch('/api/household/members/'+id,{method:'DELETE'});window.remoteHouseholdMembers=r.members||[];}else{dbState.householdMembers=(dbState.householdMembers||[]).filter(x=>x.id!==id);writeDB();window.remoteHouseholdMembers=dbState.householdMembers;}renderProfileScreen();}
 async function continueLegacyLocalUser(){ensureFeatureDB();hideAuthGate();renderAll();syncSettingsUI();}
-function logoutUser(){persistUserState();clearInterval(window.__mtRemotePoll);setAuthToken(null);localStorage.removeItem('money_tracker_remote_user');remoteSession=false;window.remoteAccountUser=null;window.remoteHouseholdMembers=[];closeProfileScreen();showAuthGate();showAuthMode('login');}
+function logoutUser(){persistUserState();clearInterval(window.__mtRemotePoll);setAuthToken(null);localStorage.removeItem('money_tracker_remote_user');sessionStorage.removeItem('moneytracker_auth_token');remoteSession=false;window.remoteAccountUser=null;window.remoteHouseholdMembers=[];closeProfileScreen();showAuthGate();showAuthMode('login');}
 
 /* Full visual themes: each theme controls background + surfaces + accents together. */
 function setAppTheme(theme){const allowed=['ocean','forest','violet','amber','rose','slate','sunset'];if(!allowed.includes(theme))theme='ocean';document.body.classList.remove(...allowed.map(x=>'theme-'+x));document.body.classList.add('theme-'+theme);state.theme=theme;state.settings=state.settings||{};state.settings.theme=theme;save();renderThemeSwatches();}
@@ -1363,7 +1374,7 @@ function closeNotificationPopover(){document.getElementById('notification-popove
 function openProfileScreen(){closeNotificationPopover();profileOpen=true;const s=document.getElementById('profile-screen');s?.classList.add('active');renderProfileScreen();if(window.lucide)lucide.createIcons();}
 function closeProfileScreen(){profileOpen=false;document.getElementById('profile-screen')?.classList.remove('active');}
 async function loadHouseholdMembers(){
-  if(API_BASE_URL&&getAuthToken()){
+  if(isRemoteReady()&&getAuthToken()){
     try{const data=await apiFetch('/api/household');window.remoteHouseholdMembers=data.members||[];renderProfileScreen();return;}catch(e){console.warn('household load failed',e)}
   }
   window.remoteHouseholdMembers=dbState?.householdMembers||[];renderProfileScreen();
@@ -1371,7 +1382,7 @@ async function loadHouseholdMembers(){
 function renderProfileScreen(){
   const me=window.remoteAccountUser||dbState?.accountUser||dbState?.users?.find(x=>x.id===activeUserId);
   if(!me)return;
-  setText('profile-name',me.name||'המשתמש שלי');setText('profile-email',me.email||'משתמש מקומי');setText('profile-source',API_BASE_URL&&getAuthToken()?'מסונכרן עם מסד הנתונים בשרת':'מסד נתונים מקומי במכשיר');
+  setText('profile-name',me.name||'המשתמש שלי');setText('profile-email',me.email||'משתמש מקומי');setText('profile-source',isRemoteReady()&&getAuthToken()?'מסונכרן עם מסד הנתונים בשרת':'מסד נתונים מקומי במכשיר');
   const tx=state.transactions||[],income=tx.filter(t=>t.type==='income').reduce((a,t)=>a+Number(t.amount||0),0),exp=tx.filter(t=>t.type==='expense').reduce((a,t)=>a+Number(t.amount||0),0);
   const members=window.remoteHouseholdMembers||[];const el=document.getElementById('profile-stats');if(el)el.innerHTML=`<div class="feature-stat"><div class="small-stat">תנועות</div><b class="text-white">${tx.length}</b></div><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400">${money(income)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400">${money(exp)}</b></div><div class="feature-stat"><div class="small-stat">אנשים בחשבון</div><b class="text-white">${members.length||1}</b></div>`;
   const ul=document.getElementById('profile-users-list');if(ul)ul.innerHTML=members.length?members.map(x=>`<div class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-xl p-3"><div><b class="text-white">${esc(x.name)}</b><small class="block text-gray-500">${x.role==='owner'?'בעל החשבון':'אדם בחשבון'}</small></div><div class="flex items-center gap-2"><span class="text-xs text-emerald-300">מסונכרן</span>${x.role!=='owner'?`<button type="button" onclick="editHouseholdMember(${x.id},'${attr(x.name)}')" class="text-xs text-sky-300">ערוך</button><button type="button" onclick="deleteHouseholdMember(${x.id})" class="text-xs text-rose-300">מחק</button>`:''}</div></div>`).join(''):'<div class="text-sm text-gray-500">אין עדיין אנשים נוספים.</div>';
@@ -1383,16 +1394,38 @@ function openProfileEditor(){const u=dbState?.users?.find(x=>x.id===activeUserId
 /* Daily heatmap drill-down */
 function openDailyExpensesModal(date){
   const tx=state.transactions.filter(t=>String(t.date).slice(0,10)===date&&t.type==='expense');
-  const budget=getDailyBudgetSnapshot(date)||getMonthlyBudget(date.slice(0,7))/new Date(Number(date.slice(0,4)),Number(date.slice(5,7)),0).getDate();
+  const budget=getDailyBudgetSnapshot(date);
+  const remaining=Math.max(0,budget-total);
   const total=tx.reduce((a,t)=>a+Number(t.amount||0),0),pct=budget?Math.round(total/budget*100):0;
   const rows=tx.length?tx.map(t=>`<div class="flex items-center justify-between gap-3 bg-gray-900 border border-gray-800 rounded-xl p-3"><div><b class="text-white text-sm">${esc(t.desc)}</b><div class="text-[10px] text-gray-500">${esc(t.cat||'שונות')}</div></div><b class="text-rose-300 amount">${money(t.amount)}</b></div>`).join(''):'<div class="text-sm text-gray-500 text-center py-5">אין הוצאות רשומות ביום הזה.</div>';
-  openModal(`הוצאות ${new Date(date+'T12:00:00').toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`,`<div class="grid grid-cols-3 gap-2"><div class="feature-stat"><div class="small-stat">הוצאה</div><b class="text-rose-300 amount">${money(total)}</b></div><div class="feature-stat"><div class="small-stat">תקציב יומי</div><b class="text-emerald-300 amount">${money(budget)}</b></div><div class="feature-stat"><div class="small-stat">ניצול</div><b class="text-white">${pct}%</b></div></div><div class="space-y-2 max-h-72 overflow-y-auto">${rows}</div>`,()=>closeModal());
+  openModal(`הוצאות ${new Date(date+'T12:00:00').toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`,`<div class="grid grid-cols-3 gap-2"><div class="feature-stat"><div class="small-stat">הוצאה</div><b class="text-rose-300 amount">${money(total)}</b></div><div class="feature-stat"><div class="small-stat">תקציב יומי</div><b class="text-emerald-300 amount">${money(budget)}</b></div><div class="feature-stat"><div class="small-stat">ניצול</div><b class="text-white">${pct}%</b></div><div class="feature-stat"><div class="small-stat">נשאר מהתקציב</div><b class="${remaining>0?'text-emerald-300':'text-rose-300'} amount">${money(remaining)}</b></div></div><div class="space-y-2 max-h-72 overflow-y-auto">${rows}</div>`,()=>closeModal());
 }
 
 /* Subscription catalog: server-backed when available, safe local fallback otherwise. */
 const LOCAL_SUBSCRIPTION_CATALOG={
-  netflix:{name:'Netflix',category:'סטרימינג',source:'https://www.netflix.com/il/',plans:[{id:'basic',name:'בסיסית',amount:32.90,currency:'ILS'},{id:'standard',name:'סטנדרטית',amount:54.90,currency:'ILS'},{id:'premium',name:'פרימיום',amount:69.90,currency:'ILS'}]},
-  spotify:{name:'Spotify',category:'מוזיקה',source:'https://www.spotify.com/il-he/premium/',plans:[{id:'individual',name:'יחיד/ה',amount:23.90,currency:'ILS'},{id:'student',name:'סטודנטים',amount:12.90,currency:'ILS'},{id:'duo',name:'זוג',amount:33.90,currency:'ILS'},{id:'family',name:'משפחה',amount:39.90,currency:'ILS'}]}
+  netflix:{name:'Netflix',category:'סטרימינג',source:'https://www.netflix.com/il/',plans:[{id:'basic',name:'בסיסית',amount:32.90},{id:'standard',name:'סטנדרטית',amount:54.90},{id:'premium',name:'פרימיום',amount:69.90}]},
+  spotify:{name:'Spotify',category:'מוזיקה',source:'https://www.spotify.com/il-he/premium/',plans:[{id:'individual',name:'יחיד/ה',amount:23.90},{id:'student',name:'סטודנטים',amount:12.90},{id:'duo',name:'זוג',amount:33.90},{id:'family',name:'משפחה',amount:39.90}]},
+  disneyplus:{name:'Disney+',category:'סטרימינג',source:'https://www.disneyplus.com/',plans:[{id:'standard',name:'Standard',amount:49.90},{id:'premium',name:'Premium',amount:69.90}]},
+  appleicloud:{name:'iCloud+',category:'אחסון ענן',source:'https://www.apple.com/il/icloud/',plans:[{id:'50gb',name:'50GB',amount:3.90},{id:'200gb',name:'200GB',amount:11.90},{id:'2tb',name:'2TB',amount:39.90}]},
+  googleone:{name:'Google One',category:'אחסון ענן',source:'https://one.google.com/intl/iw_il/about/',plans:[{id:'100gb',name:'100GB',amount:9.90},{id:'200gb',name:'200GB',amount:14.90},{id:'2tb',name:'2TB',amount:49.90}]},
+  amazonprime:{name:'Amazon Prime',category:'קניות/סטרימינג',source:'https://www.amazon.com/prime',plans:[{id:'prime',name:'Prime',amount:35.00}]},
+  youtube:{name:'YouTube Premium',category:'וידאו',source:'https://www.youtube.com/premium',plans:[{id:'individual',name:'יחיד/ה',amount:29.90},{id:'family',name:'משפחה',amount:59.90}]},
+  microsoft365:{name:'Microsoft 365',category:'תוכנה',source:'https://www.microsoft.com/he-il/microsoft-365',plans:[{id:'personal',name:'Personal',amount:42.00},{id:'family',name:'Family',amount:52.00}]},
+  dropbox:{name:'Dropbox',category:'אחסון ענן',source:'https://www.dropbox.com/buy',plans:[{id:'plus',name:'Plus 2TB',amount:36.90},{id:'family',name:'Family',amount:62.90}]},
+  adobe:{name:'Adobe Creative Cloud',category:'תוכנה',source:'https://www.adobe.com/il_he/creativecloud/campaign/pricing.html',plans:[{id:'photo',name:'צילום',amount:105},{id:'single',name:'יישום יחיד',amount:119},{id:'pro',name:'Creative Cloud Pro',amount:360}]},
+  canva:{name:'Canva',category:'עיצוב',source:'https://www.canva.com/pricing/',plans:[{id:'pro',name:'Pro',amount:55.00},{id:'business',name:'Business',amount:85.00}]},
+  chatgpt:{name:'ChatGPT',category:'AI',source:'https://chatgpt.com/pricing/',plans:[{id:'plus',name:'Plus',amount:75.00},{id:'pro',name:'Pro',amount:750.00}]},
+  claude:{name:'Claude',category:'AI',source:'https://www.anthropic.com/pricing',plans:[{id:'pro',name:'Pro',amount:75.00}]},
+  notion:{name:'Notion',category:'פרודוקטיביות',source:'https://www.notion.com/pricing',plans:[{id:'plus',name:'Plus',amount:40.00},{id:'business',name:'Business',amount:80.00}]},
+  zoom:{name:'Zoom',category:'פרודוקטיביות',source:'https://zoom.us/pricing',plans:[{id:'pro',name:'Pro',amount:65.00}]},
+  strava:{name:'Strava',category:'כושר',source:'https://www.strava.com/subscribe',plans:[{id:'individual',name:'מנוי',amount:29.90}]},
+  xbox:{name:'Xbox Game Pass',category:'גיימינג',source:'https://www.xbox.com/he-IL/xbox-game-pass',plans:[{id:'essential',name:'Essential',amount:29.90},{id:'premium',name:'Premium',amount:59.90},{id:'ultimate',name:'Ultimate',amount:89.90}]},
+  playstation:{name:'PlayStation Plus',category:'גיימינג',source:'https://www.playstation.com/he-il/ps-plus/',plans:[{id:'essential',name:'Essential',amount:32.90},{id:'extra',name:'Extra',amount:54.90},{id:'deluxe',name:'Deluxe',amount:69.90}]},
+  nordvpn:{name:'NordVPN',category:'אבטחה',source:'https://nordvpn.com/pricing/',plans:[{id:'standard',name:'Standard',amount:55.00},{id:'plus',name:'Plus',amount:65.00}]},
+  grammarly:{name:'Grammarly',category:'פרודוקטיביות',source:'https://www.grammarly.com/plans',plans:[{id:'pro',name:'Pro',amount:60.00}]},
+  linkedin:{name:'LinkedIn Premium',category:'קריירה',source:'https://www.linkedin.com/premium/',plans:[{id:'career',name:'Career',amount:120.00}]},
+  duolingo:{name:'Duolingo',category:'לימודים',source:'https://www.duolingo.com/super',plans:[{id:'super',name:'Super',amount:55.00}]},
+  fitness:{name:'חדר כושר',category:'כושר',source:'',plans:[{id:'monthly',name:'חודשי',amount:190.00}]}
 };
 let subscriptionCatalog=LOCAL_SUBSCRIPTION_CATALOG;
 async function refreshSubscriptionCatalog(force=false){
@@ -1418,7 +1451,7 @@ async function refreshRecurringSubscriptionPrices(){
 }
 
 /* Automatic synchronization and cross-tab refresh without a manual refresh button. */
-function scheduleRemoteSync(){clearTimeout(window.__mtSyncTimer);if(!API_BASE_URL||!getAuthToken())return;window.__mtSyncTimer=setTimeout(()=>syncUserToServer(false),900);}
+function scheduleRemoteSync(){clearTimeout(window.__mtSyncTimer);if(!isRemoteReady()||!getAuthToken())return;window.__mtSyncTimer=setTimeout(()=>syncUserToServer(false),900);}
 const _persistUserState=persistUserState;
 persistUserState=function(){_persistUserState();scheduleRemoteSync();};
 window.addEventListener('storage',e=>{if(e.key===DB_KEY&&e.newValue){dbState=readDB();const u=dbState.users?.find(x=>x.id===activeUserId);if(u){state=mergeFeatureState(u.state);renderAll();}}});
@@ -1441,16 +1474,16 @@ async function submitAuth(){
   if(!email||!password||(authMode==='register'&&!name)){msg.textContent='מלא את כל השדות.';return;}if(password.length<6){msg.textContent='הסיסמה צריכה להכיל לפחות 6 תווים.';return;}
   const btn=document.getElementById('auth-submit');btn.disabled=true;btn.textContent='מתחבר...';
   try{
-    if(API_BASE_URL){
+    if(isRemoteReady()){
       if(authMode==='register'){await apiFetch('/api/register',{method:'POST',body:JSON.stringify({email,name,password})});}
-      const data=await apiFetch('/api/login',{method:'POST',body:JSON.stringify({email,password})});setAuthToken(data.token);remoteSession=true;await loadRemoteUserState(data.user);hideAuthGate();renderAll();syncSettingsUI();startRemoteSyncLoop();
+      const data=await apiFetch('/api/login',{method:'POST',body:JSON.stringify({email,password})});setAuthToken(data.token,document.getElementById('auth-remember')?.checked!==false);remoteSession=true;await loadRemoteUserState(data.user);hideAuthGate();renderAll();syncSettingsUI();startRemoteSyncLoop();
     }else{
       ensureFeatureDB();dbState.accountUser=dbState.accountUser||{id:'local-account',name,email};dbState.accountUser.name=authMode==='register'?name:(dbState.accountUser.name||name);dbState.accountUser.email=email;dbState.householdMembers=dbState.householdMembers||[{id:Date.now(),name:dbState.accountUser.name,role:'owner',createdAt:Date.now()}];window.remoteAccountUser=dbState.accountUser;window.remoteHouseholdMembers=dbState.householdMembers;writeDB();save();hideAuthGate();renderAll();syncSettingsUI();
     }
     msg.textContent='';
   }catch(e){console.error(e);msg.textContent=e.message||'לא ניתן להתחבר כרגע.';}finally{btn.disabled=false;btn.textContent=authMode==='register'?'צור משתמש':'התחבר';}
 }
-async function bootAccountLayer(){ensureFeatureDB();renderThemeSwatches();if(API_BASE_URL&&getAuthToken()){try{const me=await apiFetch('/api/me');await loadRemoteUserState(me);hideAuthGate();renderAll();syncSettingsUI();startRemoteSyncLoop();return;}catch{setAuthToken(null);}}showAuthGate();}
+async function bootAccountLayer(){ensureFeatureDB();renderThemeSwatches();await detectServer();if(isRemoteReady()&&getAuthToken()){try{const me=await apiFetch('/api/me');await loadRemoteUserState(me);hideAuthGate();renderAll();syncSettingsUI();startRemoteSyncLoop();return;}catch{setAuthToken(null);}}showAuthGate();}
 /* Initial account boot handled by v1.3 override above. */
 
 // Initial feature bootstrap after the existing DOMContentLoaded handlers have run.

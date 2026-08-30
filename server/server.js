@@ -17,6 +17,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_ME_IN_PRODUCTION';
 db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 db.pragma('synchronous = NORMAL');
+const backupDir = path.join(path.dirname(dbPath), 'backups');
+fs.mkdirSync(backupDir, { recursive: true });
+function createDbBackup(){
+  try {
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+    const target=path.join(backupDir, `moneytracker-${stamp}.db`);
+    fs.copyFileSync(dbPath,target);
+    const files=fs.readdirSync(backupDir).filter(x=>x.endsWith('.db')).sort();
+    for(const f of files.slice(0,Math.max(0,files.length-7))) fs.rmSync(path.join(backupDir,f),{force:true});
+  } catch(e){ console.warn('DB backup failed',e.message); }
+}
 app.use(cors());
 app.use(express.json({ limit: '6mb' }));
 app.use(express.static(path.join(__dirname, '..')));
@@ -203,8 +215,29 @@ app.put('/api/state', auth, (req,res)=>{
 });
 
 const subscriptionCatalog={
-  netflix:{name:'Netflix',category:'סטרימינג',source:'https://www.netflix.com/il/',checkedAt:'2026-08-31',plans:[{id:'basic',name:'בסיסית',amount:32.90,currency:'ILS'},{id:'standard',name:'סטנדרטית',amount:54.90,currency:'ILS'},{id:'premium',name:'פרימיום',amount:69.90,currency:'ILS'}]},
-  spotify:{name:'Spotify',category:'מוזיקה',source:'https://www.spotify.com/il-he/premium/',checkedAt:'2026-08-31',plans:[{id:'individual',name:'יחיד/ה',amount:23.90,currency:'ILS'},{id:'student',name:'סטודנטים',amount:12.90,currency:'ILS'},{id:'duo',name:'זוג',amount:33.90,currency:'ILS'},{id:'family',name:'משפחה',amount:39.90,currency:'ILS'}]}
+  netflix:{name:'Netflix',category:'סטרימינג',source:'https://www.netflix.com/il/',plans:[{id:'basic',name:'בסיסית',amount:32.90},{id:'standard',name:'סטנדרטית',amount:54.90},{id:'premium',name:'פרימיום',amount:69.90}]},
+  spotify:{name:'Spotify',category:'מוזיקה',source:'https://www.spotify.com/il-he/premium/',plans:[{id:'individual',name:'יחיד/ה',amount:23.90},{id:'student',name:'סטודנטים',amount:12.90},{id:'duo',name:'זוג',amount:33.90},{id:'family',name:'משפחה',amount:39.90}]},
+  disneyplus:{name:'Disney+',category:'סטרימינג',source:'https://www.disneyplus.com/',plans:[{id:'standard',name:'Standard',amount:49.90},{id:'premium',name:'Premium',amount:69.90}]},
+  appleicloud:{name:'iCloud+',category:'אחסון ענן',source:'https://www.apple.com/il/icloud/',plans:[{id:'50gb',name:'50GB',amount:3.90},{id:'200gb',name:'200GB',amount:11.90},{id:'2tb',name:'2TB',amount:39.90}]},
+  googleone:{name:'Google One',category:'אחסון ענן',source:'https://one.google.com/intl/iw_il/about/',plans:[{id:'100gb',name:'100GB',amount:9.90},{id:'200gb',name:'200GB',amount:14.90},{id:'2tb',name:'2TB',amount:49.90}]},
+  amazonprime:{name:'Amazon Prime',category:'קניות/סטרימינג',source:'https://www.amazon.com/prime',plans:[{id:'prime',name:'Prime',amount:35}]},
+  youtube:{name:'YouTube Premium',category:'וידאו',source:'https://www.youtube.com/premium',plans:[{id:'individual',name:'יחיד/ה',amount:29.90},{id:'family',name:'משפחה',amount:59.90}]},
+  microsoft365:{name:'Microsoft 365',category:'תוכנה',source:'https://www.microsoft.com/he-il/microsoft-365',plans:[{id:'personal',name:'Personal',amount:42},{id:'family',name:'Family',amount:52}]},
+  dropbox:{name:'Dropbox',category:'אחסון ענן',source:'https://www.dropbox.com/buy',plans:[{id:'plus',name:'Plus 2TB',amount:36.90},{id:'family',name:'Family',amount:62.90}]},
+  adobe:{name:'Adobe Creative Cloud',category:'תוכנה',source:'https://www.adobe.com/il_he/creativecloud/campaign/pricing.html',plans:[{id:'photo',name:'צילום',amount:105},{id:'single',name:'יישום יחיד',amount:119},{id:'pro',name:'Creative Cloud Pro',amount:360}]},
+  canva:{name:'Canva',category:'עיצוב',source:'https://www.canva.com/pricing/',plans:[{id:'pro',name:'Pro',amount:55},{id:'business',name:'Business',amount:85}]},
+  chatgpt:{name:'ChatGPT',category:'AI',source:'https://chatgpt.com/pricing/',plans:[{id:'plus',name:'Plus',amount:75},{id:'pro',name:'Pro',amount:750}]},
+  claude:{name:'Claude',category:'AI',source:'https://www.anthropic.com/pricing',plans:[{id:'pro',name:'Pro',amount:75}]},
+  notion:{name:'Notion',category:'פרודוקטיביות',source:'https://www.notion.com/pricing',plans:[{id:'plus',name:'Plus',amount:40},{id:'business',name:'Business',amount:80}]},
+  zoom:{name:'Zoom',category:'פרודוקטיביות',source:'https://zoom.us/pricing',plans:[{id:'pro',name:'Pro',amount:65}]},
+  strava:{name:'Strava',category:'כושר',source:'https://www.strava.com/subscribe',plans:[{id:'individual',name:'מנוי',amount:29.90}]},
+  xbox:{name:'Xbox Game Pass',category:'גיימינג',source:'https://www.xbox.com/he-IL/xbox-game-pass',plans:[{id:'essential',name:'Essential',amount:29.90},{id:'premium',name:'Premium',amount:59.90},{id:'ultimate',name:'Ultimate',amount:89.90}]},
+  playstation:{name:'PlayStation Plus',category:'גיימינג',source:'https://www.playstation.com/he-il/ps-plus/',plans:[{id:'essential',name:'Essential',amount:32.90},{id:'extra',name:'Extra',amount:54.90},{id:'deluxe',name:'Deluxe',amount:69.90}]},
+  nordvpn:{name:'NordVPN',category:'אבטחה',source:'https://nordvpn.com/pricing/',plans:[{id:'standard',name:'Standard',amount:55},{id:'plus',name:'Plus',amount:65}]},
+  grammarly:{name:'Grammarly',category:'פרודוקטיביות',source:'https://www.grammarly.com/plans',plans:[{id:'pro',name:'Pro',amount:60}]},
+  linkedin:{name:'LinkedIn Premium',category:'קריירה',source:'https://www.linkedin.com/premium/',plans:[{id:'career',name:'Career',amount:120}]},
+  duolingo:{name:'Duolingo',category:'לימודים',source:'https://www.duolingo.com/super',plans:[{id:'super',name:'Super',amount:55}]},
+  fitness:{name:'חדר כושר',category:'כושר',source:'',plans:[{id:'monthly',name:'חודשי',amount:190}]}
 };
 app.get('/api/subscriptions/catalog', (req,res)=>res.json({country:'IL',currency:'ILS',catalog:subscriptionCatalog,updatedAt:'2026-08-31'}));
 
