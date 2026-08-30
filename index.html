@@ -8,7 +8,7 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="./config.js" onerror="this.remove()"></script>
-<script src="./script.js"></script>
+<script src="./script.js?v=1.4.0"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box}
@@ -120,7 +120,16 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
 .feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}.feature-stat{background:rgba(17,24,39,.7);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:.75rem}.heatmap-year{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.heatmap-year>div{min-height:240px;padding:1rem!important}.mini-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.mini-heatmap .heatmap-day{font-size:12px;border-radius:9px;min-height:46px;display:flex;align-items:center;justify-content:center;cursor:pointer}.heatmap-day{cursor:pointer;transition:transform .15s ease,filter .15s ease}.heatmap-day:hover{transform:translateY(-1px);filter:brightness(1.08)}.heat-day-green{background:rgba(16,185,129,.18)!important;border-color:rgba(16,185,129,.55)!important;color:#6ee7b7!important}.heat-day-red{background:rgba(244,63,94,.18)!important;border-color:rgba(244,63,94,.55)!important;color:#fda4af!important}.notification-dot{width:8px;height:8px;border-radius:999px;display:inline-block}.offline-badge{font-size:10px;border:1px solid rgba(245,158,11,.3);color:#fbbf24;background:rgba(120,53,15,.2);padding:3px 7px;border-radius:999px}.install-banner{position:fixed;bottom:92px;left:16px;right:16px;z-index:150;display:none}.install-banner.active{display:block}
 @media(max-width:900px){.heatmap-year{grid-template-columns:repeat(2,minmax(0,1fr))}} @media(max-width:560px){.heatmap-year{grid-template-columns:1fr}.heatmap-year>div{min-height:160px}}
 </style>
-</head>
+<style id="mt-v140-overrides">
+.dashboard-only-widgets{display:block}
+.heatmap-day{min-width:0;width:100%}
+@media(max-width:699px){
+  .heatmap-grid{gap:3px}
+  .heatmap-grid .heatmap-day{min-width:0!important;width:100%!important;min-height:0!important;padding:.28rem!important;border-radius:7px!important;font-size:9px!important;overflow:hidden}
+  .heatmap-grid .heatmap-day .month-heat-details{font-size:7px!important;white-space:nowrap}
+  .heatmap-grid .heatmap-day>span:nth-child(2){font-size:8px!important}
+}
+</style></head>
 <body class="pb-24">
 
 <header class="sticky top-0 z-40 glass-card px-4 py-3 flex items-center justify-between border-b border-gray-800/80">
@@ -140,6 +149,7 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
 </header>
 
 <main class="max-w-5xl mx-auto px-4 pt-4 space-y-5">
+<div id="dashboard-overview-widgets" class="dashboard-only-widgets">
 <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
   <div class="glass-card p-4 rounded-2xl"><p class="small-stat">יתרה כוללת</p><h3 id="overview-balance" class="text-xl font-extrabold mt-1 amount text-white">₪0</h3><button onclick="openOverviewModal()" class="text-[10px] text-sky-400 mt-1">ערוך</button></div>
   <div class="glass-card p-4 rounded-2xl"><p class="small-stat">הכנסות החודש</p><h3 id="overview-income" class="text-xl font-extrabold text-emerald-400 mt-1 amount">₪0</h3><button onclick="openIncomeModal()" class="text-[10px] text-sky-400 mt-1">ערוך סכום</button></div>
@@ -639,6 +649,8 @@ function checkMonthlySavingsProcess() {
 function switchTab(tab){
   document.querySelectorAll('.tab-content').forEach(x=>x.classList.add('hidden'));
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
+  const overviewWidgets=document.getElementById('dashboard-overview-widgets');
+  if(overviewWidgets)overviewWidgets.style.display=tab==='dashboard'?'block':'none';
   document.getElementById('tab-'+tab).classList.remove('hidden');
   document.getElementById('nav-'+tab).classList.add('nav-active');
   if(tab==='dashboard'){renderAll();}
@@ -843,6 +855,7 @@ function renderRecurring(){
   if(summary){const total=subs.filter(r=>r.active!==false).reduce((a,r)=>a+Number(r.amount||0),0);summary.innerHTML=`<div class="feature-stat"><div class="small-stat">מנויים פעילים</div><b class="text-white">${subs.filter(r=>r.active!==false).length}</b></div><div class="feature-stat"><div class="small-stat">עלות חודשית</div><b class="text-sky-300 amount">${money(total)}</b></div>`;}
 }
 function openRecurringModal(mode='expense',id=null){
+  state.recurring=Array.isArray(state.recurring)?state.recurring:[];
   const existing=id?state.recurring.find(x=>x.id===id):null;
   const r=existing||{name:'',amount:'',date:'1 לחודש',active:true,subscriptionType:mode==='subscription'?'':'',subscriptionPlan:'',priceSource:'manual'};
   const isSub=mode==='subscription'||!!r.subscriptionType;
@@ -863,7 +876,9 @@ function openRecurringModal(mode='expense',id=null){
     const plan=isSub?v('r-plan'):'';
     const obj=isSub?{name:v('r-name').trim()||subscriptionCatalog[subscriptionType]?.name||'מנוי',amount:Number(v('r-amount')),date:v('r-date').trim(),active:document.getElementById('r-active').checked,subscriptionType,subscriptionPlan:plan,priceSource:'catalog',priceCheckedAt:new Date().toISOString()}:{name:v('r-name').trim(),amount:Number(v('r-amount')),date:v('r-date').trim(),active:document.getElementById('r-active').checked,subscriptionType:'',subscriptionPlan:'',priceSource:'manual',priceCheckedAt:''};
     if(!obj.name||!Number.isFinite(obj.amount)||obj.amount<0){alert(isSub?'בחר שירות ותוכנית תקינים':'יש להזין שם וסכום תקין');return;}
-    if(id)Object.assign(r,obj);else state.recurring.push({id:Date.now(),...obj});save();closeModal();renderAll();
+    if(!obj.date)obj.date='1 לחודש';
+    if(id)Object.assign(r,obj);else state.recurring.push({id:Date.now(),...obj});
+    save();closeModal();renderAll();
   });
   setTimeout(async()=>{
     if(!isSub)return;
@@ -876,14 +891,30 @@ function openRecurringModal(mode='expense',id=null){
 function renderSubscriptionSearchResults(query=''){
   const c=document.getElementById('r-subscription-results');if(!c)return;
   const q=String(query||'').trim().toLowerCase();
-  const items=Object.entries(subscriptionCatalog).filter(([id,s])=>!q||s.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)||String(s.category||'').toLowerCase().includes(q)).slice(0,10);
-  c.innerHTML=items.length?items.map(([id,s])=>`<button type="button" class="w-full text-right bg-gray-900/80 border border-gray-800 hover:border-sky-700 rounded-xl p-3" onclick="selectSubscriptionService('${attr(id)}','')"><div class="flex justify-between items-center"><b class="text-white">${esc(s.name)}</b><span class="text-[10px] text-gray-500">${esc(s.category||'')}</span></div><div class="text-[10px] text-gray-400 mt-1">${s.plans?.length||0} תוכניות</div></button>`).join(''):'<div class="text-xs text-gray-500 text-center py-3">לא נמצאו שירותים תואמים.</div>';
+  if(!q){c.innerHTML='';return;}
+  const items=Object.entries(subscriptionCatalog)
+    .filter(([id,s])=>s.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)||String(s.category||'').toLowerCase().includes(q))
+    .slice(0,8);
+  c.innerHTML=items.length?items.map(([id,s])=>`<button type="button" class="w-full text-right bg-gray-900/80 border border-gray-800 hover:border-sky-700 rounded-xl p-3 transition" onclick="selectSubscriptionService('${attr(id)}','')"><div class="flex justify-between items-center gap-2"><b class="text-white">${esc(s.name)}</b><span class="text-[10px] text-gray-500">${esc(s.category||'')}</span></div><div class="text-[10px] text-gray-400 mt-1">בחר שירות כדי לראות תוכניות</div></button>`).join(''):'<div class="text-xs text-gray-500 text-center py-3">לא נמצאו שירותים תואמים.</div>';
+}
+function unselectSubscriptionService(){
+  const input=document.getElementById('r-subscription-search'),results=document.getElementById('r-subscription-results');
+  const selected=document.getElementById('r-selected-service'),hidden=document.getElementById('r-subscription-type');
+  const wrap=document.getElementById('r-plan-wrap');
+  if(input)input.value=''; if(hidden)hidden.value='';
+  if(wrap)wrap.classList.add('hidden');
+  if(selected){selected.classList.add('hidden');selected.innerHTML='';}
+  if(results)results.innerHTML='';
+  const amount=document.getElementById('r-amount');if(amount)amount.value='';
+  const name=document.getElementById('r-name');if(name)name.value='';
+  const source=document.getElementById('r-price-source');if(source)source.innerHTML='';
+  if(input)input.focus();
 }
 function selectSubscriptionService(type,selectedPlan=''){
   const s=subscriptionCatalog[type];if(!s)return;
   const input=document.getElementById('r-subscription-search');if(input)input.value=s.name;
   const results=document.getElementById('r-subscription-results');if(results)results.innerHTML='';
-  const selected=document.getElementById('r-selected-service');if(selected){selected.classList.remove('hidden');selected.innerHTML=`<div class="bg-gray-900/70 border border-sky-900/50 rounded-xl p-3"><div class="text-[10px] text-gray-500">שירות שנבחר</div><div class="font-semibold text-white">${esc(s.name)}</div></div>`;}
+  const selected=document.getElementById('r-selected-service');if(selected){selected.classList.remove('hidden');selected.innerHTML=`<div class="bg-gray-900/70 border border-sky-900/50 rounded-xl p-3 flex items-center justify-between gap-2"><div><div class="text-[10px] text-gray-500">שירות שנבחר</div><div class="font-semibold text-white">${esc(s.name)}</div></div><button type="button" class="text-xs text-gray-400 hover:text-white border border-gray-700 rounded-lg px-2 py-1" onclick="unselectSubscriptionService()">בטל בחירה</button></div>`;}
   let hidden=document.getElementById('r-subscription-type');if(!hidden){hidden=document.createElement('input');hidden.type='hidden';hidden.id='r-subscription-type';document.querySelector('#modal-root .modal')?.appendChild(hidden);}hidden.value=type;
   const wrap=document.getElementById('r-plan-wrap'),sel=document.getElementById('r-plan');if(!wrap||!sel)return;wrap.classList.remove('hidden');sel.innerHTML=s.plans.map(p=>`<option value="${attr(p.id)}" ${selectedPlan===p.id?'selected':''}>${esc(p.name)} — ${money(p.amount)}</option>`).join('');applySelectedSubscriptionPlan();
 }
@@ -1527,14 +1558,76 @@ async function bootAccountLayer(){ensureFeatureDB();renderThemeSwatches();await 
 /* Initial account boot handled by v1.3 override above. */
 /* Language layer: keeps original source text and translates known UI strings without touching user-entered data. */
 const I18N_HE_EN={
-'עברית':'English','English':'עברית','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.'
+'עברית':'Hebrew','English':'English','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.'
 };
+Object.assign(I18N_HE_EN,{
+  'הוצאות בתקופה:':'Expenses in period:',
+  'הקטגוריה הגדולה ביותר:':'Largest category:',
+  'אין עדיין קטגוריה מובילה.':'There is no leading category yet.',
+  'תקציב מצטבר לתקופה:':'Cumulative budget for period:',
+  'נשאר מהתקציב:':'Budget remaining:',
+  'המאזן בתקופה חיובי.':'The balance for this period is positive.',
+  'ההוצאות גבוהות מההכנסות בתקופה.':'Expenses are higher than income for this period.',
+  'שירות שנבחר':'Selected service',
+  'בטל בחירה':'Unselect',
+  'בחר שירות כדי לראות תוכניות':'Choose a service to see plans',
+  'לא נמצאו שירותים תואמים.':'No matching services found.',
+  'בחר שירות ותוכנית תקינים':'Choose a valid service and plan',
+  'יש להזין שם וסכום תקין':'Enter a valid name and amount',
+  'הוצאה חודשית קבועה':'Fixed monthly expense',
+  'מנוי חדש':'New subscription',
+  'עריכת מנוי':'Edit subscription',
+  'עריכת הוצאה חודשית':'Edit monthly expense',
+  'מועד חיוב':'Billing date',
+  'פעיל':'Active',
+  'תוכנית':'Plan',
+  'שירות':'Service',
+  'מחיר מידע:':'Price info:',
+  'נבדק':'Checked'
+});
 const I18N_EN_HE=Object.fromEntries(Object.entries(I18N_HE_EN).map(([a,b])=>[b,a]));
-function normalizeI18nText(s){return String(s||'').replace(/\\s+/g,' ').trim();}
-function applyLanguageToDOM(){const lang=state.settings?.language||'he';document.documentElement.lang=lang;document.documentElement.dir=lang==='en'?'ltr':'rtl';const dict=lang==='en'?I18N_HE_EN:I18N_EN_HE;const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];while(walker.nextNode())nodes.push(walker.currentNode);nodes.forEach(n=>{const raw=normalizeI18nText(n.nodeValue);if(!raw)return;const translated=dict[raw];if(translated){const leading=n.nodeValue.match(/^\\s*/)?.[0]||'',trailing=n.nodeValue.match(/\\s*$/)?.[0]||'';n.nodeValue=leading+translated+trailing;}});document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el=>{for(const a of ['placeholder','title','aria-label']){const v=el.getAttribute(a);if(!v)continue;const t=dict[normalizeI18nText(v)];if(t)el.setAttribute(a,t);}});const ls=document.getElementById('language-select');if(ls)ls.value=lang;}
-function setAppLanguage(lang){if(!['he','en'].includes(lang))lang='he';state.settings=state.settings||{};state.settings.language=lang;save();applyLanguageToDOM();renderAll();setTimeout(applyLanguageToDOM,30);}
-
-
+function normalizeI18nText(s){return String(s||'').replace(/\s+/g,' ').trim();}
+const i18nOriginalText=new WeakMap();
+const i18nOriginalAttr=new WeakMap();
+function translateCompositeText(source,dict){
+  const raw=String(source??'');
+  const exact=dict[normalizeI18nText(raw)];
+  if(exact)return raw.replace(normalizeI18nText(raw),exact);
+  let out=raw;
+  const pairs=Object.entries(dict).filter(([a,b])=>a&&b&&a.length>1).sort((a,b)=>b[0].length-a[0].length);
+  for(const [from,to] of pairs){if(out.includes(from))out=out.split(from).join(to);}
+  return out;
+}
+function applyLanguageToDOM(){
+  const lang=state.settings?.language||'he';
+  document.documentElement.lang=lang;document.documentElement.dir=lang==='en'?'ltr':'rtl';
+  const dict=lang==='en'?I18N_HE_EN:I18N_EN_HE;
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),nodes=[];
+  while(walker.nextNode())nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    if(n.parentElement?.closest('#language-select'))return;
+    const current=n.nodeValue||'';
+    if(!i18nOriginalText.has(n))i18nOriginalText.set(n,current);
+    const source=i18nOriginalText.get(n);
+    if(!source.trim())return;
+    n.nodeValue=translateCompositeText(source,dict);
+  });
+  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el=>{
+    for(const a of ['placeholder','title','aria-label']){
+      const v=el.getAttribute(a);if(!v)continue;
+      let map=i18nOriginalAttr.get(el);if(!map){map={};i18nOriginalAttr.set(el,map);}
+      if(map[a]===undefined)map[a]=v;
+      el.setAttribute(a,translateCompositeText(map[a],dict));
+    }
+  });
+  const ls=document.getElementById('language-select');
+  if(ls){ls.value=lang;const heOpt=ls.querySelector('option[value="he"]'),enOpt=ls.querySelector('option[value="en"]');if(heOpt)heOpt.textContent='עברית';if(enOpt)enOpt.textContent='English';}
+}
+function setAppLanguage(lang){
+  if(!['he','en'].includes(lang))lang='he';
+  state.settings=state.settings||{};state.settings.language=lang;save();
+  applyLanguageToDOM();renderAll();setTimeout(applyLanguageToDOM,30);
+}
 // Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
 window.addEventListener('load',()=>{setTimeout(async()=>{ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();await bootAccountLayer();applyLanguageToDOM();if(window.lucide)lucide.createIcons();},50);});
 </script>
