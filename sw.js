@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.9';
+const APP_VERSION = '1.1.0';
 const CACHE_NAME = `money-tracker-${APP_VERSION}`;
 
 const ASSETS = [
@@ -49,7 +49,16 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    caches.match(event.request).then((cached) => {
+      if (cached) return cached;
+      return fetch(event.request).then((response) => {
+        if (event.request.method === 'GET' && response && (response.ok || response.type === 'opaque')) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy)).catch(() => {});
+        }
+        return response;
+      }).catch(() => cached);
+    })
   );
 });
 

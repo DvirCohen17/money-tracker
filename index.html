@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>התקציב שלי —d ניהול פיננסי</title>
+<title>התקציב שלי — ניהול פיננסי</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -88,6 +88,12 @@ input,select,textarea{color-scheme:dark}
   font-weight: bold;
   border: 1px solid rgba(255,255,255,0.03);
 }
+
+/* MoneyTracker v1.1 feature layer */
+:root{--accent:#38bdf8;--accent-soft:#0c4a6e}.theme-ocean{--accent:#38bdf8;--accent-soft:#0c4a6e} .theme-forest{--accent:#10b981;--accent-soft:#064e3b}.theme-violet{--accent:#a78bfa;--accent-soft:#4c1d95}.theme-amber{--accent:#f59e0b;--accent-soft:#78350f}.theme-rose{--accent:#fb7185;--accent-soft:#881337}.text-sky-400{color:var(--accent)!important}.bg-indigo-600{background-color:var(--accent)!important}.border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 20%,transparent)!important}
+.theme-forest{--accent:#10b981;--accent-soft:#064e3b}.theme-ocean{--accent:#38bdf8;--accent-soft:#0c4a6e}.theme-violet{--accent:#a78bfa;--accent-soft:#4c1d95}.theme-amber{--accent:#f59e0b;--accent-soft:#78350f}.theme-rose{--accent:#fb7185;--accent-soft:#881337}
+.feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}.feature-stat{background:rgba(17,24,39,.7);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:.75rem}.heatmap-year{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem}.mini-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}.mini-heatmap .heatmap-day{font-size:8px;border-radius:5px;min-height:24px}.notification-dot{width:8px;height:8px;border-radius:999px;display:inline-block}.offline-badge{font-size:10px;border:1px solid rgba(245,158,11,.3);color:#fbbf24;background:rgba(120,53,15,.2);padding:3px 7px;border-radius:999px}.install-banner{position:fixed;bottom:92px;left:16px;right:16px;z-index:150;display:none}.install-banner.active{display:block}
+@media(max-width:560px){.heatmap-year{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head>
 <body class="pb-24">
@@ -103,6 +109,7 @@ input,select,textarea{color-scheme:dark}
   <div class="flex items-center gap-2">
     <button onclick="openOverviewModal()" class="p-2 rounded-xl bg-gray-900 text-amber-400 btn border border-gray-800" title="עריכת נתוני בסיס"><i data-lucide="edit-3" class="w-5 h-5"></i></button>
     <button onclick="toggleDiscrete()" class="p-2 rounded-xl bg-gray-900 text-slate-300 btn border border-gray-800" title="מצב דיסקרטי"><i id="discrete-icon" data-lucide="eye" class="w-5 h-5"></i></button>
+    <button onclick="switchTab('notifications')" class="p-2 rounded-xl bg-gray-900 text-amber-300 btn border border-gray-800 relative" title="הודעות"><i data-lucide="bell" class="w-5 h-5"></i><span id="header-notification-dot" class="hidden absolute top-1 right-1 notification-dot bg-rose-500"></span></button>
   </div>
 </header>
 
@@ -123,7 +130,7 @@ input,select,textarea{color-scheme:dark}
 
 <div id="tab-dashboard" class="tab-content space-y-5">
   <section class="glass-card p-4 rounded-2xl">
-    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm text-white">מעקב חודשי</h2><input id="month-filter" type="month" onchange="renderAll()" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white"></div>
+    <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm text-white">מעקב חודשי</h2><input id="month-filter" type="month" onchange="selectAnalyticsMonth(this.value)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white"></div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800"><div class="small-stat">הכנסות</div><div id="month-income" class="font-bold amount"></div></div>
       <div class="bg-gray-900/80 rounded-xl p-3 border border-gray-800"><div class="small-stat">הוצאות</div><div id="month-expense" class="font-bold amount"></div></div>
@@ -146,7 +153,7 @@ input,select,textarea{color-scheme:dark}
       <input id="tx-amount" required type="number" step="0.01" placeholder="סכום" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
       <select id="tx-type" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white"><option value="expense">הוצאה</option><option value="income">הכנסה</option></select>
       <select id="tx-cat" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
-        <option>אוכל ומזון</option><option>מגורים וחשבונות</option><option>תחבורה</option><option>פנאי ובילויים</option><option>קניות</option><option>משכורת</option><option>עבודה/פרילנס</option><option>השקעות</option><option>שונות</option>
+        <option value="auto">אוטומטי</option><option>אוכל ומזון</option><option>מגורים וחשבונות</option><option>תחבורה</option><option>פנאי ובילויים</option><option>קניות</option><option>משכורת</option><option>עבודה/פרילנס</option><option>השקעות</option><option>שונות</option>
       </select>
       <input id="tx-date" type="date" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
       <button class="col-span-2 md:col-span-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 py-2 text-sm font-semibold btn">שמור</button>
@@ -165,7 +172,49 @@ input,select,textarea{color-scheme:dark}
 </div>
 
 <div id="tab-analytics" class="tab-content hidden space-y-5 sensitive-analytics">
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <h2 class="font-bold text-white">היסטוריית הוצאות</h2>
+          <p id="analytics-period-label" class="text-xs text-gray-400">הנתונים נשמרים לפי חודש ויום</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <button type="button" id="period-month-btn" onclick="setAnalyticsPeriod('month')" class="bg-indigo-600 text-white rounded-xl px-3 py-2 text-xs font-semibold">חודש</button>
+        <button type="button" id="period-year-btn" onclick="setAnalyticsPeriod('year')" class="bg-gray-900 border border-gray-800 text-gray-300 rounded-xl px-3 py-2 text-xs font-semibold">שנה</button>
+        <button type="button" id="period-history-btn" onclick="setAnalyticsPeriod('history')" class="bg-gray-900 border border-gray-800 text-gray-300 rounded-xl px-3 py-2 text-xs font-semibold">3 שנים</button>
+      </div>
+      <div id="analytics-month-controls" class="grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+        <button type="button" onclick="moveAnalyticsMonth(-1)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-white">‹</button>
+        <input id="analytics-month-filter" type="month" onchange="selectAnalyticsMonth(this.value)" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
+        <button type="button" onclick="moveAnalyticsMonth(1)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-white">›</button>
+      </div>
+      <div id="analytics-year-controls" class="hidden grid grid-cols-[auto_1fr_auto] gap-2 items-center">
+        <button type="button" onclick="moveAnalyticsYear(-1)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-white">‹</button>
+        <select id="analytics-year-filter" onchange="selectAnalyticsYear(this.value)" class="w-full bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white"></select>
+        <button type="button" onclick="moveAnalyticsYear(1)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-white">›</button>
+      </div>
+    </div>
+  </section>
+
   <div id="analytics-comparison-container"></div>
+
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="file-bar-chart-2" class="w-4 h-4 text-emerald-400"></i>סיכום התקופה</h3><p class="text-xs text-gray-400">סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.</p></div>
+      <button type="button" onclick="showPeriodSummary()" class="text-xs text-sky-400">הצג סיכום</button>
+    </div>
+    <div id="period-summary" class="space-y-2"></div>
+  </section>
+
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between gap-3 mb-3">
+      <div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="calendar-range" class="w-4 h-4 text-violet-400"></i>סיכום שנתי</h3><p class="text-xs text-gray-400">כל חודשי השנה, כולל חיסכון ומגמות.</p></div>
+      <span id="annual-summary-year" class="text-xs text-gray-400"></span>
+    </div>
+    <div id="annual-summary" class="space-y-3"></div>
+  </section>
 
   <section class="glass-card p-4 rounded-2xl">
     <div class="flex justify-between items-center mb-3">
@@ -188,6 +237,13 @@ input,select,textarea{color-scheme:dark}
   <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <div class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 text-white flex items-center gap-2"><i data-lucide="map" class="w-4 h-4 text-amber-400"></i>מפת הוצאות / קטגוריות</h3><div id="category-map" class="space-y-2"></div></div>
     <div class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 text-white">תובנות</h3><div id="insights" class="space-y-2 text-sm text-gray-300"></div></div>
+  </section>
+</div>
+
+<div id="tab-notifications" class="tab-content hidden space-y-5">
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between mb-4"><div><h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="bell-ring" class="w-5 h-5 text-amber-400"></i>מרכז הודעות</h2><p class="text-xs text-gray-400">חריגות, סיכומי תקופה, תשלומים ותובנות.</p></div><button onclick="markNotificationsRead()" class="text-xs text-sky-400">סמן הכל כנקרא</button></div>
+    <div id="notifications-list" class="space-y-2"></div>
   </section>
 </div>
 
@@ -288,6 +344,22 @@ input,select,textarea{color-scheme:dark}
   </section>
 
   <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-sky-400"></i>משתמשים ומסד נתונים</h3><p class="text-xs text-gray-400">פרופילים מקומיים מבודדים, עם גיבוי וסנכרון במכשיר.</p></div><button onclick="openUserManager()" class="text-xs text-sky-400">ניהול</button></div>
+    <div class="feature-grid"><div class="feature-stat"><div class="small-stat">משתמש פעיל</div><b id="active-user-name" class="text-white">—</b></div><div class="feature-stat"><div class="small-stat">מסד נתונים</div><b id="db-status" class="text-emerald-400">מקומי</b></div></div>
+  </section>
+
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="palette" class="w-4 h-4 text-violet-400"></i>עיצוב ותצוגה</h3><p class="text-xs text-gray-400">Theme, נגישות ומצב דיסקרטי.</p></div></div>
+    <div class="grid grid-cols-2 gap-2"><select id="theme-select" onchange="setAppTheme(this.value)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white"><option value="ocean">Ocean</option><option value="forest">Forest</option><option value="violet">Violet</option><option value="amber">Amber</option><option value="rose">Rose</option></select><button onclick="toggleDiscrete()" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">מצב דיסקרטי</button></div>
+  </section>
+
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white flex items-center gap-2"><i data-lucide="download-cloud" class="w-4 h-4 text-emerald-400"></i>אפליקציה והתקנה</h3><p class="text-xs text-gray-400">PWA, עבודה גם ללא חיבור, ונעילה אוטומטית.</p></div></div>
+    <div class="grid grid-cols-2 gap-2"><button id="install-app-btn" onclick="installPWA()" class="bg-indigo-600 text-white rounded-xl px-3 py-2 text-sm font-semibold">התקן כאפליקציה</button><button onclick="lockNow()" class="bg-gray-900 border border-gray-800 text-white rounded-xl px-3 py-2 text-sm">נעל עכשיו</button></div>
+    <div id="connection-status" class="text-xs text-gray-500 mt-2">בדיקת חיבור...</div>
+  </section>
+
+  <section class="glass-card p-4 rounded-2xl">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="font-bold text-white mb-1">שערי מט"ח</h3>
@@ -298,6 +370,8 @@ input,select,textarea{color-scheme:dark}
     </section>
 </div>
 </main>
+
+<div id="install-banner" class="install-banner"><div class="glass-card rounded-2xl p-3 flex items-center gap-3 border border-indigo-500/20"><i data-lucide="smartphone" class="w-6 h-6 text-indigo-400"></i><div class="flex-1"><b class="text-white text-sm">התקנה מהירה</b><div class="text-xs text-gray-400">אפשר להתקין את MoneyTracker כאפליקציה.</div></div><button onclick="installPWA()" class="bg-indigo-600 text-white rounded-xl px-3 py-2 text-xs font-semibold">התקן</button></div></div>
 
 <div id="update-notification" class="update-notification" role="status" aria-live="polite">
   <div class="flex items-center gap-3">
@@ -318,6 +392,7 @@ input,select,textarea{color-scheme:dark}
 <nav class="fixed bottom-0 left-0 right-0 glass-card border-t border-gray-800/80 py-2 px-2 flex justify-around z-50 text-xs">
 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-active flex flex-col items-center gap-1 py-1 px-2"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>תקציב</span></button>
 <button onclick="switchTab('analytics')" id="nav-analytics" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>ניתוחים</span></button>
+<button onclick="switchTab('notifications')" id="nav-notifications" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2 relative"><i data-lucide="bell" class="w-5 h-5"></i><span>הודעות</span><span id="notification-count" class="hidden absolute -top-1 right-1 notification-dot bg-rose-500"></span></button>
 <button onclick="switchTab('pockets')" id="nav-pockets" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="piggy-bank" class="w-5 h-5"></i><span>קבועות</span></button>
 <button onclick="switchTab('travel')" id="nav-travel" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="plane" class="w-5 h-5"></i><span>טיול וכלים</span></button>
 <button onclick="switchTab('settings')" id="nav-settings" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="settings" class="w-5 h-5"></i><span>הגדרות</span></button>
@@ -341,7 +416,8 @@ input,select,textarea{color-scheme:dark}
 
 <script>
 const KEY='budget_app_v3';
-const today=()=>new Date().toISOString().slice(0,10);
+function localDateString(d=new Date()){ const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+const today=()=>localDateString();
 const currentMonth=()=>today().slice(0,7);
 const clone=o=>JSON.parse(JSON.stringify(o));
 let isDiscrete=false, catChart=null, trendChart=null;
@@ -369,7 +445,8 @@ const defaults={
     {id:2,desc:'מסעדה',amount:65,currency:'EUR',rate:4.05,date:'2026-10-03'}
   ]},
   security:{enabled:false,password:''},
-  dailySnapshot:{date:'',amount:0}
+  dailySnapshot:{date:'',amount:0},
+  history:{dailySnapshots:{},monthlySnapshots:{}}
 };
 
 function load(){
@@ -384,8 +461,38 @@ state.settings.rates = {...defaults.settings.rates,...(state.settings.rates||{})
 state.savingsAllocations = state.savingsAllocations || [];
 state.savingsProcessed = state.savingsProcessed || {};
 state.dailySnapshot = state.dailySnapshot || {date:'',amount:0};
+state.history = state.history || {dailySnapshots:{},monthlySnapshots:{}};
+state.history.dailySnapshots = state.history.dailySnapshots || {};
+state.history.monthlySnapshots = state.history.monthlySnapshots || {};
 
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+let analyticsRefreshTimer=null;
+function scheduleAnalyticsRefresh(){
+  if(analyticsRefreshTimer) return;
+  analyticsRefreshTimer=setTimeout(()=>{
+    analyticsRefreshTimer=null;
+    if(document.getElementById('tab-analytics')?.classList.contains('hidden')) return;
+    renderAnalytics();
+    renderMonthlyComparison();
+    renderHeatmap();
+    updateCharts();
+    lucide.createIcons();
+  },0);
+}
+function save(){
+  localStorage.setItem(KEY,JSON.stringify(state));
+  scheduleAnalyticsRefresh();
+}
+window.addEventListener('storage',(event)=>{
+  if(event.key!==KEY || !event.newValue) return;
+  try{
+    const incoming=JSON.parse(event.newValue);
+    state={...state,...incoming,settings:{...state.settings,...(incoming.settings||{})}};
+    state.transactions=incoming.transactions||state.transactions;
+    state.recurring=incoming.recurring||state.recurring;
+    state.history=incoming.history||state.history;
+    scheduleAnalyticsRefresh();
+  }catch(e){console.warn('Could not sync data from another tab',e)}
+});
 function money(n){return '₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:2})}
 function monthTx(m=currentMonth()){return state.transactions.filter(t=>String(t.date||'').slice(0,7)===m)}
 function sum(arr){return arr.reduce((a,b)=>a+Number(b.amount||0),0)}
@@ -419,6 +526,8 @@ function renderHeaderDate() {
 document.addEventListener('DOMContentLoaded',async()=>{
   renderHeaderDate();
   checkMonthlySavingsProcess();
+  initializePeriodHistory();
+  analyticsMonth=currentMonth();
   document.getElementById('month-filter').value=currentMonth();
   document.getElementById('tx-date').value=today();
   syncSettingsUI(); renderAll(); lucide.createIcons(); applyNumericKeyboard(); convertFX(); calculateSplit();
@@ -479,31 +588,8 @@ function toggleDiscrete(){
 }
 
 function renderAll(){
+  initializePeriodHistory(false);
   updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderSavingsAllocations(); renderPockets(); renderTrip(); renderAnalytics(); renderMonthlyComparison(); renderHeatmap(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
-}
-
-function getDailyBudgetSnapshot() {
-  const t = today();
-  if (state.dailySnapshot && state.dailySnapshot.date === t) {
-    return state.dailySnapshot.amount;
-  }
-  
-  const m = currentMonth();
-  const todayTx = state.transactions.filter(x => x.date === t && x.type === 'expense' && !x.isTripSummary);
-  const todayExpenseSum = sum(todayTx);
-  
-  const currentMonthExpensesExceptToday = expenseTotal(m) - todayExpenseSum;
-  const leftAtStartOfDay = state.settings.monthlyBudgetTarget - currentMonthExpensesExceptToday;
-  
-  const now = new Date();
-  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const daysLeft = daysInMonth - now.getDate() + 1;
-  
-  const dailyAllowed = Math.max(0, leftAtStartOfDay / daysLeft);
-  
-  state.dailySnapshot = { date: t, amount: dailyAllowed };
-  save();
-  return dailyAllowed;
 }
 
 function updateOverview(){
@@ -523,9 +609,9 @@ function updateOverview(){
 }
 
 function renderMonthly(){
-  const m=document.getElementById('month-filter').value||currentMonth(), inc=incomeTotal(m), exp=expenseTotal(m), left=state.settings.monthlyBudgetTarget-exp;
-  setText('month-income',money(inc));setText('month-expense',money(exp));setText('month-budget',money(state.settings.monthlyBudgetTarget));setText('month-left',money(left));setText('current-month-label',monthLabel(m));
-  const pct=state.settings.monthlyBudgetTarget?(exp/state.settings.monthlyBudgetTarget*100):0; document.getElementById('budget-progress').style.width=Math.min(100,Math.max(0,pct))+'%'; setText('budget-progress-amount',money(exp)+' מתוך '+money(state.settings.monthlyBudgetTarget)); setText('budget-progress-percent',Math.round(pct)+'%');
+  const m=document.getElementById('month-filter').value||currentMonth(), inc=incomeTotal(m), exp=expenseTotal(m), budget=getMonthlyBudget(m), left=budget-exp;
+  setText('month-income',money(inc));setText('month-expense',money(exp));setText('month-budget',money(budget));setText('month-left',money(left));setText('current-month-label',monthLabel(m));
+  const pct=budget?(exp/budget*100):0; document.getElementById('budget-progress').style.width=Math.min(100,Math.max(0,pct))+'%'; setText('budget-progress-amount',money(exp)+' מתוך '+money(budget)); setText('budget-progress-percent',Math.round(pct)+'%');
 }
 
 function addTransaction(e){
@@ -563,42 +649,34 @@ function renderTransactions(){
   }).join(''):'<div class="text-sm text-gray-500 text-center py-6">אין תנועות בחודש שנבחר</div>';
 }
 
+function ensureHistoryContainers(){
+  state.history=state.history||{dailySnapshots:{},monthlySnapshots:{}};
+  state.history.dailySnapshots=state.history.dailySnapshots||{};
+  state.history.monthlySnapshots=state.history.monthlySnapshots||{};
+}
+function getMonthlyBudget(m){ensureHistoryContainers();const snap=state.history.monthlySnapshots[m];return snap&&Number.isFinite(Number(snap.budgetTarget))?Number(snap.budgetTarget):Number(state.settings.monthlyBudgetTarget)||0;}
+function calculateDailyBudgetAtStartOfDay(dateStr=today()){
+  const m=String(dateStr).slice(0,7);
+  const todayExpense=sum(state.transactions.filter(t=>String(t.date)===dateStr&&t.type==='expense'&&!t.isTripSummary));
+  const monthExpensesExceptToday=expenseTotal(m)-todayExpense;
+  const budget=getMonthlyBudget(m);
+  const [y,mo]=m.split('-').map(Number); const daysInMonth=new Date(y,mo,0).getDate();
+  const day=Number(String(dateStr).slice(8,10)); const daysLeft=Math.max(1,daysInMonth-day+1);
+  return Math.max(0,(budget-monthExpensesExceptToday)/daysLeft);
+}
+function initializePeriodHistory(force=false){
+  ensureHistoryContainers(); const d=today(),m=currentMonth(); let changed=false;
+  if(force||!state.history.dailySnapshots[d]){const amount=calculateDailyBudgetAtStartOfDay(d);state.history.dailySnapshots[d]={date:d,amount,createdAt:Date.now()};state.dailySnapshot={date:d,amount};changed=true;}
+  if(force||!state.history.monthlySnapshots[m]){state.history.monthlySnapshots[m]={month:m,budgetTarget:Number(state.settings.monthlyBudgetTarget)||0,createdAt:Date.now()};changed=true;}
+  if(changed)save();
+}
+function getDailyBudgetSnapshot(dateStr=today()){ensureHistoryContainers();if(state.history.dailySnapshots[dateStr])return Number(state.history.dailySnapshots[dateStr].amount)||0;initializePeriodHistory(false);return Number(state.history.dailySnapshots[dateStr]?.amount)||0;}
 function renderHeatmap(){
-  const m = document.getElementById('month-filter')?.value || currentMonth();
-  const [year, month] = m.split('-').map(Number);
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const dailyBudget = state.settings.monthlyBudgetTarget / daysInMonth;
-  
-  const tx = monthTx(m).filter(t => t.type === 'expense');
-  const dailyExpenses = {};
-  
-  tx.forEach(t => {
-    const day = parseInt(t.date.split('-')[2], 10);
-    dailyExpenses[day] = (dailyExpenses[day] || 0) + Number(t.amount);
-  });
-
-  let html = '';
-  for(let day = 1; day <= daysInMonth; day++){
-    const exp = dailyExpenses[day] || 0;
-    const isOver = exp > dailyBudget;
-    
-    let bgColor = 'bg-gray-900 border-gray-800 text-gray-400';
-    if(exp > 0) {
-      bgColor = isOver 
-        ? 'bg-rose-950/80 border-rose-800 text-rose-300' 
-        : 'bg-emerald-950/80 border-emerald-800 text-emerald-300';
-    }
-
-    html += `
-      <div class="heatmap-day ${bgColor} p-1.5 flex flex-col justify-between" title="יום ${day}: ${money(exp)} (תקציב: ${money(dailyBudget)})">
-        <span class="opacity-60 text-[9px]">${day}</span>
-        <span class="text-[9px] truncate">${exp > 0 ? money(exp) : '-'}</span>
-      </div>
-    `;
-  }
-
-  const container = document.getElementById('monthly-heatmap');
-  if(container) container.innerHTML = html;
+  const m=document.getElementById('analytics-month-filter')?.value||document.getElementById('month-filter')?.value||currentMonth();
+  const [year,month]=m.split('-').map(Number),daysInMonth=new Date(year,month,0).getDate(),baseDaily=getMonthlyBudget(m)/daysInMonth;
+  const dailyExpenses={};monthTx(m).filter(t=>t.type==='expense').forEach(t=>{const day=parseInt(String(t.date).split('-')[2],10);dailyExpenses[day]=(dailyExpenses[day]||0)+Number(t.amount);});
+  let html=''; for(let day=1;day<=daysInMonth;day++){const exp=dailyExpenses[day]||0,date=`${m}-${String(day).padStart(2,'0')}`,snap=state.history?.dailySnapshots?.[date],dayBudget=snap?Number(snap.amount)||0:baseDaily,isOver=exp>dayBudget;let bg='bg-gray-900 border-gray-800 text-gray-400';if(exp>0)bg=isOver?'bg-rose-950/80 border-rose-800 text-rose-300':'bg-emerald-950/80 border-emerald-800 text-emerald-300';html+=`<div class="heatmap-day ${bg} p-1.5 flex flex-col justify-between" title="${date}: ${money(exp)} (תקציב יומי: ${money(dayBudget)})"><span class="opacity-60 text-[9px]">${day}</span><span class="text-[9px] truncate">${exp>0?money(exp):'-'}</span></div>`;}
+  const c=document.getElementById('monthly-heatmap');if(c)c.innerHTML=html;
 }
 
 function getMonthComparisonData(currentMonthStr) {
@@ -626,60 +704,10 @@ function getMonthComparisonData(currentMonthStr) {
   });
 }
 
-function renderMonthlyComparison() {
-  const m = document.getElementById('month-filter')?.value || currentMonth();
-  const data = getMonthComparisonData(m);
-  
-  const insights = data
-    .filter(d => Math.abs(d.changePct) >= 10 && d.currSum > 0)
-    .map(d => {
-      const direction = d.changePct > 0 ? 'עלו' : 'ירדו';
-      return `<li class="mb-1 text-gray-200">
-        ההוצאות על <b class="text-sky-300">${esc(d.cat)}</b> ${direction} ב-<b class="${d.changePct > 0 ? 'text-rose-400' : 'text-emerald-400'}">${Math.abs(d.changePct)}%</b> לעומת חודש שעבר (סה"כ החודש: <b class="amount">${money(d.currSum)}</b>).
-      </li>`;
-    });
-
-  const html = `
-    <section class="glass-card p-4 rounded-2xl mb-5 space-y-4">
-      <div>
-        <h3 class="font-bold text-white text-sm flex items-center gap-2 mb-2"><i data-lucide="lightbulb" class="w-4 h-4 text-amber-400"></i>תובנות חכמות בהשוואה לחודש שעבר</h3>
-        <ul class="list-disc pr-5 text-xs">
-          ${insights.length ? insights.join('') : '<li class="text-gray-400">אין שינויים משמעותיים בהוצאות בהשוואה לחודש שעבר.</li>'}
-        </ul>
-      </div>
-
-      <div>
-        <h3 class="font-bold text-white text-sm mb-2">השוואת הוצאות חודשית לפי קטגוריה</h3>
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs text-right border-collapse">
-            <thead>
-              <tr class="border-b border-gray-800 text-gray-400">
-                <th class="p-2">קטגוריה</th>
-                <th class="p-2">חודש קודם</th>
-                <th class="p-2">חודש נוכחי</th>
-                <th class="p-2">שינוי</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${data.map(d => `
-                <tr class="border-b border-gray-900/60">
-                  <td class="p-2 font-medium text-gray-200">${esc(d.cat)}</td>
-                  <td class="p-2 text-gray-400 amount">${money(d.prevSum)}</td>
-                  <td class="p-2 font-bold text-gray-100 amount">${money(d.currSum)}</td>
-                  <td class="p-2 font-bold ${d.changePct > 0 ? 'text-rose-400' : d.changePct < 0 ? 'text-emerald-400' : 'text-gray-400'}">
-                    ${d.changePct > 0 ? '+' : ''}${d.changePct}%
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  `;
-
-  const container = document.getElementById('analytics-comparison-container');
-  if (container) container.innerHTML = html;
+function renderMonthlyComparison(){
+ const container=document.getElementById('analytics-comparison-container');if(!container)return;if(analyticsPeriod!=='month'){container.innerHTML='';return;}const m=analyticsMonth,data=getMonthComparisonData(m);
+ const insights=data.filter(d=>Math.abs(d.changePct)>=10&&d.currSum>0).map(d=>`<li class="mb-1 text-gray-200">ההוצאות על <b class="text-sky-300">${esc(d.cat)}</b> ${d.changePct>0?'עלו':'ירדו'} ב-<b class="${d.changePct>0?'text-rose-400':'text-emerald-400'}">${Math.abs(d.changePct)}%</b> לעומת חודש שעבר (סה"כ: <b class="amount">${money(d.currSum)}</b>).</li>`);
+ container.innerHTML=`<section class="glass-card p-4 rounded-2xl mb-5 space-y-4"><div><h3 class="font-bold text-white text-sm flex items-center gap-2 mb-2"><i data-lucide="lightbulb" class="w-4 h-4 text-amber-400"></i>תובנות בהשוואה לחודש שעבר</h3><ul class="list-disc pr-5 text-xs">${insights.length?insights.join(''):'<li class="text-gray-400">אין שינויים משמעותיים בהוצאות בהשוואה לחודש שעבר.</li>'}</ul></div><div><h3 class="font-bold text-white text-sm mb-2">השוואת הוצאות לפי קטגוריה</h3><div class="overflow-x-auto"><table class="w-full text-xs text-right border-collapse"><thead><tr class="border-b border-gray-800 text-gray-400"><th class="p-2">קטגוריה</th><th class="p-2">חודש קודם</th><th class="p-2">${esc(monthLabel(m))}</th><th class="p-2">שינוי</th></tr></thead><tbody>${data.map(d=>`<tr class="border-b border-gray-900/60"><td class="p-2 font-medium text-gray-200">${esc(d.cat)}</td><td class="p-2 text-gray-400 amount">${money(d.prevSum)}</td><td class="p-2 font-bold text-gray-100 amount">${money(d.currSum)}</td><td class="p-2 font-bold ${d.changePct>0?'text-rose-400':d.changePct<0?'text-emerald-400':'text-gray-400'}">${d.changePct>0?'+':''}${d.changePct}%</td></tr>`).join('')}</tbody></table></div></div></section>`;
 }
 
 function editTransaction(id){
@@ -701,57 +729,35 @@ function deleteTransaction(id){
   renderAll();
 }
 
-function renderAnalytics(){
-  const m=document.getElementById('month-filter')?.value||currentMonth(), tx=effectiveMonthTx(m).filter(t=>t.type==='expense'), by={};
-  tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));
-  const arr=Object.entries(by).sort((a,b)=>b[1]-a[1]);
-  document.getElementById('category-map').innerHTML=arr.length?arr.map(([c,n])=>`<div><div class="flex justify-between text-xs text-gray-300"><span>${esc(c)}</span><b>${money(n)}</b></div><div class="bg-gray-900 rounded-full h-2 mt-1 border border-gray-800"><div class="bg-indigo-500 h-2 rounded-full" style="width:${Math.min(100,n/(arr[0]?.[1]||1)*100)}%"></div></div></div>`).join(''):'<span class="text-gray-500 text-sm">אין נתונים</span>';
-  const budget=state.settings.monthlyBudgetTarget, exp=expenseTotal(m);
-  document.getElementById('insights').innerHTML=[
-    `הוצאה חודשית: <b>${money(exp)}</b> מתוך ${money(budget)}.`,
-    arr[0]?`הקטגוריה הגדולה ביותר: <b>${esc(arr[0][0])}</b> (${money(arr[0][1])}).`:'אין עדיין קטגוריה מובילה.',
-    `נשאר לתקציב: <b>${money(budget-exp)}</b>.`,
-    `הוצאות קבועות פעילות: <b>${money(sum(state.recurring.filter(r=>r.active!==false)))}</b> לחודש.`
-  ].map(x=>`<div class="bg-gray-900/60 rounded-xl p-3 border border-gray-800">${x}</div>`).join('');
+let analyticsPeriod='month';
+let analyticsYear=Number(currentMonth().slice(0,4));
+let analyticsMonth=currentMonth();
+function analyticsMonthsForYear(year){return Array.from({length:12},(_,i)=>`${year}-${String(i+1).padStart(2,'0')}`);}
+function analyticsMonthsForHistory(){const end=new Date(),a=[];for(let i=35;i>=0;i--){const d=new Date(end.getFullYear(),end.getMonth()-i,1);a.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}return a;}
+function syncAnalyticsControls(){
+ const mf=document.getElementById('analytics-month-filter');if(mf)mf.value=analyticsMonth;
+ const yf=document.getElementById('analytics-year-filter');if(yf){const years=new Set();const cy=Number(currentMonth().slice(0,4));for(let y=cy;y>=cy-5;y--)years.add(y);Object.keys(state.history?.monthlySnapshots||{}).forEach(m=>years.add(Number(String(m).slice(0,4))));state.transactions.forEach(t=>years.add(Number(String(t.date).slice(0,4))));yf.innerHTML=[...years].filter(Boolean).sort((a,b)=>b-a).map(y=>`<option value="${y}" ${y===analyticsYear?'selected':''}>${y}</option>`).join('');}
+ const label=document.getElementById('analytics-period-label');if(label)label.textContent=analyticsPeriod==='month'?`נתוני ${monthLabel(analyticsMonth)}`:analyticsPeriod==='year'?`כל חודשי ${analyticsYear}`:'36 החודשים האחרונים';
 }
-
+function setAnalyticsPeriod(period){analyticsPeriod=period;document.getElementById('analytics-month-controls')?.classList.toggle('hidden',period!=='month');document.getElementById('analytics-year-controls')?.classList.toggle('hidden',period==='month');['month','year','history'].forEach(x=>{const b=document.getElementById(`period-${x}-btn`);if(b)b.className=x===period?'bg-indigo-600 text-white rounded-xl px-3 py-2 text-xs font-semibold':'bg-gray-900 border border-gray-800 text-gray-300 rounded-xl px-3 py-2 text-xs font-semibold';});if(period==='month')analyticsMonth=document.getElementById('month-filter')?.value||analyticsMonth;else analyticsYear=Number(document.getElementById('analytics-year-filter')?.value)||analyticsYear;syncAnalyticsControls();renderAnalytics();renderMonthlyComparison();renderHeatmap();updateCharts();lucide.createIcons();}
+function selectAnalyticsMonth(m){analyticsMonth=m||currentMonth();document.getElementById('month-filter').value=analyticsMonth;renderMonthly();renderTransactions();renderAnalytics();renderMonthlyComparison();renderHeatmap();updateCharts();}
+function moveAnalyticsMonth(delta){const d=new Date(`${analyticsMonth}-01`);d.setMonth(d.getMonth()+delta);selectAnalyticsMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);}
+function selectAnalyticsYear(y){analyticsYear=Number(y)||Number(currentMonth().slice(0,4));renderAnalytics();renderMonthlyComparison();renderHeatmap();updateCharts();}
+function moveAnalyticsYear(delta){selectAnalyticsYear(analyticsYear+delta);syncAnalyticsControls();}
+function getAnalyticsMonths(){return analyticsPeriod==='year'?analyticsMonthsForYear(analyticsYear):analyticsPeriod==='history'?analyticsMonthsForHistory():[analyticsMonth];}
+function getAnalyticsTransactions(){return getAnalyticsMonths().flatMap(m=>effectiveMonthTx(m).filter(t=>t.type==='expense'));}
+function renderAnalytics(){
+ syncAnalyticsControls();const tx=getAnalyticsTransactions(),by={};tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));const arr=Object.entries(by).sort((a,b)=>b[1]-a[1]);
+ const title=analyticsPeriod==='month'?`מפת הוצאות / קטגוריות — ${monthLabel(analyticsMonth)}`:analyticsPeriod==='year'?`מפת הוצאות / קטגוריות — ${analyticsYear}`:'מפת הוצאות / קטגוריות — 36 חודשים';
+ const h=document.querySelector('#category-map')?.parentElement?.querySelector('h3');if(h)h.innerHTML=`<i data-lucide="map" class="w-4 h-4 text-amber-400"></i>${title}`;
+ document.getElementById('category-map').innerHTML=arr.length?arr.map(([c,n])=>`<div><div class="flex justify-between text-xs text-gray-300"><span>${esc(c)}</span><b>${money(n)}</b></div><div class="bg-gray-900 rounded-full h-2 mt-1 border border-gray-800"><div class="bg-indigo-500 h-2 rounded-full" style="width:${Math.min(100,n/(arr[0]?.[1]||1)*100)}%"></div></div></div>`).join(''):'<span class="text-gray-500 text-sm">אין נתונים</span>';
+ const total=sum(tx),months=getAnalyticsMonths(),budget=months.reduce((a,m)=>a+getMonthlyBudget(m),0),top=arr[0];
+ document.getElementById('insights').innerHTML=[`הוצאות בתקופה: <b>${money(total)}</b>.`,top?`הקטגוריה הגדולה ביותר: <b>${esc(top[0])}</b> (${money(top[1])}).`:'אין עדיין קטגוריה מובילה.',`תקציב מצטבר לתקופה: <b>${money(budget)}</b>.`,`נשאר מהתקציב: <b>${money(budget-total)}</b>.`].map(x=>`<div class="bg-gray-900/60 rounded-xl p-3 border border-gray-800">${x}</div>`).join('');
+}
 function updateCharts(){
-  const m=document.getElementById('month-filter')?.value||currentMonth(), tx=effectiveMonthTx(m).filter(t=>t.type==='expense'), by={};
-  tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));
-  
-  if(catChart){catChart.destroy()} 
-  const c=document.getElementById('categoryChart')?.getContext('2d'); 
-  if(c) {
-    catChart=new Chart(c,{
-      type:'doughnut',
-      data:{
-        labels:Object.keys(by).length ? Object.keys(by) : ['אין נתונים'],
-        datasets:[{
-          data:Object.values(by).length ? Object.values(by) : [1],
-          backgroundColor:Object.keys(by).length ? ['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308'] : ['#1f2937'],
-          borderWidth:0
-        }]
-      },
-      options:{
-        responsive:true,
-        maintainAspectRatio:false,
-        plugins:{
-          legend:{
-            position:'bottom',
-            labels:{color:'#9ca3af',font:{family:'Heebo',size:11}}
-          }
-        }
-      }
-    });
-  }
-
-  if(trendChart){trendChart.destroy()} 
-  const ctx=document.getElementById('trendChart')?.getContext('2d');
-  if(ctx){
-    const months=[]; const base=new Date(); for(let i=5;i>=0;i--){const d=new Date(base.getFullYear(),base.getMonth()-i,1);months.push(d.toISOString().slice(0,7))}
-    const exps=months.map(mm=>expenseTotal(mm)), incs=months.map(mm=>incomeTotal(mm));
-    trendChart=new Chart(ctx,{type:'line',data:{labels:months.map(monthLabel),datasets:[{label:'הוצאות',data:exps,tension:.35,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.1)',fill:true},{label:'הכנסות',data:incs,tension:.35,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#6b7280'}},y:{ticks:{color:'#6b7280'}}},plugins:{legend:{labels:{color:'#9ca3af'}}}}});
-  }
+ if(catChart){catChart.destroy();catChart=null;}const tx=getAnalyticsTransactions(),by={};tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));const c=document.getElementById('categoryChart')?.getContext('2d');if(c)catChart=new Chart(c,{type:'doughnut',data:{labels:Object.keys(by).length?Object.keys(by):['אין נתונים'],datasets:[{data:Object.values(by).length?Object.values(by):[1],backgroundColor:Object.keys(by).length?['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308']:['#1f2937'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{family:'Heebo',size:11}}}}}});
+ if(trendChart){trendChart.destroy();trendChart=null;}const ctx=document.getElementById('trendChart')?.getContext('2d');if(!ctx)return;let months;if(analyticsPeriod==='month'){months=[];const d=new Date(`${analyticsMonth}-01`);for(let i=5;i>=0;i--){const x=new Date(d);x.setMonth(d.getMonth()-i);months.push(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`);}}else months=getAnalyticsMonths();const exps=months.map(m=>expenseTotal(m)),incs=months.map(m=>incomeTotal(m));
+ trendChart=new Chart(ctx,{type:'line',data:{labels:months.map(monthLabel),datasets:[{label:'הוצאות',data:exps,tension:.35,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.1)',fill:true},{label:'הכנסות',data:incs,tension:.35,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#6b7280',maxRotation:45,minRotation:0}},y:{ticks:{color:'#6b7280'}}},plugins:{legend:{labels:{color:'#9ca3af'}}}}});
 }
 
 function renderRecurring(){
@@ -1158,6 +1164,92 @@ function setText(id,t){const e=document.getElementById(id);if(e)e.innerText=t}
 function applyNumericKeyboard(){document.querySelectorAll('input[type=number]').forEach(i=>{i.setAttribute('inputmode','decimal');i.setAttribute('pattern','[0-9]*')})}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
 function attr(s){return esc(s)}
+
+/* ===================== MoneyTracker v1.1 feature layer ===================== */
+const DB_KEY='money_tracker_db_v1';
+let dbState=null, activeUserId=null, deferredInstallPrompt=null, autoLockTimer=null;
+function defaultFeatureState(){return {users:[],activeUserId:null,notifications:[],theme:'ocean',categoryRules:{},notificationRead:{},autoLockMinutes:30};}
+function readDB(){try{return JSON.parse(localStorage.getItem(DB_KEY))||defaultFeatureState()}catch{return defaultFeatureState()}}
+function writeDB(){if(dbState)localStorage.setItem(DB_KEY,JSON.stringify(dbState));}
+function ensureFeatureDB(){
+  dbState=readDB();
+  dbState.users=Array.isArray(dbState.users)?dbState.users:[];
+  dbState.notifications=Array.isArray(dbState.notifications)?dbState.notifications:[];
+  dbState.categoryRules=dbState.categoryRules||{};
+  dbState.notificationRead=dbState.notificationRead||{};
+  if(!dbState.users.length){const uid='user-'+Date.now();dbState.users.push({id:uid,name:'המשתמש שלי',createdAt:Date.now(),state:clone(state)});dbState.activeUserId=uid;}
+  activeUserId=dbState.activeUserId||dbState.users[0].id;
+  const user=dbState.users.find(u=>u.id===activeUserId)||dbState.users[0];
+  activeUserId=user.id;dbState.activeUserId=activeUserId;
+  dbState.notifications=dbState.notifications||[];
+  state=mergeFeatureState(user.state||state);
+  user.state=clone(state);writeDB();
+}
+function mergeFeatureState(incoming){
+  const base=clone(defaults);const s=incoming||{};
+  const merged={...base,...s,settings:{...base.settings,...(s.settings||{}),rates:{...base.settings.rates,...(s.settings?.rates||{})},autoLockMinutes:Number(s.settings?.autoLockMinutes||30)},history:{...base.history,...(s.history||{}),dailySnapshots:{...(s.history?.dailySnapshots||{})},monthlySnapshots:{...(s.history?.monthlySnapshots||{})}}};
+  merged.savingsAllocations=Array.isArray(s.savingsAllocations)?s.savingsAllocations:[];merged.savingsProcessed=s.savingsProcessed||{};merged.security={...base.security,...(s.security||{})};return merged;
+}
+function persistUserState(){
+  if(!dbState)return;const u=dbState.users.find(x=>x.id===activeUserId);if(u){u.state=clone(state);u.lastActive=Date.now();}dbState.activeUserId=activeUserId;writeDB();
+}
+const originalSave=save;
+save=function(){originalSave();persistUserState();};
+function autoCategory(desc,type='expense'){
+  if(type==='income') return /משכורת|שכר|salary|freelance|פרילנס|בונוס|החזר/i.test(desc)?'משכורת':'שונות';
+  const d=String(desc||'').toLowerCase();const rules=[
+    [['wolt','תן ביס','מסעד','קפה','restaurant','food','סופר','שופרסל','רמי לוי','ויקטורי'],'אוכל ומזון'],
+    [['דלק','פז','סונול','דור אלון','רב קו','מונית','taxi','uber','תחבורה'],'תחבורה'],
+    [['נטפליקס','spotify','disney','steam','playstation','קולנוע','בר','מועדון','בילוי'],'פנאי ובילויים'],
+    [['שכר דירה','ארנונה','חשמל','מים','אינטרנט','סלקום','פרטנר','yes','hot'],'מגורים וחשבונות'],
+    [['amazon','zara','h&m','קניות','איקאה','super-pharm','סופר פארם'],'קניות'],
+    [['השקעה','בורסה','trade','broker','קרן'],'השקעות']
+  ];for(const [keys,cat] of rules)if(keys.some(k=>d.includes(k)))return cat;return 'שונות';
+}
+function classifyDescription(desc,type='expense'){const cat=autoCategory(desc,type);const hint=document.getElementById('tx-cat-suggestion');if(hint)hint.innerHTML=`הצעה אוטומטית: <button type="button" onclick="acceptCategorySuggestion()" class="text-sky-300 underline">${esc(cat)}</button>`;return cat;}
+function acceptCategorySuggestion(){const h=document.querySelector('#tx-cat-suggestion button');if(h)document.getElementById('tx-cat').value=h.textContent;}
+function enhancedAddTransaction(e){if(e)e.preventDefault();const desc=v('tx-desc').trim(),amount=Number(v('tx-amount')),type=v('tx-type'),chosen=v('tx-cat'),suggested=autoCategory(desc,type);const cat=chosen==='auto'?suggested:chosen; if(!desc||amount<=0)return alert('הזן תיאור וסכום תקינים');state.transactions.unshift({id:Date.now(),desc,amount,type,cat,date:v('tx-date')||today(),autoCategorized:cat===suggested});save();if(e?.target)e.target.reset();document.getElementById('tx-date').value=today();renderAll();generateSmartNotifications();}
+addTransaction=enhancedAddTransaction;
+function setupCategoryAssistant(){const d=document.getElementById('tx-desc');if(d&&!d.dataset.assistant){d.dataset.assistant='1';const hint=document.createElement('div');hint.id='tx-cat-suggestion';hint.className='col-span-2 md:col-span-6 text-[10px] text-gray-500 -mt-1';d.parentElement?.appendChild(hint);d.addEventListener('input',()=>classifyDescription(d.value,v('tx-type')));document.getElementById('tx-type')?.addEventListener('change',()=>classifyDescription(d.value,v('tx-type')));}}
+function smartRecurringData(){return state.recurring.map(r=>{const txs=state.transactions.filter(t=>t.recurringId===r.id||t.desc===r.name).sort((a,b)=>String(b.date).localeCompare(String(a.date)));const last=txs[0];return {...r,lastAmount:last?Number(last.amount):null,change:last?Number(r.amount)-Number(last.amount):0};});}
+function generateSmartNotifications(){
+  dbState=dbState||readDB();const items=[];const m=currentMonth(),exp=expenseTotal(m),budget=getMonthlyBudget(m),pct=budget?exp/budget:0;
+  if(pct>=1)items.push({id:`budget-${m}`,type:'warning',title:'חריגה מהתקציב',body:`ההוצאות בחודש ${monthLabel(m)} הגיעו ל-${money(exp)}, מעל התקציב של ${money(budget)}.`});
+  else if(pct>=.8)items.push({id:`budget80-${m}`,type:'warning',title:'מתקרבים לתקציב',body:`ניצלת ${Math.round(pct*100)}% מהתקציב החודשי.`});
+  smartRecurringData().forEach(r=>{if(r.change>0)items.push({id:`recurring-${r.id}-${m}`,type:'info',title:`שינוי בהוצאה קבועה: ${r.name}`,body:`הסכום המוגדר גבוה ב-${money(r.change)} מהחיוב האחרון.`});});
+  const prev=new Date(`${m}-01`);prev.setMonth(prev.getMonth()-1);const pm=`${prev.getFullYear()}-${String(prev.getMonth()+1).padStart(2,'0')}`;const pe=expenseTotal(pm);if(pe>0&&exp<pe*.9)items.push({id:`good-${m}`,type:'success',title:'מגמת הוצאות חיובית',body:`ההוצאות נמוכות בכ-${Math.round((1-exp/pe)*100)}% לעומת החודש הקודם.`});
+  dbState.notifications=items.concat((dbState.notifications||[]).filter(n=>n.manual)).slice(0,40);writeDB();renderNotifications();
+}
+function renderNotifications(){const c=document.getElementById('notifications-list');if(!c)return;const list=(dbState?.notifications||[]).slice(0,30);const unread=list.filter(n=>!dbState.notificationRead?.[n.id]).length;document.getElementById('notification-count')?.classList.toggle('hidden',!unread);document.getElementById('header-notification-dot')?.classList.toggle('hidden',!unread);c.innerHTML=list.length?list.map(n=>`<div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3 ${dbState.notificationRead?.[n.id]?'opacity-60':''}"><div class="flex gap-3"><span class="notification-dot mt-1.5 ${n.type==='warning'?'bg-amber-400':n.type==='success'?'bg-emerald-400':'bg-sky-400'}"></span><div class="flex-1"><b class="text-white text-sm">${esc(n.title)}</b><p class="text-xs text-gray-400 mt-1">${esc(n.body)}</p></div></div></div>`).join(''):'<div class="text-sm text-gray-500 text-center py-8">אין הודעות חדשות 🎉</div>';}
+function markNotificationsRead(){if(!dbState)return;dbState.notificationRead=dbState.notificationRead||{};(dbState.notifications||[]).forEach(n=>dbState.notificationRead[n.id]=true);writeDB();renderNotifications();}
+function showPeriodSummary(){renderPeriodSummary(true);}
+function renderPeriodSummary(){const c=document.getElementById('period-summary');if(!c)return;const months=getAnalyticsMonths(),exp=months.reduce((a,m)=>a+expenseTotal(m),0),inc=months.reduce((a,m)=>a+incomeTotal(m),0),saveAmt=inc-exp,budget=months.reduce((a,m)=>a+getMonthlyBudget(m),0);const top=Object.entries(getAnalyticsTransactions().reduce((o,t)=>(o[t.cat]=(o[t.cat]||0)+Number(t.amount),o),{})).sort((a,b)=>b[1]-a[1])[0];const title=analyticsPeriod==='month'?monthLabel(analyticsMonth):analyticsPeriod==='year'?`שנת ${analyticsYear}`:'36 חודשים';c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(inc)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(exp)}</b></div><div class="feature-stat"><div class="small-stat">נטו</div><b class="${saveAmt>=0?'text-emerald-400':'text-rose-400'} amount">${money(saveAmt)}</b></div><div class="feature-stat"><div class="small-stat">ניצול תקציב</div><b class="text-white">${budget?Math.round(exp/budget*100):0}%</b></div></div><div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 text-xs text-gray-300">${esc(title)}: ${top?`הקטגוריה המובילה היא <b class="text-white">${esc(top[0])}</b> עם ${money(top[1])}.`:'אין עדיין מספיק נתונים לקטגוריה מובילה'} ${saveAmt>=0?'המאזן בתקופה חיובי.':'ההוצאות גבוהות מההכנסות בתקופה.'}</div>`;}
+function renderAnnualSummary(){const c=document.getElementById('annual-summary');if(!c)return;const y=analyticsYear,months=analyticsMonthsForYear(y),rows=months.map(m=>({m,inc:incomeTotal(m),exp:expenseTotal(m)}));const totalI=rows.reduce((a,x)=>a+x.inc,0),totalE=rows.reduce((a,x)=>a+x.exp,0),top=rows.slice().sort((a,b)=>b.exp-a.exp)[0];setText('annual-summary-year',String(y));c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(totalI)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(totalE)}</b></div><div class="feature-stat"><div class="small-stat">חיסכון / נטו</div><b class="${totalI-totalE>=0?'text-emerald-400':'text-rose-400'} amount">${money(totalI-totalE)}</b></div><div class="feature-stat"><div class="small-stat">חודש יקר</div><b class="text-white">${top?monthLabel(top.m):'—'}</b></div></div><div class="space-y-1">${rows.map(x=>`<div class="flex items-center gap-2 text-xs"><span class="w-20 text-gray-400">${esc(monthLabel(x.m))}</span><div class="flex-1 bg-gray-900 rounded-full h-2 overflow-hidden"><div class="bg-rose-500 h-full" style="width:${Math.min(100,totalE?x.exp/Math.max(...rows.map(r=>r.exp),1)*100:0)}%"></div></div><b class="w-20 text-left amount">${money(x.exp)}</b></div>`).join('')}</div>`;}
+function renderAdvancedHeatmap(){const c=document.getElementById('monthly-heatmap');if(!c)return;const m=analyticsMonth||currentMonth();if(analyticsPeriod==='month'){const [y,mo]=m.split('-').map(Number),days=new Date(y,mo,0).getDate(),first=new Date(y,mo-1,1).getDay();const ex={};monthTx(m).filter(t=>t.type==='expense').forEach(t=>{const d=Number(String(t.date).slice(8,10));ex[d]=(ex[d]||0)+Number(t.amount)});let h='';for(let i=0;i<first;i++)h+='<div></div>';for(let d=1;d<=days;d++){const date=`${m}-${String(d).padStart(2,'0')}`,v=ex[d]||0,b=getDailyBudgetSnapshot(date)||getMonthlyBudget(m)/days,ratio=b?v/b:0,level=v===0?'heat-0':ratio<=.5?'heat-1':ratio<=1?'heat-2':ratio<=1.5?'heat-3':'heat-4';h+=`<div class="heatmap-day ${level} p-1.5" title="${date} • ${money(v)} • תקציב ${money(b)}"><span class="opacity-70 text-[9px]">${d}</span><span class="text-[8px] truncate">${v?money(v):'—'}</span></div>`;}c.className='heatmap-grid pt-2';c.innerHTML=h;return;}const years=analyticsPeriod==='year'?[analyticsYear]:[...new Set(analyticsMonthsForHistory().map(m=>Number(m.slice(0,4))))];c.className='heatmap-year pt-2';c.innerHTML=years.map(y=>`<div class="bg-gray-900/50 border border-gray-800 rounded-xl p-2"><div class="text-xs font-bold text-white mb-2">${y}</div><div class="mini-heatmap">${analyticsMonthsForYear(y).map(mm=>{const e=expenseTotal(mm),b=getMonthlyBudget(mm),ratio=b?e/b:0;const cls=e===0?'heat-0':ratio<=.5?'heat-1':ratio<=1?'heat-2':ratio<=1.5?'heat-3':'heat-4';return `<div class="heatmap-day ${cls}" title="${monthLabel(mm)} • ${money(e)}"><span class="text-[7px]">${mm.slice(5)}</span></div>`}).join('')}</div></div>`).join('');}
+function enhanceHeatmapStyles(){const st=document.createElement('style');st.textContent='.heat-0{background:#111827;border-color:#1f2937;color:#6b7280}.heat-1{background:#064e3b;border-color:#065f46;color:#a7f3d0}.heat-2{background:#047857;border-color:#059669;color:#d1fae5}.heat-3{background:#92400e;border-color:#b45309;color:#fde68a}.heat-4{background:#881337;border-color:#be123c;color:#fecdd3}';document.head.appendChild(st);}
+const originalRenderAnalytics=renderAnalytics;renderAnalytics=function(){originalRenderAnalytics();renderPeriodSummary();renderAnnualSummary();renderNotifications();};
+renderHeatmap=renderAdvancedHeatmap;
+function setAppTheme(theme){document.body.classList.remove('theme-ocean','theme-forest','theme-violet','theme-amber','theme-rose');document.body.classList.add('theme-'+theme);state.theme=theme;state.settings.theme=theme;save();}
+function loadTheme(){const t=state.settings?.theme||state.theme||'ocean';setAppTheme(t);const sel=document.getElementById('theme-select');if(sel)sel.value=t;}
+function openUserManager(){const users=dbState?.users||[];const opts=users.map(u=>`<option value="${attr(u.id)}" ${u.id===activeUserId?'selected':''}>${esc(u.name)}</option>`).join('');openModal('ניהול משתמשים',`<label class="text-sm text-gray-300">משתמש פעיל<select id="user-select" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">${opts}</select></label><input id="new-user-name" placeholder="שם משתמש חדש (אופציונלי)" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><div class="grid grid-cols-2 gap-2"><button type="button" onclick="deleteCurrentUser()" class="bg-rose-950/40 border border-rose-900/50 text-rose-300 rounded-xl px-3 py-2 text-sm">מחק משתמש פעיל</button><button type="button" onclick="exportJSON()" class="bg-gray-900 border border-gray-800 text-white rounded-xl px-3 py-2 text-sm">גבה נתונים</button></div><p class="text-xs text-gray-500">כל משתמש מקבל נתונים נפרדים. זהו מסד נתונים מקומי; לסנכרון בין מכשירים יהיה צורך בשרת/API.</p>`,()=>{const selected=v('user-select');const name=v('new-user-name').trim();persistUserState();if(name){const uid='user-'+Date.now();dbState.users.push({id:uid,name,createdAt:Date.now(),state:clone(defaults)});activeUserId=uid;}else activeUserId=selected;const u=dbState.users.find(x=>x.id===activeUserId);state=mergeFeatureState(u.state);dbState.activeUserId=activeUserId;writeDB();save();closeModal();syncSettingsUI();renderAll();loadTheme();generateSmartNotifications();alert(`עברנו למשתמש ${u.name}`);});}
+function deleteCurrentUser(){if(!dbState||dbState.users.length<2)return alert('חייב להישאר לפחות משתמש אחד');if(!confirm('למחוק את המשתמש והנתונים שלו?'))return;dbState.users=dbState.users.filter(u=>u.id!==activeUserId);activeUserId=dbState.users[0].id;state=mergeFeatureState(dbState.users[0].state);dbState.activeUserId=activeUserId;writeDB();save();renderAll();syncSettingsUI();}
+function syncSettingsUI(){updateFXStatus();const u=dbState?.users?.find(x=>x.id===activeUserId);setText('active-user-name',u?.name||'—');setText('db-status','Local DB • '+(dbState?.users?.length||0)+' משתמשים');loadTheme();updateConnectionStatus();}
+function updateConnectionStatus(){const el=document.getElementById('connection-status');if(!el)return;el.innerHTML=navigator.onLine?'🟢 מחובר לרשת':'<span class="offline-badge">⚠️ לא מחובר — האפליקציה ממשיכה לעבוד מקומית</span>';}
+function lockNow(){if(state.security?.enabled)lockApp();else openSecurityModal();}
+function scheduleAutoLock(){clearTimeout(autoLockTimer);if(state.security?.enabled){const mins=Number(state.settings.autoLockMinutes||30);autoLockTimer=setTimeout(()=>lockApp(),mins*60*1000);}}
+['click','keydown','touchstart'].forEach(ev=>window.addEventListener(ev,()=>{if(!document.getElementById('lock-screen')?.classList.contains('hidden'))return;scheduleAutoLock();},{passive:true}));
+function installPWA(){if(deferredInstallPrompt){deferredInstallPrompt.prompt();deferredInstallPrompt.userChoice.finally(()=>{deferredInstallPrompt=null;document.getElementById('install-banner')?.classList.remove('active');});}else alert('אם הדפדפן תומך בהתקנה, פתח את תפריט הדפדפן ובחר "התקן את האפליקציה".');}
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstallPrompt=e;document.getElementById('install-banner')?.classList.add('active');});
+window.addEventListener('appinstalled',()=>document.getElementById('install-banner')?.classList.remove('active'));
+window.addEventListener('online',updateConnectionStatus);window.addEventListener('offline',updateConnectionStatus);
+const originalSwitchTab=switchTab;switchTab=function(tab){originalSwitchTab(tab);if(tab==='notifications')renderNotifications();if(tab==='analytics'){renderPeriodSummary();renderAnnualSummary();renderAdvancedHeatmap();}syncSettingsUI();};
+const originalRenderAll=renderAll;renderAll=function(){originalRenderAll();setupCategoryAssistant();renderNotifications();renderPeriodSummary();renderAnnualSummary();renderAdvancedHeatmap();generateSmartNotifications();syncSettingsUI();scheduleAutoLock();};
+function showMonthlySummaryNotification(){const m=currentMonth(),key=`summary-${m}`;if(!dbState.notificationRead?.[key]&&new Date().getDate()>=28){dbState.notifications.unshift({id:key,type:'info',title:`סיכום ${monthLabel(m)} מתקרב`,body:'זה זמן טוב לבדוק את ההוצאות, התקציב והחיסכון של החודש.'});writeDB();}}
+function upgradeFeatureState(){state.settings=state.settings||{};state.settings.autoLockMinutes=Number(state.settings.autoLockMinutes||30);state.settings.theme=state.settings.theme||'ocean';ensureHistoryContainers();initializePeriodHistory(false);persistUserState();}
+// Override security modal to include auto-lock policy.
+const originalOpenSecurityModal=openSecurityModal;openSecurityModal=function(){openModal('נעילת אפליקציה',`<label class="text-sm text-gray-300">סיסמה חדשה<input id="sec-pass" type="password" autocomplete="new-password" placeholder="השאר ריק כדי לא לשנות" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="flex items-center gap-2 text-sm text-gray-300 mt-2"><input id="sec-enable" type="checkbox" ${state.security.enabled?'checked':''}> דרוש סיסמה בכניסה</label><label class="text-sm text-gray-300 block mt-2">נעילה אוטומטית<select id="sec-timeout" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option value="15">15 דקות</option><option value="30">30 דקות</option><option value="60">60 דקות</option></select></label>`,async()=>{const p=v('sec-pass'),enabled=document.getElementById('sec-enable').checked;state.settings.autoLockMinutes=Number(v('sec-timeout'))||30;if(p)state.security.password=await hashPassword(p);state.security.enabled=enabled;if(enabled&&!state.security.password){alert('כדי להפעיל נעילה יש להגדיר סיסמה');return;}save();closeModal();scheduleAutoLock();renderAll();alert(enabled?'הנעילה הופעלה.':'הנעילה בוטלה');});setTimeout(()=>{const s=document.getElementById('sec-timeout');if(s)s.value=String(state.settings.autoLockMinutes||30)},0);};
+// Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
+window.addEventListener('load',()=>{setTimeout(()=>{ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();},50);});
 </script>
 </body>
 </html>

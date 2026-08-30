@@ -1,10 +1,15 @@
-Money Tracker - v1.0.5
+# MoneyTracker v1.1.0
 
-- User-controlled app updates with version.json + Service Worker versioning.
-- Updates never clear localStorage user data.
-- Savings allocations are transfers to savings and are not counted as expenses.
-- Monthly savings allocations are added to the selected pocket.
-- Pocket actions: Update, Withdraw, Delete.
-- Withdrawals create a normal expense transaction.
+גרסת שדרוג מלאה עם:
+- Heatmap מתקדם לחודש/שנה/היסטוריה
+- תובנות אוטומטיות וסיכומי תקופה ושנה
+- מרכז הודעות
+- Themes
+- פרופילי משתמשים ומסד נתונים מקומי
+- סיווג הוצאות אוטומטי
+- הוצאות קבועות עם זיהוי שינויי סכום
+- PWA והתקנה כאפליקציה
+- מצב Offline בסיסי
+- אבטחה עם סיסמה מגובבת ונעילה אוטומטית
 
-- Settings now has a manual update check button; the Update button uses the same installation flow as the update notification.
+הנתונים המקומיים נשמרים גם ב-localStorage וגם במאגר פרופילים מקומי. לסנכרון בין מכשירים נדרש backend/API.
