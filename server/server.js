@@ -66,6 +66,10 @@ CREATE TABLE IF NOT EXISTS user_data(
   state_json TEXT NOT NULL,
   updated_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS app_meta(
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 `);
 
 // Migrate the v1.1 schema: every login account gets one private household and
@@ -214,7 +218,7 @@ app.put('/api/state', auth, (req,res)=>{
   res.json({ok:true,updatedAt:now,previousUpdatedAt:current.updated_at,clientUpdatedAt});
 });
 
-const subscriptionCatalog={
+let subscriptionCatalog={
   netflix:{name:'Netflix',category:'סטרימינג',source:'https://www.netflix.com/il/',plans:[{id:'basic',name:'בסיסית',amount:32.90},{id:'standard',name:'סטנדרטית',amount:54.90},{id:'premium',name:'פרימיום',amount:69.90}]},
   spotify:{name:'Spotify',category:'מוזיקה',source:'https://www.spotify.com/il-he/premium/',plans:[{id:'individual',name:'יחיד/ה',amount:23.90},{id:'student',name:'סטודנטים',amount:12.90},{id:'duo',name:'זוג',amount:33.90},{id:'family',name:'משפחה',amount:39.90}]},
   disneyplus:{name:'Disney+',category:'סטרימינג',source:'https://www.disneyplus.com/',plans:[{id:'standard',name:'Standard',amount:49.90},{id:'premium',name:'Premium',amount:69.90}]},
@@ -239,9 +243,45 @@ const subscriptionCatalog={
   duolingo:{name:'Duolingo',category:'לימודים',source:'https://www.duolingo.com/super',plans:[{id:'super',name:'Super',amount:55}]},
   fitness:{name:'חדר כושר',category:'כושר',source:'',plans:[{id:'monthly',name:'חודשי',amount:190}]}
 };
-app.get('/api/subscriptions/catalog', (req,res)=>res.json({country:'IL',currency:'ILS',catalog:subscriptionCatalog,updatedAt:'2026-08-31'}));
+const catalogFile=path.join(path.dirname(dbPath),'subscription-catalog.json');
+try{if(fs.existsSync(catalogFile)){const saved=JSON.parse(fs.readFileSync(catalogFile,'utf8'));if(saved.catalog)subscriptionCatalog=saved.catalog;}}catch(e){console.warn('catalog load failed',e.message)}
+const catalogMeta=()=>{try{return db.prepare('SELECT value FROM app_meta WHERE key=?').get('subscription_catalog_last_month')?.value||''}catch{return ''}};
+function setCatalogMeta(key,value){db.prepare('INSERT INTO app_meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(key,String(value));}
+function extractIlsPrices(html){
+  const prices=[];
+  const jsonLd=[...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);
+  for(const raw of jsonLd){try{const j=JSON.parse(raw);const stack=Array.isArray(j)?j:[j];const walk=v=>{if(!v||typeof v!=='object')return;if(v.currency&&String(v.currency).toUpperCase()==='ILS'&&v.price!=null){const n=Number(String(v.price).replace(/,/g,''));if(Number.isFinite(n)&&n>0&&n<5000)prices.push(n);}Object.values(v).forEach(walk)};stack.forEach(walk);}catch{}}
+  if(prices.length)return [...new Set(prices.map(x=>Math.round(x*100)/100))];
+  for(const m of html.matchAll(/(?:₪|ILS|NIS)\s*([0-9]{1,4}(?:[.,][0-9]{1,2})?)/gi)){const n=Number(m[1].replace(',','.'));if(Number.isFinite(n)&&n>0&&n<5000)prices.push(n)}
+  return [...new Set(prices.map(x=>Math.round(x*100)/100))];
+}
+async function refreshSubscriptionCatalogIfNeeded(force=false){
+  const month=new Date().toISOString().slice(0,7);
+  if(!force&&catalogMeta()===month)return {updated:false,checkedMonth:month};
+  let changed=false;
+  for(const [id,service] of Object.entries(subscriptionCatalog)){
+    if(!service.source)continue;
+    try{
+      const r=await fetch(service.source,{headers:{'user-agent':'MoneyTracker subscription verifier/1.0','accept-language':'he-IL,en;q=0.8'},signal:AbortSignal.timeout(9000)});
+      if(!r.ok)continue;
+      const html=await r.text();const prices=extractIlsPrices(html);const plans=service.plans||[];
+      // Only apply a price update when the source exposes exactly the same number of prices.
+      // This avoids silently assigning the wrong price when a site redesign changes its markup.
+      if(prices.length===plans.length){plans.forEach((p,i)=>{if(Number(p.amount)!==Number(prices[i])){p.amount=prices[i];changed=true;}});}
+      service.checkedAt=new Date().toISOString();service.verification=prices.length===plans.length?'verified':'checked-no-safe-price-match';
+    }catch(e){service.verification='check-failed';service.checkError=String(e.message||e).slice(0,120)}
+  }
+  try{fs.writeFileSync(catalogFile,JSON.stringify({country:'IL',currency:'ILS',checkedAt:new Date().toISOString(),catalog:subscriptionCatalog},null,2));}catch(e){console.warn('catalog save failed',e.message)}
+  setCatalogMeta('subscription_catalog_last_month',month);
+  return {updated:changed,checkedMonth:month};
+}
+app.get('/api/subscriptions/catalog', async (req,res)=>{
+  const force=String(req.query.refresh||'')==='1';
+  try{const info=await refreshSubscriptionCatalogIfNeeded(force);res.json({country:'IL',currency:'ILS',catalog:subscriptionCatalog,updatedAt:new Date().toISOString(),...info});}
+  catch(e){res.json({country:'IL',currency:'ILS',catalog:subscriptionCatalog,updatedAt:new Date().toISOString(),updated:false,error:'catalog refresh failed'});}
+});
 
-app.get('/api/health',(req,res)=>res.json({ok:true,dbPath:dbPath,db:'sqlite',persistent:true}));
+app.get('/api/health',(req,res)=>res.json({ok:true,db:'sqlite',persistent:true,catalogMonth:new Date().toISOString().slice(0,7)}));
 setInterval(()=>{try{db.pragma('wal_checkpoint(PASSIVE)')}catch{}},60000);
 
 app.get(/^(?!\/api\/).*/, (req,res,next)=>{if(req.path.startsWith('/api/'))return next();res.sendFile(path.join(__dirname,'..','index.html'));});
