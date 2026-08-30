@@ -112,7 +112,7 @@ input,select,textarea{color-scheme:dark}
 
 <section class="glass-card p-4 rounded-2xl bg-gradient-to-r from-gray-900 to-indigo-950 border border-indigo-500/10">
   <div class="flex items-center justify-between gap-3">
-    <div><div class="flex items-center gap-2"><i data-lucide="sun" class="w-5 h-5 text-amber-400"></i><h2 class="font-bold text-white">תקציב יומי</h2></div><p class="text-xs text-gray-400">לפי התקציב שנותר ומספר הימים שנותרו בחודש</p></div>
+    <div><div class="flex items-center gap-2"><i data-lucide="sun" class="w-5 h-5 text-amber-400"></i><h2 class="font-bold text-white">תקציב יומי להיום</h2></div><p class="text-xs text-gray-400">קבוע לתחילת היום (אינו משתנה מהוצאות היום)</p></div>
     <div class="text-left"><div class="small-stat">מומלץ להיום</div><div id="daily-budget-allowed" class="text-xl font-extrabold text-emerald-400 amount">₪0</div></div>
   </div>
 </section>
@@ -140,7 +140,7 @@ input,select,textarea{color-scheme:dark}
     <form onsubmit="addTransaction(event)" class="grid grid-cols-2 md:grid-cols-6 gap-2">
       <input id="tx-desc" required placeholder="תיאור" class="col-span-2 md:col-span-2 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
       <input id="tx-amount" required type="number" step="0.01" placeholder="סכום" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
-      <select id="tx-type" onchange="toggleSalaryCategory()" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white"><option value="expense">הוצאה</option><option value="income">הכנסה</option></select>
+      <select id="tx-type" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white"><option value="expense">הוצאה</option><option value="income">הכנסה</option></select>
       <select id="tx-cat" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white">
         <option>אוכל ומזון</option><option>מגורים וחשבונות</option><option>תחבורה</option><option>פנאי ובילויים</option><option>קניות</option><option>משכורת</option><option>עבודה/פרילנס</option><option>השקעות</option><option>שונות</option>
       </select>
@@ -161,7 +161,6 @@ input,select,textarea{color-scheme:dark}
 </div>
 
 <div id="tab-analytics" class="tab-content hidden space-y-5 sensitive-analytics">
-  <!-- רכיב השוואה חודשית ותובנות חכמות -->
   <div id="analytics-comparison-container"></div>
 
   <section class="glass-card p-4 rounded-2xl">
@@ -189,15 +188,61 @@ input,select,textarea{color-scheme:dark}
 </div>
 
 <div id="tab-pockets" class="tab-content hidden space-y-5">
-  <section class="glass-card p-4 rounded-2xl"><div class="flex justify-between items-center mb-3"><h2 class="font-bold text-white">הוצאות קבועות ומנויים</h2><button onclick="openRecurringModal()" class="text-indigo-400 text-sm font-semibold">+ הוסף</button></div><div id="recurring-list" class="space-y-2"></div></section>
-  <section class="glass-card p-4 rounded-2xl"><div class="flex justify-between items-center mb-3"><div><h2 class="font-bold text-white">קופות חיסכון</h2><div class="text-xs text-gray-400">סה"כ בכל הקופות: <span id="pockets-total" class="font-bold amount">₪0</span></div></div><button onclick="openPocketModal()" class="text-amber-400 text-sm font-semibold">+ קופה</button></div><div id="pockets-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div></section>
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="font-bold text-white">הוצאות קבועות ומנויים</h2>
+      <button onclick="openRecurringModal()" class="text-indigo-400 text-sm font-semibold">+ הוסף</button>
+    </div>
+    <div id="recurring-list" class="space-y-2"></div>
+  </section>
+
+  <!-- ווידג'ט הפרשה חודשית לחיסכון -->
+  <section class="glass-card p-4 rounded-2xl border-r-4 border-amber-500">
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="piggy-bank" class="w-5 h-5 text-amber-400"></i>הפרשות חודשיות לחיסכון</h2>
+        <p class="text-xs text-gray-400">הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת</p>
+      </div>
+      <button onclick="openSavingsAllocationModal()" class="text-amber-400 text-sm font-semibold">+ הגדר הפרשה</button>
+    </div>
+    <div id="savings-allocations-list" class="space-y-2"></div>
+  </section>
+
+  <section class="glass-card p-4 rounded-2xl">
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <h2 class="font-bold text-white">קופות חיסכון</h2>
+        <div class="text-xs text-gray-400">סה"כ בכל הקופות: <span id="pockets-total" class="font-bold amount">₪0</span></div>
+      </div>
+      <button onclick="openPocketModal()" class="text-amber-400 text-sm font-semibold">+ קופה</button>
+    </div>
+    <div id="pockets-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+  </section>
 </div>
 
 <div id="tab-travel" class="tab-content hidden space-y-5">
-  <section class="glass-card p-4 rounded-2xl border-r-4 border-emerald-500"><div class="flex justify-between items-center mb-3"><div><h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="plane" class="w-5 h-5 text-emerald-400"></i>מצב טיול</h2><p class="text-xs text-gray-400">תקציב נפרד להוצאות בחו"ל</p></div><div class="flex items-center gap-2">
-<button onclick="openTripSettings()" class="bg-gray-900 border border-gray-800 text-white rounded-xl px-3 py-2 text-xs">תקציב</button>
-<button onclick="openTripModal()" class="bg-emerald-600 text-white rounded-xl px-3 py-2 text-xs">+ הוצאה</button>
-</div></div><div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3"><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">תקציב טיול</div><div id="trip-budget" class="font-bold amount"></div></div><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">הוצאות</div><div id="trip-total" class="font-bold amount"></div></div><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">נשאר</div><div id="trip-left" class="font-bold text-emerald-400 amount"></div></div><div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">ימי טיול</div><div id="trip-days" class="font-bold"></div></div></div><div id="trip-expenses-list" class="space-y-2"></div></section>
+  <section class="glass-card p-4 rounded-2xl border-r-4 border-emerald-500">
+    <div class="flex justify-between items-center mb-3">
+      <div>
+        <h2 class="font-bold text-white flex items-center gap-2"><i data-lucide="plane" class="w-5 h-5 text-emerald-400"></i>מצב טיול</h2>
+        <p class="text-xs text-gray-400">תקציב נפרד להוצאות בחו"ל</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="openTripSettings()" class="bg-gray-900 border border-gray-800 text-white rounded-xl px-3 py-2 text-xs">תקציב</button>
+        <button onclick="openTripModal()" class="bg-emerald-600 text-white rounded-xl px-3 py-2 text-xs">+ הוצאה</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+      <div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">תקציב טיול</div><div id="trip-budget" class="font-bold amount"></div></div>
+      <div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">הוצאות</div><div id="trip-total" class="font-bold amount"></div></div>
+      <div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">נשאר</div><div id="trip-left" class="font-bold text-emerald-400 amount"></div></div>
+      <div class="bg-gray-900 rounded-xl p-3 border border-gray-800"><div class="small-stat">ימי טיול</div><div id="trip-days" class="font-bold"></div></div>
+    </div>
+    <div id="trip-expenses-list" class="space-y-2 mb-4"></div>
+    <button onclick="finishTrip()" class="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-bold py-2.5 rounded-xl text-sm shadow-lg btn flex items-center justify-center gap-2">
+      <i data-lucide="check-circle-2" class="w-4 h-4"></i> סיום טיול ושקלול הוצאות לחשבון
+    </button>
+  </section>
 
   <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
     <section class="glass-card p-4 rounded-2xl"><h3 class="font-bold mb-3 text-white">מחשבון המרת מט"ח</h3><div class="grid grid-cols-2 gap-2"><input id="fx-amount" type="number" value="100" oninput="convertFX()" class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><select id="fx-from" onchange="convertFX()" class="bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option>USD</option><option>EUR</option><option>GBP</option><option>ILS</option></select></div><div class="mt-3 text-center bg-gray-900 border border-gray-800 rounded-xl p-3"><div class="small-stat">תוצאה בשקלים</div><div id="fx-result" class="text-xl font-bold text-emerald-400">₪0</div></div></section>
@@ -267,12 +312,12 @@ const defaults={
     {id:3,desc:'דלק',amount:280,type:'expense',cat:'תחבורה',date:'2026-08-25'},
     {id:4,desc:'מסעדה',amount:210,type:'expense',cat:'פנאי ובילויים',date:'2026-08-27'}
   ],
-  stocks:[],
   recurring:[
     {id:1,name:'שכר דירה',amount:4200,date:'1 לחודש',active:true},
     {id:2,name:'נטפליקס',amount:55,date:'10 לחודש',active:true},
     {id:3,name:'מנוי כושר',amount:190,date:'15 לחודש',active:true}
   ],
+  savingsAllocations:[],
   pockets:[
     {id:1,name:'חופשה',current:4500,target:8000},
     {id:2,name:'קרן חירום',current:15000,target:20000}
@@ -281,28 +326,51 @@ const defaults={
     {id:1,desc:'מלון',amount:450,currency:'EUR',rate:4.05,date:'2026-10-01'},
     {id:2,desc:'מסעדה',amount:65,currency:'EUR',rate:4.05,date:'2026-10-03'}
   ]},
-  security:{enabled:false,password:''}
+  security:{enabled:false,password:''},
+  dailySnapshot:{date:'',amount:0}
 };
 
-function load(){try{const s=JSON.parse(localStorage.getItem(KEY)); return s?{...clone(defaults),...s,settings:{...defaults.settings,...(s.settings||{}),rates:{...defaults.settings.rates,...((s.settings||{}).rates||{})}}}:clone(defaults)}catch{return clone(defaults)}}
+function load(){
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY));
+    return s?{...clone(defaults),...s,settings:{...defaults.settings,...(s.settings||{})},savingsAllocations:s.savingsAllocations||[]}:clone(defaults);
+  }catch{return clone(defaults)}
+}
 let state=load();
 state.settings = state.settings || {};
 state.settings.rates = {...defaults.settings.rates,...(state.settings.rates||{})};
-state.settings.fxUpdatedAt = state.settings.fxUpdatedAt || '';
-state.security = state.security || {enabled:false,password:''};
+state.savingsAllocations = state.savingsAllocations || [];
+state.dailySnapshot = state.dailySnapshot || {date:'',amount:0};
+
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function money(n){return '₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:2})}
 function monthTx(m=currentMonth()){return state.transactions.filter(t=>String(t.date||'').slice(0,7)===m)}
 function sum(arr){return arr.reduce((a,b)=>a+Number(b.amount||0),0)}
+
 function effectiveMonthTx(m=currentMonth()){
   const actual=monthTx(m).map(t=>({...t,virtual:false})); const result=[...actual];
   if(!actual.some(t=>t.type==='income'&&t.cat==='משכורת')) result.push({id:`salary-${m}`,desc:'משכורת חודשית',amount:Number(state.settings.monthlySalary)||0,type:'income',cat:'משכורת',date:`${m}-01`,virtual:true});
+  
   state.recurring.filter(r=>r.active!==false).forEach(r=>{
     const exists=actual.some(t=>t.type==='expense'&&t.recurringId===r.id); const named=actual.some(t=>t.type==='expense'&&t.desc===r.name&&t.cat==='מגורים וחשבונות');
     if(!exists&&!named) result.push({id:`recurring-${r.id}-${m}`,desc:r.name,amount:Number(r.amount)||0,type:'expense',cat:'מגורים וחשבונות',date:`${m}-01`,virtual:true,recurringId:r.id});
-  }); return result;
+  });
+
+  state.savingsAllocations.filter(sa=>sa.active!==false).forEach(sa=>{
+    const exists=actual.some(t=>t.type==='expense'&&t.savingsAllocationId===sa.id);
+    if(!exists) {
+      const pocket=state.pockets.find(p=>p.id===sa.pocketId);
+      result.push({id:`sa-${sa.id}-${m}`,desc:`הפרשה לחיסכון: ${pocket?pocket.name:''}`,amount:Number(sa.amount)||0,type:'expense',cat:'שונות',date:`${m}-01`,virtual:true,savingsAllocationId:sa.id});
+    }
+  });
+
+  return result;
 }
-function expenseTotal(m=currentMonth()){return sum(effectiveMonthTx(m).filter(t=>t.type==='expense'))}
+
+function expenseTotal(m=currentMonth()){
+  // חישוב הוצאות לא כולל "סיכום טיול" לצורך חישוב תקציב יומי
+  return sum(effectiveMonthTx(m).filter(t=>t.type==='expense'));
+}
 function incomeTotal(m=currentMonth()){return sum(effectiveMonthTx(m).filter(t=>t.type==='income'))}
 function monthLabel(m){const [y,mo]=m.split('-');return new Date(Number(y),Number(mo)-1,1).toLocaleDateString('he-IL',{month:'long',year:'numeric'})}
 
@@ -311,8 +379,26 @@ function renderHeaderDate() {
   document.getElementById('header-date').innerText = new Date().toLocaleDateString('he-IL', options);
 }
 
+// Service Worker Реגיסטרציה וטיפול בעדכוני גרסאות אוטומטיים
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // הותקנה גרסה חדשה - רענון אוטומטי
+            window.location.reload();
+          }
+        });
+      });
+    });
+  });
+}
+
 document.addEventListener('DOMContentLoaded',async()=>{
   renderHeaderDate();
+  checkMonthlySavingsProcess();
   document.getElementById('month-filter').value=currentMonth();
   document.getElementById('tx-date').value=today();
   syncSettingsUI(); renderAll(); lucide.createIcons(); applyNumericKeyboard(); convertFX(); calculateSplit();
@@ -321,6 +407,21 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(state.security?.enabled) lockApp();
 });
 
+// הפרשות אוטומטיות לחיסכון עם תחילת חודש
+function checkMonthlySavingsProcess() {
+  const currentM = currentMonth();
+  if (state.lastSavingsProcessedMonth !== currentM) {
+    state.savingsAllocations.filter(sa => sa.active !== false).forEach(sa => {
+      const pocket = state.pockets.find(p => p.id === sa.pocketId);
+      if (pocket) {
+        pocket.current = Number(pocket.current || 0) + Number(sa.amount || 0);
+      }
+    });
+    state.lastSavingsProcessedMonth = currentM;
+    save();
+  }
+}
+
 function switchTab(tab){
   document.querySelectorAll('.tab-content').forEach(x=>x.classList.add('hidden'));
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
@@ -328,6 +429,7 @@ function switchTab(tab){
   document.getElementById('nav-'+tab).classList.add('nav-active');
   if(tab==='dashboard'){renderAll();}
   if(tab==='analytics'){renderAnalytics();renderMonthlyComparison();requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();});}
+  if(tab==='pockets'){renderSavingsAllocations();renderPockets();}
   if(tab==='travel'){refreshFXRates(false);convertFX();}
 }
 
@@ -338,17 +440,46 @@ function toggleDiscrete(){
 }
 
 function renderAll(){
-  updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderPockets(); renderTrip(); renderAnalytics(); renderMonthlyComparison(); renderHeatmap(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
+  updateOverview(); renderMonthly(); renderTransactions(); renderRecurring(); renderSavingsAllocations(); renderPockets(); renderTrip(); renderAnalytics(); renderMonthlyComparison(); renderHeatmap(); updateCharts(); syncSettingsUI(); lucide.createIcons(); attachSwipeEvents();
+}
+
+function getDailyBudgetSnapshot() {
+  const t = today();
+  if (state.dailySnapshot && state.dailySnapshot.date === t) {
+    return state.dailySnapshot.amount;
+  }
+  
+  // חישוב בתחילת יום חדש: יתרה נותרת לחודש ללא הוצאות היומיות של היום
+  const m = currentMonth();
+  const todayTx = state.transactions.filter(x => x.date === t && x.type === 'expense' && !x.isTripSummary);
+  const todayExpenseSum = sum(todayTx);
+  
+  // הוצאות עד היום (ללא היום)
+  const currentMonthExpensesExceptToday = expenseTotal(m) - todayExpenseSum;
+  const leftAtStartOfDay = state.settings.monthlyBudgetTarget - currentMonthExpensesExceptToday;
+  
+  const now = new Date();
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const daysLeft = daysInMonth - now.getDate() + 1;
+  
+  const dailyAllowed = Math.max(0, leftAtStartOfDay / daysLeft);
+  
+  state.dailySnapshot = { date: t, amount: dailyAllowed };
+  save();
+  return dailyAllowed;
 }
 
 function updateOverview(){
   const income=incomeTotal(), expense=expenseTotal(), left=state.settings.monthlyBudgetTarget-expense;
   const balance=Number(state.settings.initialBalance)+sum(state.transactions.filter(t=>t.type==='income'))-sum(state.transactions.filter(t=>t.type==='expense'))+Number(state.settings.monthlySalary||0)-sum(state.recurring.filter(r=>r.active!==false));
+  
   setText('overview-balance',money(balance)); setText('overview-income',money(income)); setText('overview-expense',money(expense)); setText('overview-left',money(left));
   setText('overview-budget-target','מתוך '+money(state.settings.monthlyBudgetTarget));
   setText('overview-rate',(expense/state.settings.monthlyBudgetTarget*100||0).toFixed(0)+'% מהתקציב נוצל');
-  const now=new Date(), days=new Date(now.getFullYear(),now.getMonth()+1,0).getDate()-now.getDate()+1;
-  setText('daily-budget-allowed',money(Math.max(0,left/days)));
+  
+  // תצוגת תקציב יומי קבוע מראש להיום
+  const dailyAllowed = getDailyBudgetSnapshot();
+  setText('daily-budget-allowed',money(dailyAllowed));
 }
 
 function renderMonthly(){
@@ -362,17 +493,6 @@ function addTransaction(e){
   const tx={id:Date.now(),desc:v('tx-desc'),amount:Number(v('tx-amount')),type:v('tx-type'),cat:v('tx-cat'),date:v('tx-date')||today()};
   if(!tx.desc||tx.amount<=0)return alert('הזן תיאור וסכום תקינים');
   state.transactions.unshift(tx); save(); if(e&&e.target) e.target.reset(); document.getElementById('tx-date').value=today(); renderAll();
-}
-
-function formatDateToISO(dateStr) {
-  const parts = dateStr.split(/[\/\.-]/);
-  if (parts.length === 3) {
-    let day = parts[0].padStart(2, '0');
-    let month = parts[1].padStart(2, '0');
-    let year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-    return `${year}-${month}-${day}`;
-  }
-  return today();
 }
 
 function renderTransactions(){
@@ -392,7 +512,7 @@ function renderTransactions(){
       </div>` : ''}
       <div class="swipe-content p-3 flex items-center justify-between gap-2 cursor-pointer" onclick="${editHandler}">
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-gray-100 truncate">${esc(t.desc)}</div>
+          <div class="font-semibold text-gray-100 truncate">${esc(t.desc)} ${t.isTripSummary?'<span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded-md">סיכום טיול</span>':''}</div>
           <div class="text-[10px] text-gray-400">${esc(t.cat)} • ${esc(t.date)}</div>
         </div>
         <div class="text-right">
@@ -441,7 +561,6 @@ function renderHeatmap(){
   if(container) container.innerHTML = html;
 }
 
-/* השוואה חודשית ותובנות חכמות בלשונית הניתוחים */
 function getMonthComparisonData(currentMonthStr) {
   const d = new Date(currentMonthStr + '-01');
   d.setMonth(d.getMonth() - 1);
@@ -622,6 +741,72 @@ function openRecurringModal(id=null){
 function editRecurring(id){openRecurringModal(id)} 
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
 
+/* ניהול הפרשות חודשיות לחיסכון */
+function renderSavingsAllocations() {
+  const container = document.getElementById('savings-allocations-list');
+  if(!container) return;
+  container.innerHTML = state.savingsAllocations.length ? state.savingsAllocations.map(sa => {
+    const pocket = state.pockets.find(p => p.id === sa.pocketId);
+    return `
+      <div class="swipe-container">
+        <div class="swipe-actions">
+          <div class="swipe-delete-btn" onclick="deleteSavingsAllocation(${sa.id})">
+            <i data-lucide="trash-2" class="w-5 h-5"></i>
+          </div>
+        </div>
+        <div class="swipe-content p-3 flex justify-between items-center cursor-pointer" onclick="editSavingsAllocation(${sa.id})">
+          <div>
+            <b class="text-gray-200">חיסכון: ${esc(pocket ? pocket.name : 'קופה שנמחקה')}</b>
+            <div class="text-[10px] text-gray-400">הפרשה חודשית • ${sa.active!==false?'פעיל':'מושהה'}</div>
+          </div>
+          <div class="text-right">
+            <b class="amount text-amber-400">${money(sa.amount)}</b>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('') : '<div class="text-gray-500 text-sm">אין הפרשות חודשיות לחיסכון</div>';
+}
+
+function openSavingsAllocationModal(id=null) {
+  const sa = id ? state.savingsAllocations.find(x => x.id === id) : { pocketId: state.pockets[0]?.id || '', amount: '', active: true };
+  const pocketsOptions = state.pockets.map(p => `<option value="${p.id}" ${p.id === sa.pocketId ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+  
+  if (!state.pockets.length) {
+    alert('יש ליצור קופת חיסכון תחילה לפני הגדרת הפרשה');
+    return;
+  }
+
+  openModal(id ? 'עריכת הפרשה לחיסכון' : 'הפרשה חודשית חדשה לחיסכון', `
+    <label class="text-xs text-gray-400">בחר קופת חיסכון
+      <select id="sa-pocket" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white mt-1">
+        ${pocketsOptions}
+      </select>
+    </label>
+    <label class="text-xs text-gray-400 mt-2 block">סכום הפרשה חודשי
+      <input id="sa-amount" type="number" step="0.01" placeholder="סכום" value="${sa.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white mt-1">
+    </label>
+    <label class="flex items-center gap-2 text-sm text-gray-300 mt-3">
+      <input id="sa-active" type="checkbox" ${sa.active !== false ? 'checked' : ''}> פעיל
+    </label>
+  `, () => {
+    const pocketId = Number(v('sa-pocket'));
+    const amount = Number(v('sa-amount'));
+    const active = document.getElementById('sa-active').checked;
+    
+    if(!amount || amount <= 0) return alert('הזן סכום תקין');
+    
+    if (id) {
+      Object.assign(sa, { pocketId, amount, active });
+    } else {
+      state.savingsAllocations.push({ id: Date.now(), pocketId, amount, active });
+    }
+    save(); closeModal(); renderAll();
+  });
+}
+function editSavingsAllocation(id){ openSavingsAllocationModal(id); }
+function deleteSavingsAllocation(id){ state.savingsAllocations = state.savingsAllocations.filter(x => x.id !== id); save(); renderAll(); }
+
 function attachSwipeEvents() {
   const containers = document.querySelectorAll('.swipe-container');
   containers.forEach(container => {
@@ -658,7 +843,7 @@ function attachSwipeEvents() {
 }
 
 function renderPockets(){
-  setText('pockets-total',money(sum(state.pockets)));
+  setText('pockets-total',money(sum(state.pockets.map(p=>({amount:p.current})))));
   document.getElementById('pockets-grid').innerHTML=state.pockets.length?state.pockets.map(p=>{const pct=p.target?Math.min(100,p.current/p.target*100):0;return`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-4"><div class="flex justify-between"><b class="text-white">${esc(p.name)}</b><span class="text-xs text-gray-400">${pct.toFixed(0)}%</span></div><div class="flex justify-between mt-2 text-sm"><span class="amount text-emerald-400 font-bold">${money(p.current)}</span><span class="text-gray-400">יעד ${money(p.target)}</span></div><div class="h-2 bg-gray-800 rounded-full mt-2 overflow-hidden"><div class="bg-emerald-500 h-full" style="width:${pct}%"></div></div><div class="grid grid-cols-2 gap-2 mt-3"><button onclick="changePocket(${p.id},-1)" class="bg-rose-950/40 border border-rose-900/40 text-rose-300 rounded-xl py-2 text-sm">− הורד</button><button onclick="changePocket(${p.id},1)" class="bg-emerald-950/40 border border-emerald-900/40 text-emerald-300 rounded-xl py-2 text-sm">+ הוסף</button></div><div class="flex gap-3 mt-2"><button onclick="editPocket(${p.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deletePocket(${p.id})" class="text-rose-400 text-xs">מחק</button></div></div>`}).join(''):'<div class="text-gray-500 text-sm">אין קופות</div>';
 }
 function changePocket(id,direction){const p=state.pockets.find(x=>x.id===id);if(!p)return;openModal(direction>0?'הוספה לקופה':'הורדה מהקופה',`<input id="p-change" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="סכום" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><div class="text-xs text-gray-400">יתרה נוכחית: ${money(p.current)}</div>`,()=>{const amount=Number(v('p-change'))||0;if(amount<=0)return;p.current=Math.max(0,Number(p.current)+direction*amount);save();closeModal();renderAll()})}
@@ -688,6 +873,31 @@ function openTripSettings(){
     state.trip.end=v('trip-end-input')||state.trip.start;
     save();closeModal();renderAll();
   });
+}
+
+/* סיום טיול ושקלול הוצאות */
+function finishTrip() {
+  const totalInILS = sum(state.trip.expenses.map(e => ({ amount: Number(e.amount) * Number(e.rate || 1) })));
+  if (totalInILS <= 0) {
+    return alert('אין הוצאות טיול להוספה');
+  }
+
+  if (confirm(`האם לסיים את הטיול ולהוסיף הוצאה על סך ${money(totalInILS)} לחשבון הכללי?`)) {
+    state.transactions.unshift({
+      id: Date.now(),
+      desc: 'סיכום הוצאות טיול',
+      amount: totalInILS,
+      type: 'expense',
+      cat: 'פנאי ובילויים',
+      date: today(),
+      isTripSummary: true // לא משפיע לרעה על חישוב התקציב היומי הקיים
+    });
+
+    state.trip.expenses = [];
+    save();
+    renderAll();
+    alert('הטיול הסתיים בהצלחה וההוצאה שוקללה בחשבון!');
+  }
 }
 
 function openOverviewModal(){
