@@ -1,4 +1,4 @@
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.4.1';
 const CACHE_NAME = `money-tracker-${APP_VERSION}`;
 
 const ASSETS = [

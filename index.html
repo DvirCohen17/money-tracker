@@ -651,8 +651,14 @@ function switchTab(tab){
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
   const overviewWidgets=document.getElementById('dashboard-overview-widgets');
   if(overviewWidgets)overviewWidgets.style.display=tab==='dashboard'?'block':'none';
-  document.getElementById('tab-'+tab).classList.remove('hidden');
-  document.getElementById('nav-'+tab).classList.add('nav-active');
+  const target=document.getElementById('tab-'+tab);
+  const nav=document.getElementById('nav-'+tab);
+  if(!target || !nav){
+    console.warn('Unknown MoneyTracker tab:', tab);
+    return;
+  }
+  target.classList.remove('hidden');
+  nav.classList.add('nav-active');
   if(tab==='dashboard'){renderAll();}
   if(tab==='analytics'){renderAnalytics();renderMonthlyComparison();requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();});}
   if(tab==='pockets'){renderSavingsAllocations();renderPockets();}
@@ -1402,9 +1408,27 @@ let profileOpen=false;
 function apiUrl(path){return API_BASE_URL ? API_BASE_URL + path : path;}
 function isRemoteReady(){return REMOTE_API_ENABLED;}
 async function detectServer(){
-  if(isRemoteReady()){REMOTE_API_ENABLED=true;return true;}
-  if(location.protocol==='file:'){REMOTE_API_ENABLED=false;return false;}
-  try{const r=await fetch('/api/health',{cache:'no-store'});REMOTE_API_ENABLED=r.ok;return REMOTE_API_ENABLED;}catch{REMOTE_API_ENABLED=false;return false;}
+  if(location.protocol==='file:'){
+    REMOTE_API_ENABLED=false;
+    return false;
+  }
+  try{
+    const r=await fetch('/api/health',{cache:'no-store',headers:{'Accept':'application/json'}});
+    if(!r.ok){REMOTE_API_ENABLED=false;return false;}
+    const type=(r.headers.get('content-type')||'').toLowerCase();
+    if(!type.includes('application/json')){
+      // Static hosts can return index.html with HTTP 200 for unknown /api paths.
+      // That is not a backend.
+      REMOTE_API_ENABLED=false;
+      return false;
+    }
+    const body=await r.json();
+    REMOTE_API_ENABLED=body?.ok===true || body?.status==='ok';
+    return REMOTE_API_ENABLED;
+  }catch{
+    REMOTE_API_ENABLED=false;
+    return false;
+  }
 }
 function getAuthToken(){return localStorage.getItem('moneytracker_auth_token')||sessionStorage.getItem('moneytracker_auth_token')||'';}
 function setAuthToken(t,remember=true){localStorage.removeItem('moneytracker_auth_token');sessionStorage.removeItem('moneytracker_auth_token');if(t)(remember?localStorage:sessionStorage).setItem('moneytracker_auth_token',t);}
@@ -1554,7 +1578,33 @@ async function submitAuth(){
     msg.textContent='';
   }catch(e){console.error(e);msg.textContent=e.message||'לא ניתן להתחבר כרגע.';}finally{btn.disabled=false;btn.textContent=authMode==='register'?'צור משתמש':'התחבר';}
 }
-async function bootAccountLayer(){ensureFeatureDB();renderThemeSwatches();await detectServer();if(isRemoteReady()&&getAuthToken()){try{const me=await apiFetch('/api/me');await loadRemoteUserState(me);hideAuthGate();renderAll();syncSettingsUI();startRemoteSyncLoop();return;}catch{setAuthToken(null);}}showAuthGate();}
+async function bootAccountLayer(){
+  ensureFeatureDB();
+  renderThemeSwatches();
+  await detectServer();
+  // When the app is running without a real backend (GitHub Pages, local file, etc.),
+  // keep the existing local-app experience instead of blocking the entire UI with login.
+  if(!isRemoteReady()){
+    hideAuthGate();
+    renderAll();
+    syncSettingsUI();
+    return;
+  }
+  if(getAuthToken()){
+    try{
+      const me=await apiFetch('/api/me');
+      await loadRemoteUserState(me);
+      hideAuthGate();
+      renderAll();
+      syncSettingsUI();
+      startRemoteSyncLoop();
+      return;
+    }catch{
+      setAuthToken(null);
+    }
+  }
+  showAuthGate();
+}
 /* Initial account boot handled by v1.3 override above. */
 /* Language layer: keeps original source text and translates known UI strings without touching user-entered data. */
 const I18N_HE_EN={
