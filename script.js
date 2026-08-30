@@ -159,32 +159,128 @@ async function checkForAppUpdate({showResult = true} = {}) {
   }
 }
 
-function applyAppUpdate() {
-  const worker = newWorker || appRegistration?.waiting || null;
+function waitForWorkerInstalled(worker, timeoutMs = 15000) {
+  if (!worker) return Promise.reject(new Error('No service worker available'));
 
-  if (worker) {
-    closeUpdateNotification();
-    setUpdateStatus('מעדכן את האפליקציה...', 'normal');
-    worker.postMessage({action: 'skipWaiting'});
-    return;
-  }
+  if (worker.state === 'installed') return Promise.resolve(worker);
 
-  if (appRegistration) {
-    setUpdateStatus('מוריד את העדכון...', 'normal');
-    appRegistration.update().then(() => {
-      if (appRegistration.waiting) {
-        newWorker = appRegistration.waiting;
-        newWorker.postMessage({action: 'skipWaiting'});
-      } else {
-        setUpdateStatus('העדכון עדיין נטען. נסה שוב בעוד כמה שניות.', 'warning');
+  return new Promise((resolve, reject) => {
+    let finished = false;
+
+    const finish = (fn, value) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timeout);
+      worker.removeEventListener('statechange', onStateChange);
+      fn(value);
+    };
+
+    const onStateChange = () => {
+      if (worker.state === 'installed') finish(resolve, worker);
+      else if (worker.state === 'redundant') {
+        finish(reject, new Error('Service worker became redundant'));
       }
-    }).catch(() => {
-      setUpdateStatus('העדכון נכשל. נסה שוב.', 'error');
-    });
+    };
+
+    const timeout = setTimeout(() => {
+      finish(reject, new Error('Timed out waiting for service worker installation'));
+    }, timeoutMs);
+
+    worker.addEventListener('statechange', onStateChange);
+  });
+}
+
+async function waitForWaitingWorker(registration, timeoutMs = 15000) {
+  if (registration.waiting) return registration.waiting;
+
+  const worker = registration.installing;
+  if (worker) {
+    await waitForWorkerInstalled(worker, timeoutMs);
+    if (registration.waiting) return registration.waiting;
+  }
+
+  return new Promise((resolve, reject) => {
+    let finished = false;
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      registration.removeEventListener('updatefound', onUpdateFound);
+    };
+
+    const finish = (fn, value) => {
+      if (finished) return;
+      finished = true;
+      cleanup();
+      fn(value);
+    };
+
+    const onUpdateFound = async () => {
+      const installing = registration.installing;
+      if (!installing) return;
+      try {
+        await waitForWorkerInstalled(installing, timeoutMs);
+        if (registration.waiting) finish(resolve, registration.waiting);
+        else finish(reject, new Error('New service worker installed but is not waiting'));
+      } catch (error) {
+        finish(reject, error);
+      }
+    };
+
+    const timeout = setTimeout(() => {
+      finish(reject, new Error('Timed out waiting for a new service worker'));
+    }, timeoutMs);
+
+    registration.addEventListener('updatefound', onUpdateFound);
+  });
+}
+
+async function applyAppUpdate() {
+  if (!appRegistration) {
+    appRegistration = await navigator.serviceWorker.getRegistration('./');
+  }
+
+  if (!appRegistration) {
+    setUpdateStatus('לא ניתן למצוא את שירות העדכון. נסה לרענן את הדף.', 'error');
     return;
   }
 
-  window.location.reload();
+  const button = document.getElementById('check-app-update-btn');
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'מעדכן...';
+    button.classList.remove('hidden');
+    button.classList.add('opacity-70');
+  }
+
+  closeUpdateNotification();
+  setUpdateStatus('מוריד ומתקין את העדכון...', 'normal');
+
+  try {
+    // Force the browser to check sw.js on the network.
+    await appRegistration.update();
+
+    // Wait until the new worker is actually installed and waiting.
+    const worker = await waitForWaitingWorker(appRegistration, 15000);
+    newWorker = worker;
+
+    setUpdateStatus('מפעיל את הגרסה החדשה...', 'normal');
+    worker.postMessage({ action: 'skipWaiting' });
+
+    // controllerchange below performs the final reload. This keeps all
+    // localStorage data intact while the new cached app becomes active.
+  } catch (error) {
+    console.warn('App update failed:', error);
+    setUpdateStatus(
+      'העדכון לא הותקן. ודא שהגרסה החדשה הועלתה לשרת ונסה שוב.',
+      'error'
+    );
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'עדכן';
+      button.classList.remove('opacity-70');
+    }
+  }
 }
 
 function checkForUpdateFromSettings() {
