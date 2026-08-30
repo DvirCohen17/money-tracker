@@ -464,7 +464,12 @@ function getDailyBudgetSnapshot() {
 
 function updateOverview(){
   const income=incomeTotal(), expense=expenseTotal(), left=state.settings.monthlyBudgetTarget-expense;
-  const balance=Number(state.settings.initialBalance)+sum(state.transactions.filter(t=>t.type==='income'))-sum(state.transactions.filter(t=>t.type==='expense'))+Number(state.settings.monthlySalary||0)-sum(state.recurring.filter(r=>r.active!==false));
+  const balance=Number(state.settings.initialBalance)
+    + sum(state.transactions.filter(t=>t.type==='income'))
+    - sum(state.transactions.filter(t=>t.type==='expense'))
+    + Number(state.settings.monthlySalary||0)
+    - sum(state.recurring.filter(r=>r.active!==false))
+    - sum(state.savingsAllocations.filter(sa=>sa.active!==false));
   
   setText('overview-balance',money(balance)); setText('overview-income',money(income)); setText('overview-expense',money(expense)); setText('overview-left',money(left));
   setText('overview-budget-target','מתוך '+money(state.settings.monthlyBudgetTarget));
@@ -492,7 +497,7 @@ function renderTransactions(){
   const rows=effectiveMonthTx(m).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
   document.getElementById('transactions-list').innerHTML=rows.length?rows.map(t=>{
     const editHandler = t.virtual 
-      ? (t.type==='income' ? `openIncomeModal()` : `editRecurring(${t.recurringId})`) 
+      ? (t.type==='income' ? `openIncomeModal()` : (t.recurringId ? `editRecurring(${t.recurringId})` : `editSavingsAllocation(${t.savingsAllocationId})`))
       : `editTransaction(${t.id})`;
     return `
     <div class="swipe-container">
@@ -654,7 +659,7 @@ function deleteTransaction(id){
 }
 
 function renderAnalytics(){
-  const m=document.getElementById('month-filter')?.value||currentMonth(), tx=monthTx(m).filter(t=>t.type==='expense'), by={};
+  const m=document.getElementById('month-filter')?.value||currentMonth(), tx=effectiveMonthTx(m).filter(t=>t.type==='expense'), by={};
   tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));
   const arr=Object.entries(by).sort((a,b)=>b[1]-a[1]);
   document.getElementById('category-map').innerHTML=arr.length?arr.map(([c,n])=>`<div><div class="flex justify-between text-xs text-gray-300"><span>${esc(c)}</span><b>${money(n)}</b></div><div class="bg-gray-900 rounded-full h-2 mt-1 border border-gray-800"><div class="bg-indigo-500 h-2 rounded-full" style="width:${Math.min(100,n/(arr[0]?.[1]||1)*100)}%"></div></div></div>`).join(''):'<span class="text-gray-500 text-sm">אין נתונים</span>';
@@ -668,7 +673,7 @@ function renderAnalytics(){
 }
 
 function updateCharts(){
-  const m=document.getElementById('month-filter')?.value||currentMonth(), tx=monthTx(m).filter(t=>t.type==='expense'), by={};
+  const m=document.getElementById('month-filter')?.value||currentMonth(), tx=effectiveMonthTx(m).filter(t=>t.type==='expense'), by={};
   tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));
   
   if(catChart){catChart.destroy()} 
@@ -851,7 +856,6 @@ function renderTrip(){
   document.getElementById('trip-expenses-list').innerHTML=(t.expenses||[]).length?t.expenses.map(e=>`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex justify-between"><div><b class="text-white">${esc(e.desc)}</b><div class="text-[10px] text-gray-400">${e.amount} ${e.currency} • ${e.date}</div></div><div class="text-right"><b class="text-emerald-400 amount">${money(Number(e.amount)*Number(e.rate||1))}</b><div><button onclick="editTrip(${e.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deleteTrip(${e.id})" class="text-rose-400 text-xs mr-2">מחק</button></div></div></div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות טיול</div>';
 }
 
-/* הוספת/עריכת הוצאת טיול ללא שדה שער ידני */
 function openTripModal(id=null){
   const e=id?state.trip.expenses.find(x=>x.id===id):{desc:'',amount:'',currency:'EUR',date:today()};
   openModal(id?'עריכת הוצאת טיול':'הוצאת טיול חדשה',`
@@ -865,7 +869,7 @@ function openTripModal(id=null){
     <input id="tr-date" type="date" value="${e.date}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
   `,()=>{
     const curr = v('tr-currency');
-    const currentRate = state.settings.rates[curr] || 1; // בדיקת שער המטבע העדכני בלחיצה
+    const currentRate = state.settings.rates[curr] || 1;
     const obj = {
       desc: v('tr-desc'),
       amount: Number(v('tr-amount')),
