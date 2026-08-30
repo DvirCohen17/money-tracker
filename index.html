@@ -196,7 +196,6 @@ input,select,textarea{color-scheme:dark}
     <div id="recurring-list" class="space-y-2"></div>
   </section>
 
-  <!-- ווידג'ט הפרשה חודשית לחיסכון -->
   <section class="glass-card p-4 rounded-2xl border-r-4 border-amber-500">
     <div class="flex justify-between items-center mb-3">
       <div>
@@ -368,7 +367,6 @@ function effectiveMonthTx(m=currentMonth()){
 }
 
 function expenseTotal(m=currentMonth()){
-  // חישוב הוצאות לא כולל "סיכום טיול" לצורך חישוב תקציב יומי
   return sum(effectiveMonthTx(m).filter(t=>t.type==='expense'));
 }
 function incomeTotal(m=currentMonth()){return sum(effectiveMonthTx(m).filter(t=>t.type==='income'))}
@@ -379,7 +377,6 @@ function renderHeaderDate() {
   document.getElementById('header-date').innerText = new Date().toLocaleDateString('he-IL', options);
 }
 
-// Service Worker Реגיסטרציה וטיפול בעדכוני גרסאות אוטומטיים
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then(reg => {
@@ -387,7 +384,6 @@ if ('serviceWorker' in navigator) {
         const newWorker = reg.installing;
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            // הותקנה גרסה חדשה - רענון אוטומטי
             window.location.reload();
           }
         });
@@ -407,7 +403,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
   if(state.security?.enabled) lockApp();
 });
 
-// הפרשות אוטומטיות לחיסכון עם תחילת חודש
 function checkMonthlySavingsProcess() {
   const currentM = currentMonth();
   if (state.lastSavingsProcessedMonth !== currentM) {
@@ -449,12 +444,10 @@ function getDailyBudgetSnapshot() {
     return state.dailySnapshot.amount;
   }
   
-  // חישוב בתחילת יום חדש: יתרה נותרת לחודש ללא הוצאות היומיות של היום
   const m = currentMonth();
   const todayTx = state.transactions.filter(x => x.date === t && x.type === 'expense' && !x.isTripSummary);
   const todayExpenseSum = sum(todayTx);
   
-  // הוצאות עד היום (ללא היום)
   const currentMonthExpensesExceptToday = expenseTotal(m) - todayExpenseSum;
   const leftAtStartOfDay = state.settings.monthlyBudgetTarget - currentMonthExpensesExceptToday;
   
@@ -477,7 +470,6 @@ function updateOverview(){
   setText('overview-budget-target','מתוך '+money(state.settings.monthlyBudgetTarget));
   setText('overview-rate',(expense/state.settings.monthlyBudgetTarget*100||0).toFixed(0)+'% מהתקציב נוצל');
   
-  // תצוגת תקציב יומי קבוע מראש להיום
   const dailyAllowed = getDailyBudgetSnapshot();
   setText('daily-budget-allowed',money(dailyAllowed));
 }
@@ -741,7 +733,6 @@ function openRecurringModal(id=null){
 function editRecurring(id){openRecurringModal(id)} 
 function deleteRecurring(id){state.recurring=state.recurring.filter(x=>x.id!==id);save();renderAll()}
 
-/* ניהול הפרשות חודשיות לחיסכון */
 function renderSavingsAllocations() {
   const container = document.getElementById('savings-allocations-list');
   if(!container) return;
@@ -859,7 +850,36 @@ function renderTrip(){
   setText('trip-budget',money(t.budget));setText('trip-total',money(total));setText('trip-left',money(left));setText('trip-days',days);
   document.getElementById('trip-expenses-list').innerHTML=(t.expenses||[]).length?t.expenses.map(e=>`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex justify-between"><div><b class="text-white">${esc(e.desc)}</b><div class="text-[10px] text-gray-400">${e.amount} ${e.currency} • ${e.date}</div></div><div class="text-right"><b class="text-emerald-400 amount">${money(Number(e.amount)*Number(e.rate||1))}</b><div><button onclick="editTrip(${e.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deleteTrip(${e.id})" class="text-rose-400 text-xs mr-2">מחק</button></div></div></div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות טיול</div>';
 }
-function openTripModal(id=null){const e=id?state.trip.expenses.find(x=>x.id===id):{desc:'',amount:0,currency:'EUR',rate:state.settings.rates.EUR,date:today()};openModal(id?'עריכת הוצאת טיול':'הוצאת טיול חדשה',`<input id="tr-desc" placeholder="תיאור" value="${attr(e.desc)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="tr-amount" type="number" step="0.01" placeholder="סכום במטבע" value="${e.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><select id="tr-currency" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><option ${e.currency==='EUR'?'selected':''}>EUR</option><option ${e.currency==='USD'?'selected':''}>USD</option><option ${e.currency==='GBP'?'selected':''}>GBP</option></select><input id="tr-rate" type="number" step="0.0001" placeholder="שער לשקל" value="${e.rate}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><input id="tr-date" type="date" value="${e.date}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">`,()=>{const obj={desc:v('tr-desc'),amount:Number(v('tr-amount')),currency:v('tr-currency'),rate:Number(v('tr-rate')),date:v('tr-date')};if(id)Object.assign(e,obj);else state.trip.expenses.unshift({id:Date.now(),...obj});save();closeModal();renderAll()})}
+
+/* הוספת/עריכת הוצאת טיול ללא שדה שער ידני */
+function openTripModal(id=null){
+  const e=id?state.trip.expenses.find(x=>x.id===id):{desc:'',amount:'',currency:'EUR',date:today()};
+  openModal(id?'עריכת הוצאת טיול':'הוצאת טיול חדשה',`
+    <input id="tr-desc" placeholder="תיאור" value="${attr(e.desc)}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    <input id="tr-amount" type="number" step="0.01" placeholder="סכום במטבע" value="${e.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    <select id="tr-currency" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+      <option ${e.currency==='EUR'?'selected':''}>EUR</option>
+      <option ${e.currency==='USD'?'selected':''}>USD</option>
+      <option ${e.currency==='GBP'?'selected':''}>GBP</option>
+    </select>
+    <input id="tr-date" type="date" value="${e.date}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+  `,()=>{
+    const curr = v('tr-currency');
+    const currentRate = state.settings.rates[curr] || 1; // בדיקת שער המטבע העדכני בלחיצה
+    const obj = {
+      desc: v('tr-desc'),
+      amount: Number(v('tr-amount')),
+      currency: curr,
+      rate: currentRate,
+      date: v('tr-date')
+    };
+    if(!obj.desc || !obj.amount) return alert('הזן תיאור וסכום תקינים');
+    if(id) Object.assign(e,obj);
+    else state.trip.expenses.unshift({id:Date.now(),...obj});
+    save(); closeModal(); renderAll();
+  });
+}
+
 function editTrip(id){openTripModal(id)} function deleteTrip(id){if(confirm('למחוק הוצאה?')){state.trip.expenses=state.trip.expenses.filter(x=>x.id!==id);save();renderAll()}}
 function openTripSettings(){
   const t=state.trip;
@@ -875,7 +895,6 @@ function openTripSettings(){
   });
 }
 
-/* סיום טיול ושקלול הוצאות */
 function finishTrip() {
   const totalInILS = sum(state.trip.expenses.map(e => ({ amount: Number(e.amount) * Number(e.rate || 1) })));
   if (totalInILS <= 0) {
@@ -890,7 +909,7 @@ function finishTrip() {
       type: 'expense',
       cat: 'פנאי ובילויים',
       date: today(),
-      isTripSummary: true // לא משפיע לרעה על חישוב התקציב היומי הקיים
+      isTripSummary: true
     });
 
     state.trip.expenses = [];
