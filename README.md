@@ -1,4 +1,4 @@
-Money Tracker - v1.0.3
+Money Tracker - v1.0.5
 
 - User-controlled app updates with version.json + Service Worker versioning.
 - Updates never clear localStorage user data.
@@ -6,3 +6,5 @@ Money Tracker - v1.0.3
 - Monthly savings allocations are added to the selected pocket.
 - Pocket actions: Update, Withdraw, Delete.
 - Withdrawals create a normal expense transaction.
+
+- Settings now has a manual update check button; the Update button uses the same installation flow as the update notification.

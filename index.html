@@ -275,10 +275,16 @@ input,select,textarea{color-scheme:dark}
         <div id="current-app-version" class="text-sm font-bold text-white">בודק...</div>
       </div>
     </div>
-    <button id="check-app-update-btn" onclick="checkForUpdateFromSettings()"
-      class="hidden w-full mt-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 py-3 text-sm font-semibold btn">
-      עדכן
-    </button>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <button id="check-app-update-btn" onclick="checkForUpdateFromSettings()"
+        class="w-full bg-gray-800 hover:bg-gray-700 text-white rounded-xl px-4 py-3 text-sm font-semibold btn border border-gray-700">
+        בדוק עדכונים
+      </button>
+      <button id="apply-app-update-btn" onclick="applyAppUpdate()"
+        class="hidden w-full bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 py-3 text-sm font-semibold btn">
+        עדכן
+      </button>
+    </div>
   </section>
 
   <section class="glass-card p-4 rounded-2xl">

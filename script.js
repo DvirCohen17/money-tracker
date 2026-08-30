@@ -50,7 +50,7 @@ function setCurrentVersion(version) {
 }
 
 function showUpdateButton(show) {
-  const button = document.getElementById('check-app-update-btn');
+  const button = document.getElementById('apply-app-update-btn');
   if (!button) return;
   button.classList.toggle('hidden', !show);
   if (show) {
@@ -58,6 +58,14 @@ function showUpdateButton(show) {
     button.classList.remove('opacity-70');
     button.textContent = 'עדכן';
   }
+}
+
+function setCheckButtonState({disabled = false, text = 'בדוק עדכונים'} = {}) {
+  const button = document.getElementById('check-app-update-btn');
+  if (!button) return;
+  button.disabled = disabled;
+  button.textContent = text;
+  button.classList.toggle('opacity-70', disabled);
 }
 
 function showUpdateNotification(version) {
@@ -244,13 +252,14 @@ async function applyAppUpdate() {
     return;
   }
 
-  const button = document.getElementById('check-app-update-btn');
+  const button = document.getElementById('apply-app-update-btn');
   if (button) {
     button.disabled = true;
     button.textContent = 'מעדכן...';
     button.classList.remove('hidden');
     button.classList.add('opacity-70');
   }
+  setCheckButtonState({disabled: true, text: 'מעדכן...'});
 
   closeUpdateNotification();
   setUpdateStatus('מוריד ומתקין את העדכון...', 'normal');
@@ -280,30 +289,18 @@ async function applyAppUpdate() {
       button.textContent = 'עדכן';
       button.classList.remove('opacity-70');
     }
+    setCheckButtonState({disabled: false, text: 'בדוק עדכונים'});
   }
 }
 
-function checkForUpdateFromSettings() {
-  const button = document.getElementById('check-app-update-btn');
-  if (button) {
-    button.disabled = true;
-    button.textContent = 'בודק...';
-    button.classList.remove('hidden');
-    button.classList.add('opacity-70');
+async function checkForUpdateFromSettings() {
+  setCheckButtonState({disabled: true, text: 'בודק...'});
+
+  try {
+    await checkForAppUpdate({showResult: true});
+  } finally {
+    setCheckButtonState({disabled: false, text: 'בדוק עדכונים'});
   }
-
-  checkForAppUpdate({showResult: true}).finally(() => {
-    if (button) {
-      button.disabled = false;
-      button.classList.remove('opacity-70');
-
-      if (!availableAppVersion || !installedAppVersion ||
-          compareVersions(availableAppVersion, installedAppVersion) <= 0) {
-        button.classList.add('hidden');
-        button.textContent = 'עדכן';
-      }
-    }
-  });
 }
 
 function registerAppServiceWorker() {
