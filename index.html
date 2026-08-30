@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="./script.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box}
@@ -27,6 +28,9 @@ input,select,textarea{color-scheme:dark}
 .btn:active{transform:scale(.98)}
 .progress{transition:width .25s ease}
 .small-stat{font-size:11px;color:#9ca3af}
+.update-notification{position:fixed;top:78px;right:16px;z-index:200;display:none;max-width:360px;width:calc(100% - 32px);background:rgba(15,23,42,.97);backdrop-filter:blur(20px);border:1px solid rgba(16,185,129,.35);box-shadow:0 18px 45px rgba(0,0,0,.45);border-radius:18px;padding:12px}
+.update-notification.active{display:block;animation:updateIn .2s ease-out}
+@keyframes updateIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 
 /* Swipe Action Styles */
 .swipe-container {
@@ -261,6 +265,23 @@ input,select,textarea{color-scheme:dark}
     </div>
   </section>
   <section class="glass-card p-4 rounded-2xl">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h3 class="font-bold text-white mb-1">עדכוני אפליקציה</h3>
+        <p id="app-update-status" class="text-xs text-gray-400 mt-1">בודק אם קיימת גרסה חדשה...</p>
+      </div>
+      <div class="text-left shrink-0">
+        <div class="text-[10px] text-gray-500">גרסה</div>
+        <div id="current-app-version" class="text-sm font-bold text-white">בודק...</div>
+      </div>
+    </div>
+    <button id="check-app-update-btn" onclick="checkForUpdateFromSettings()"
+      class="hidden w-full mt-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 py-3 text-sm font-semibold btn">
+      עדכן
+    </button>
+  </section>
+
+  <section class="glass-card p-4 rounded-2xl">
       <div class="flex items-center justify-between gap-3">
         <div>
           <h3 class="font-bold text-white mb-1">שערי מט"ח</h3>
@@ -271,6 +292,22 @@ input,select,textarea{color-scheme:dark}
     </section>
 </div>
 </main>
+
+<div id="update-notification" class="update-notification" role="status" aria-live="polite">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0">
+      <i data-lucide="download" class="w-5 h-5 text-emerald-400"></i>
+    </div>
+    <div class="min-w-0 flex-1">
+      <div class="font-bold text-sm text-white">גרסה חדשה זמינה</div>
+      <div class="text-xs text-gray-400 mt-0.5">גרסה <span id="update-version" class="text-emerald-400 font-semibold"></span> מוכנה לעדכון.</div>
+    </div>
+    <button onclick="applyAppUpdate()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-2 text-sm font-semibold btn shrink-0">עדכן</button>
+    <button onclick="closeUpdateNotification()" class="text-gray-400 hover:text-white p-1" aria-label="סגור">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+  </div>
+</div>
 
 <nav class="fixed bottom-0 left-0 right-0 glass-card border-t border-gray-800/80 py-2 px-2 flex justify-around z-50 text-xs">
 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-active flex flex-col items-center gap-1 py-1 px-2"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>תקציב</span></button>
@@ -339,6 +376,7 @@ let state=load();
 state.settings = state.settings || {};
 state.settings.rates = {...defaults.settings.rates,...(state.settings.rates||{})};
 state.savingsAllocations = state.savingsAllocations || [];
+state.savingsProcessed = state.savingsProcessed || {};
 state.dailySnapshot = state.dailySnapshot || {date:'',amount:0};
 
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
@@ -355,13 +393,8 @@ function effectiveMonthTx(m=currentMonth()){
     if(!exists&&!named) result.push({id:`recurring-${r.id}-${m}`,desc:r.name,amount:Number(r.amount)||0,type:'expense',cat:'מגורים וחשבונות',date:`${m}-01`,virtual:true,recurringId:r.id});
   });
 
-  state.savingsAllocations.filter(sa=>sa.active!==false).forEach(sa=>{
-    const exists=actual.some(t=>t.type==='expense'&&t.savingsAllocationId===sa.id);
-    if(!exists) {
-      const pocket=state.pockets.find(p=>p.id===sa.pocketId);
-      result.push({id:`sa-${sa.id}-${m}`,desc:`הפרשה לחיסכון: ${pocket?pocket.name:''}`,amount:Number(sa.amount)||0,type:'expense',cat:'שונות',date:`${m}-01`,virtual:true,savingsAllocationId:sa.id});
-    }
-  });
+
+
 
   return result;
 }
@@ -377,21 +410,6 @@ function renderHeaderDate() {
   document.getElementById('header-date').innerText = new Date().toLocaleDateString('he-IL', options);
 }
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing;
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            window.location.reload();
-          }
-        });
-      });
-    });
-  });
-}
-
 document.addEventListener('DOMContentLoaded',async()=>{
   renderHeaderDate();
   checkMonthlySavingsProcess();
@@ -405,16 +423,36 @@ document.addEventListener('DOMContentLoaded',async()=>{
 
 function checkMonthlySavingsProcess() {
   const currentM = currentMonth();
-  if (state.lastSavingsProcessedMonth !== currentM) {
-    state.savingsAllocations.filter(sa => sa.active !== false).forEach(sa => {
+  state.savingsProcessed = state.savingsProcessed || {};
+  let changed = false;
+
+  state.savingsAllocations
+    .filter(sa => sa.active !== false)
+    .forEach(sa => {
+      const key = `${sa.id}-${currentM}`;
+      if (state.savingsProcessed[key]) return;
+
       const pocket = state.pockets.find(p => p.id === sa.pocketId);
-      if (pocket) {
-        pocket.current = Number(pocket.current || 0) + Number(sa.amount || 0);
+      if (!pocket) {
+        state.savingsProcessed[key] = true;
+        changed = true;
+        return;
       }
+
+      const createdMonth = String(sa.createdAt || '').slice(0, 7);
+      const legacyAlreadyProcessed =
+        state.lastSavingsProcessedMonth === currentM && !createdMonth;
+
+      if (!legacyAlreadyProcessed) {
+        pocket.current = Number(pocket.current || 0) + Number(sa.amount || 0);
+        changed = true;
+      }
+
+      state.savingsProcessed[key] = true;
+      changed = true;
     });
-    state.lastSavingsProcessedMonth = currentM;
-    save();
-  }
+
+  if (changed) save();
 }
 
 function switchTab(tab){
@@ -468,8 +506,7 @@ function updateOverview(){
     + sum(state.transactions.filter(t=>t.type==='income'))
     - sum(state.transactions.filter(t=>t.type==='expense'))
     + Number(state.settings.monthlySalary||0)
-    - sum(state.recurring.filter(r=>r.active!==false))
-    - sum(state.savingsAllocations.filter(sa=>sa.active!==false));
+    - sum(state.recurring.filter(r=>r.active!==false));
   
   setText('overview-balance',money(balance)); setText('overview-income',money(income)); setText('overview-expense',money(expense)); setText('overview-left',money(left));
   setText('overview-budget-target','מתוך '+money(state.settings.monthlyBudgetTarget));
@@ -795,8 +832,15 @@ function openSavingsAllocationModal(id=null) {
     if (id) {
       Object.assign(sa, { pocketId, amount, active });
     } else {
-      state.savingsAllocations.push({ id: Date.now(), pocketId, amount, active });
+      state.savingsAllocations.push({
+        id: Date.now(),
+        pocketId,
+        amount,
+        active,
+        createdAt: today()
+      });
     }
+    checkMonthlySavingsProcess();
     save(); closeModal(); renderAll();
   });
 }
@@ -840,9 +884,58 @@ function attachSwipeEvents() {
 
 function renderPockets(){
   setText('pockets-total',money(sum(state.pockets.map(p=>({amount:p.current})))));
-  document.getElementById('pockets-grid').innerHTML=state.pockets.length?state.pockets.map(p=>{const pct=p.target?Math.min(100,p.current/p.target*100):0;return`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-4"><div class="flex justify-between"><b class="text-white">${esc(p.name)}</b><span class="text-xs text-gray-400">${pct.toFixed(0)}%</span></div><div class="flex justify-between mt-2 text-sm"><span class="amount text-emerald-400 font-bold">${money(p.current)}</span><span class="text-gray-400">יעד ${money(p.target)}</span></div><div class="h-2 bg-gray-800 rounded-full mt-2 overflow-hidden"><div class="bg-emerald-500 h-full" style="width:${pct}%"></div></div><div class="grid grid-cols-2 gap-2 mt-3"><button onclick="changePocket(${p.id},-1)" class="bg-rose-950/40 border border-rose-900/40 text-rose-300 rounded-xl py-2 text-sm">− הורד</button><button onclick="changePocket(${p.id},1)" class="bg-emerald-950/40 border border-emerald-900/40 text-emerald-300 rounded-xl py-2 text-sm">+ הוסף</button></div><div class="flex gap-3 mt-2"><button onclick="editPocket(${p.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deletePocket(${p.id})" class="text-rose-400 text-xs">מחק</button></div></div>`}).join(''):'<div class="text-gray-500 text-sm">אין קופות</div>';
+  document.getElementById('pockets-grid').innerHTML=state.pockets.length?state.pockets.map(p=>{
+    const pct=p.target?Math.min(100,p.current/p.target*100):0;
+    return `<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-4">
+      <div class="flex justify-between">
+        <b class="text-white">${esc(p.name)}</b>
+        <span class="text-xs text-gray-400">${pct.toFixed(0)}%</span>
+      </div>
+      <div class="flex justify-between mt-2 text-sm">
+        <span class="amount text-emerald-400 font-bold">${money(p.current)}</span>
+        <span class="text-gray-400">יעד ${money(p.target)}</span>
+      </div>
+      <div class="h-2 bg-gray-800 rounded-full mt-2 overflow-hidden">
+        <div class="bg-emerald-500 h-full" style="width:${pct}%"></div>
+      </div>
+      <div class="grid grid-cols-3 gap-2 mt-3">
+        <button onclick="editPocket(${p.id})" class="bg-sky-950/40 border border-sky-900/40 text-sky-300 rounded-xl py-2 text-sm">עדכן</button>
+        <button onclick="withdrawFromPocket(${p.id})" class="bg-amber-950/40 border border-amber-900/40 text-amber-300 rounded-xl py-2 text-sm">משיכה</button>
+        <button onclick="deletePocket(${p.id})" class="bg-rose-950/40 border border-rose-900/40 text-rose-300 rounded-xl py-2 text-sm">מחיקה</button>
+      </div>
+      <div class="text-[10px] text-gray-500 mt-2 text-center">הפרשות לחיסכון אינן נחשבות כהוצאה</div>
+    </div>`;
+  }).join(''):'<div class="text-gray-500 text-sm">אין קופות</div>';
 }
-function changePocket(id,direction){const p=state.pockets.find(x=>x.id===id);if(!p)return;openModal(direction>0?'הוספה לקופה':'הורדה מהקופה',`<input id="p-change" type="number" inputmode="decimal" step="0.01" min="0.01" placeholder="סכום" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"><div class="text-xs text-gray-400">יתרה נוכחית: ${money(p.current)}</div>`,()=>{const amount=Number(v('p-change'))||0;if(amount<=0)return;p.current=Math.max(0,Number(p.current)+direction*amount);save();closeModal();renderAll()})}
+
+function withdrawFromPocket(id){
+  const p=state.pockets.find(x=>x.id===id);
+  if(!p)return;
+
+  openModal('משיכה מקופת חיסכון',`
+    <input id="p-withdraw" type="number" inputmode="decimal" step="0.01" min="0.01" max="${Number(p.current)||0}" placeholder="סכום משיכה" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    <div class="text-xs text-gray-400">יתרה נוכחית: ${money(p.current)}</div>
+    <div class="text-xs text-gray-500">המשיכה תירשם גם כהוצאה רגילה בחשבון.</div>
+  `,()=>{
+    const amount=Number(v('p-withdraw'))||0;
+    if(amount<=0)return alert('הזן סכום תקין');
+    if(amount>Number(p.current||0))return alert('אין מספיק כסף בקופה');
+
+    p.current=Number(p.current||0)-amount;
+    state.transactions.unshift({
+      id: Date.now(),
+      desc: `משיכה מקופת חיסכון: ${p.name}`,
+      amount,
+      type: 'expense',
+      cat: 'שונות',
+      date: today(),
+      savingsWithdrawal: true,
+      pocketId: p.id
+    });
+
+    save(); closeModal(); renderAll();
+  });
+}
 
 function openPocketModal(id=null){
   const p=id?state.pockets.find(x=>x.id===id):{name:'',current:0,target:0};

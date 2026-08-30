@@ -1,42 +1,53 @@
-const CACHE_NAME = 'money-tracker-v1.0.1'; // כשתוציא גרסה חדשה בעתיד, שנה את המספר פה ל-v1.0.2
+const APP_VERSION = '1.0.3';
+const CACHE_NAME = `money-tracker-${APP_VERSION}`;
 
 const ASSETS = [
   './',
   './index.html',
   './style.css',
-  './script.js'
+  './script.js',
+  './manifest.webmanifest',
+  './version.json'
 ];
 
-// התקנה ושמירת הקבצים ב-Cache
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
+  // Intentionally wait for the user to press "עדכן".
 });
 
-// מחיקת גרסאות ישנות מה-Cache בעת שינוי גרסה
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then((keys) =>
+      Promise.all(
+        keys
+          .filter((key) => key.startsWith('money-tracker-') && key !== CACHE_NAME)
+          .map((key) => caches.delete(key))
+      )
+    ).then(() => self.clients.claim())
   );
 });
 
-// הגשת קבצים מה-Cache
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  if (url.pathname.endsWith('/version.json')) {
+    event.respondWith(
+      fetch(event.request, {cache:'no-store'}).catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request);
-    })
+    caches.match(event.request).then((cached) => cached || fetch(event.request))
   );
 });
 
-// האזנה להודעת רענון מ-script.js
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.action === 'skipWaiting') {
-    self.skipWaiting();
+  if (event.data?.action === 'skipWaiting') self.skipWaiting();
+
+  if (event.data?.action === 'getVersion') {
+    event.source?.postMessage({action:'version', version:APP_VERSION});
   }
 });
