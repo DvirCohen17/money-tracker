@@ -14,8 +14,10 @@ let appRegistration = null;
 let installedAppVersion = null;
 let availableAppVersion = null;
 let updateCheckInProgress = false;
+let updateApplying = false;
 
 const VERSION_URL = './version.json';
+const SW_URL = './sw.js';
 
 function normalizeVersion(version) {
   return String(version || '').trim().replace(/^v/i, '').split('-')[0];
@@ -92,7 +94,6 @@ function getInstalledVersionFromServiceWorker() {
 
   return new Promise((resolve) => {
     const timeout = setTimeout(() => resolve(null), 1500);
-
     const handler = (event) => {
       if (event.data?.action === 'version') {
         clearTimeout(timeout);
@@ -119,26 +120,44 @@ async function fetchLatestVersion() {
   return version;
 }
 
+function registerVersionedServiceWorker(version) {
+  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+
+  const cleanVersion = normalizeVersion(version) || Date.now().toString();
+  // The query string changes whenever a release changes. Combined with
+  // updateViaCache:'none', this prevents a stale sw.js from being reused.
+  return navigator.serviceWorker.register(
+    `${SW_URL}?appVersion=${encodeURIComponent(cleanVersion)}`,
+    { updateViaCache: 'none' }
+  ).then((registration) => {
+    appRegistration = registration;
+    return registration;
+  });
+}
+
+async function ensureServiceWorkerIsFresh(latestVersion) {
+  if (!('serviceWorker' in navigator)) return null;
+
+  const registration = await registerVersionedServiceWorker(latestVersion);
+  await registration.update();
+  return registration;
+}
+
 async function checkForAppUpdate({showResult = true} = {}) {
-  if (updateCheckInProgress) return false;
+  if (updateCheckInProgress || updateApplying) return false;
   updateCheckInProgress = true;
 
   if (showResult) setUpdateStatus('בודק אם קיימת גרסה חדשה...');
 
   try {
-    if ('serviceWorker' in navigator) {
-      appRegistration =
-        appRegistration || await navigator.serviceWorker.getRegistration('./');
-
-      if (!appRegistration) {
-        appRegistration = await navigator.serviceWorker.register('./sw.js');
-      }
-
-      await appRegistration.update();
-    }
-
+    // Read the release marker first, then use that exact version to address
+    // the service worker. This makes Git/GitHub Pages deployments reliable
+    // even when the browser has an older sw.js in its HTTP cache.
     const latest = await fetchLatestVersion();
-    availableAppVersion = latest;
+
+    if ('serviceWorker' in navigator) {
+      await ensureServiceWorkerIsFresh(latest);
+    }
 
     if (!installedAppVersion) {
       installedAppVersion =
@@ -147,12 +166,25 @@ async function checkForAppUpdate({showResult = true} = {}) {
     }
 
     if (installedAppVersion && compareVersions(latest, installedAppVersion) > 0) {
+      availableAppVersion = latest;
       showUpdateNotification(latest);
       return true;
     }
 
+    // On a first install there is no controller yet. Treat the freshly
+    // registered worker as the installed version without forcing an update.
+    if (!installedAppVersion && appRegistration?.active) {
+      const activeVersion = await getInstalledVersionFromServiceWorker();
+      if (activeVersion) {
+        installedAppVersion = activeVersion;
+        localStorage.setItem('money_tracker_installed_version', activeVersion);
+      }
+    }
+
     if (showResult) {
-      setUpdateStatus(`הגרסה שלך מעודכנת (v${latest})`, 'success');
+      const shownVersion = installedAppVersion || latest;
+      setCurrentVersion(shownVersion);
+      setUpdateStatus(`הגרסה שלך מעודכנת (v${shownVersion})`, 'success');
     }
     showUpdateButton(false);
     return false;
@@ -243,14 +275,8 @@ async function waitForWaitingWorker(registration, timeoutMs = 15000) {
 }
 
 async function applyAppUpdate() {
-  if (!appRegistration) {
-    appRegistration = await navigator.serviceWorker.getRegistration('./');
-  }
-
-  if (!appRegistration) {
-    setUpdateStatus('לא ניתן למצוא את שירות העדכון. נסה לרענן את הדף.', 'error');
-    return;
-  }
+  if (updateApplying) return;
+  updateApplying = true;
 
   const button = document.getElementById('apply-app-update-btn');
   if (button) {
@@ -260,46 +286,40 @@ async function applyAppUpdate() {
     button.classList.add('opacity-70');
   }
   setCheckButtonState({disabled: true, text: 'מעדכן...'});
-
   closeUpdateNotification();
   setUpdateStatus('מוריד ומתקין את העדכון...', 'normal');
 
   try {
-    // Force the browser to check sw.js on the network.
-    await appRegistration.update();
+    const latest = availableAppVersion || await fetchLatestVersion();
+    const registration = await ensureServiceWorkerIsFresh(latest);
+    if (!registration) throw new Error('Service worker is not supported');
 
-    // Wait until the new worker is actually installed and waiting.
-    const worker = await waitForWaitingWorker(appRegistration, 15000);
+    // If the new worker is already waiting, use it. Otherwise wait for the
+    // versioned sw.js to install. Its install step fetches every app asset
+    // with cache:'no-store', so changed Git files are actually downloaded.
+    const worker = await waitForWaitingWorker(registration, 20000);
     newWorker = worker;
 
     setUpdateStatus('מפעיל את הגרסה החדשה...', 'normal');
     worker.postMessage({ action: 'skipWaiting' });
-
-    // controllerchange below performs the final reload. This keeps all
-    // localStorage data intact while the new cached app becomes active.
   } catch (error) {
     console.warn('App update failed:', error);
     setUpdateStatus(
       'העדכון לא הותקן. ודא שהגרסה החדשה הועלתה לשרת ונסה שוב.',
       'error'
     );
-
-    if (button) {
-      button.disabled = false;
-      button.textContent = 'עדכן';
-      button.classList.remove('opacity-70');
-    }
+    showUpdateButton(Boolean(availableAppVersion));
     setCheckButtonState({disabled: false, text: 'בדוק עדכונים'});
+    updateApplying = false;
   }
 }
 
 async function checkForUpdateFromSettings() {
   setCheckButtonState({disabled: true, text: 'בודק...'});
-
   try {
     await checkForAppUpdate({showResult: true});
   } finally {
-    setCheckButtonState({disabled: false, text: 'בדוק עדכונים'});
+    if (!updateApplying) setCheckButtonState({disabled: false, text: 'בדוק עדכונים'});
   }
 }
 
@@ -311,7 +331,10 @@ function registerAppServiceWorker() {
 
   window.addEventListener('load', async () => {
     try {
-      appRegistration = await navigator.serviceWorker.register('./sw.js');
+      // Get the release marker first so the service worker URL itself is
+      // versioned from the start. This avoids stale sw.js on static hosts.
+      const latest = await fetchLatestVersion();
+      await registerVersionedServiceWorker(latest);
 
       appRegistration.addEventListener('updatefound', () => {
         newWorker = appRegistration.installing;
@@ -319,12 +342,11 @@ function registerAppServiceWorker() {
 
         newWorker.addEventListener('statechange', async () => {
           if (newWorker.state !== 'installed') return;
-
           if (navigator.serviceWorker.controller) {
             try {
-              const latest = await fetchLatestVersion();
-              if (installedAppVersion && compareVersions(latest, installedAppVersion) > 0) {
-                showUpdateNotification(latest);
+              const latestVersion = await fetchLatestVersion();
+              if (installedAppVersion && compareVersions(latestVersion, installedAppVersion) > 0) {
+                showUpdateNotification(latestVersion);
               }
             } catch (e) {
               console.warn('Could not read latest version:', e);
@@ -333,27 +355,22 @@ function registerAppServiceWorker() {
         });
       });
 
-      if (appRegistration.waiting) {
-        newWorker = appRegistration.waiting;
-      }
+      if (appRegistration.waiting) newWorker = appRegistration.waiting;
 
       const swVersion = await getInstalledVersionFromServiceWorker();
-
       if (swVersion) {
         installedAppVersion = swVersion;
         localStorage.setItem('money_tracker_installed_version', swVersion);
         setCurrentVersion(swVersion);
       } else {
-        const saved = normalizeVersion(
-          localStorage.getItem('money_tracker_installed_version')
-        );
+        const saved = normalizeVersion(localStorage.getItem('money_tracker_installed_version'));
         if (saved) {
           installedAppVersion = saved;
           setCurrentVersion(saved);
         }
       }
 
-      await checkForAppUpdate({showResult:false});
+      await checkForAppUpdate({showResult: false});
     } catch (error) {
       console.warn('Service worker registration failed:', error);
       setUpdateStatus('לא ניתן להפעיל עדכונים אוטומטיים כרגע.', 'warning');
@@ -364,7 +381,12 @@ function registerAppServiceWorker() {
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (refreshing) return;
     refreshing = true;
-    // Never clear localStorage here.
+    // Never clear localStorage here: user data must survive updates.
+    localStorage.setItem(
+      'money_tracker_installed_version',
+      normalizeVersion(availableAppVersion || installedAppVersion || '')
+    );
+    installedAppVersion = normalizeVersion(availableAppVersion || installedAppVersion || '');
     window.location.reload();
   });
 }

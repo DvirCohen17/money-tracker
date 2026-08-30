@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>התקציב שלי —כ ניהול פיננסי</title>
+<title>התקציב שלי — ניהול פיננסי</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -256,12 +256,12 @@ input,select,textarea{color-scheme:dark}
 <div id="tab-settings" class="tab-content hidden space-y-5">
   <section class="glass-card p-4 rounded-2xl"><h2 class="font-bold mb-4 text-white flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5 text-indigo-400"></i>אבטחה, נתונים וייצוא</h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-      <button onclick="openSecurityModal()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>הגנה</b><div class="text-xs text-gray-400">נעילה בסיסמה מקומית</div></button>
-      <button onclick="exportCSV()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>ייצוא CSV</b><div class="text-xs text-gray-400">תנועות, כולל תאריכים וקטגוריות</div></button>
-      <button onclick="exportJSON()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>גיבוי JSON</b><div class="text-xs text-gray-400">כל נתוני האפליקציה</div></button>
-      <label class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn cursor-pointer"><b>ייבוא JSON</b><div class="text-xs text-gray-400">שחזור מגיבוי</div><input type="file" accept=".json" onchange="importJSON(event)" class="hidden"></label>
-      <button onclick="openOverviewModal()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>הגדרות תקציב</b><div class="text-xs text-gray-400">יתרה, תקציב ומשכורת</div></button>
-      <button onclick="clearAllData()" class="bg-rose-950/40 border border-rose-900/50 rounded-xl p-3 text-right text-rose-300 btn"><b>איפוס הכל</b><div class="text-xs">מחיקה מלאה מהמכשיר</div></button>
+      <button type="button" onclick="openSecurityModal()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>הגנה</b><div class="text-xs text-gray-400">נעילה בסיסמה מקומית</div></button>
+      <button type="button" onclick="exportCSV()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>ייצוא CSV</b><div class="text-xs text-gray-400">תנועות, כולל תאריכים וקטגוריות</div></button>
+      <button type="button" onclick="exportJSON()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>גיבוי JSON</b><div class="text-xs text-gray-400">כל נתוני האפליקציה</div></button>
+      <button type="button" onclick="document.getElementById('import-json-input').click()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>ייבוא JSON</b><div class="text-xs text-gray-400">שחזור מגיבוי</div><input id="import-json-input" type="file" accept=".json,application/json" onchange="importJSON(event)" class="hidden"></button>
+      <button type="button" onclick="openOverviewModal()" class="bg-gray-900 border border-gray-800 rounded-xl p-3 text-right btn"><b>הגדרות תקציב</b><div class="text-xs text-gray-400">יתרה, תקציב ומשכורת</div></button>
+      <button type="button" onclick="clearAllData()" class="bg-rose-950/40 border border-rose-900/50 rounded-xl p-3 text-right text-rose-300 btn"><b>איפוס הכל</b><div class="text-xs">מחיקה מלאה מהמכשיר</div></button>
     </div>
   </section>
   <section class="glass-card p-4 rounded-2xl">
@@ -1103,9 +1103,50 @@ function exportCSV(){
   download(csv,'text/csv;charset=utf-8','budget_transactions.csv')
 }
 function exportJSON(){download(JSON.stringify(state,null,2),'application/json','budget_backup.json')}
-function importJSON(e){const f=e.target.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const d=JSON.parse(rd.result);state={...clone(defaults),...d};save();renderAll();alert('הגיבוי נטען בהצלחה')}catch{alert('קובץ לא תקין')}};rd.readAsText(f)}
-function download(data,type,name){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([data],{type}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function clearAllData(){if(confirm('למחוק את כל הנתונים? פעולה זו אינה הפיכה.')){localStorage.removeItem(KEY);location.reload()}}
+function importJSON(e){
+  const input=e.target;
+  const f=input.files?.[0];
+  if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(!d || typeof d!=='object' || !Array.isArray(d.transactions)) throw new Error('Invalid backup');
+      state={...clone(defaults),...d,settings:{...defaults.settings,...(d.settings||{}),rates:{...defaults.settings.rates,...(d.settings?.rates||{})}},transactions:Array.isArray(d.transactions)?d.transactions:[],recurring:Array.isArray(d.recurring)?d.recurring:[],savingsAllocations:Array.isArray(d.savingsAllocations)?d.savingsAllocations:[],pockets:Array.isArray(d.pockets)?d.pockets:[],trip:{...defaults.trip,...(d.trip||{}),expenses:Array.isArray(d.trip?.expenses)?d.trip.expenses:[]},security:{...defaults.security,...(d.security||{})},dailySnapshot:{...defaults.dailySnapshot,...(d.dailySnapshot||{})}};
+      save();
+      renderAll();
+      alert('הגיבוי נטען בהצלחה');
+    }catch(err){
+      console.warn('JSON import failed:',err);
+      alert('קובץ גיבוי לא תקין');
+    }finally{
+      input.value='';
+    }
+  };
+  rd.onerror=()=>{input.value='';alert('לא ניתן לקרוא את הקובץ')};
+  rd.readAsText(f);
+}
+function download(data,type,name){
+  try{
+    const url=URL.createObjectURL(new Blob([data],{type}));
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=name;
+    a.style.display='none';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }catch(err){
+    console.error('Download failed:',err);
+    alert('לא ניתן ליצור את הקובץ להורדה');
+  }
+}
+function clearAllData(){
+  if(!confirm('למחוק את כל הנתונים? פעולה זו אינה הפיכה.'))return;
+  localStorage.removeItem(KEY);
+  location.reload();
+}
 
 function openModal(title,body,onSave){
   document.getElementById('modal-root').innerHTML=`<div class="modal fixed inset-0 z-[100] flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()"><div class="glass-card border border-gray-800 w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center"><h3 class="font-bold text-white">${esc(title)}</h3><button onclick="closeModal()" class="text-gray-400"><i data-lucide="x"></i></button></div><div class="space-y-2">${body}</div><div class="flex justify-end gap-2"><button onclick="closeModal()" class="bg-gray-800 text-white rounded-xl px-4 py-2 text-sm">ביטול</button><button id="modal-save" class="bg-indigo-600 text-white rounded-xl px-4 py-2 text-sm font-semibold">שמור</button></div></div></div>`;
