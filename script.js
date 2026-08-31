@@ -18,7 +18,6 @@ let updateApplying = false;
 
 const VERSION_URL = './version.json';
 const SW_URL = './sw.js';
-const UPDATE_TIMEOUT_MS = 30000;
 
 function normalizeVersion(version) {
   return String(version || '').trim().replace(/^v/i, '').split('-')[0];
@@ -295,10 +294,10 @@ async function applyAppUpdate() {
     const registration = await ensureServiceWorkerIsFresh(latest);
     if (!registration) throw new Error('Service worker is not supported');
 
-    // Force a fresh check and activate only the newest waiting worker.
-    // Authentication and local user data are intentionally untouched.
-    await registration.update();
-    const worker = await waitForWaitingWorker(registration, UPDATE_TIMEOUT_MS);
+    // If the new worker is already waiting, use it. Otherwise wait for the
+    // versioned sw.js to install. Its install step fetches every app asset
+    // with cache:'no-store', so changed Git files are actually downloaded.
+    const worker = await waitForWaitingWorker(registration, 20000);
     newWorker = worker;
 
     setUpdateStatus('מפעיל את הגרסה החדשה...', 'normal');
@@ -388,8 +387,6 @@ function registerAppServiceWorker() {
       normalizeVersion(availableAppVersion || installedAppVersion || '')
     );
     installedAppVersion = normalizeVersion(availableAppVersion || installedAppVersion || '');
-    availableAppVersion = null;
-    closeUpdateNotification();
     window.location.reload();
   });
 }

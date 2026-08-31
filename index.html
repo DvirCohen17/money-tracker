@@ -8,7 +8,7 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="./config.js" onerror="this.remove()"></script>
-<script src="./script.js?v=1.5.0"></script>
+<script src="./script.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box}
@@ -111,7 +111,7 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
 .notification-backdrop{position:fixed;inset:0;z-index:490;display:none}.notification-backdrop.active{display:block}
 .profile-screen{position:fixed;inset:0;z-index:600;background:linear-gradient(135deg,var(--bg-1),var(--bg-2));overflow:auto;display:none}.profile-screen.active{display:block;animation:profileIn .2s ease-out}@keyframes profileIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
 .auth-gate{position:fixed;inset:0;z-index:10000;background:radial-gradient(900px 600px at 50% 0%,color-mix(in srgb,var(--accent) 18%,transparent),transparent 65%),linear-gradient(135deg,var(--bg-1),var(--bg-2));display:flex;align-items:center;justify-content:center;padding:20px}.auth-gate.hidden{display:none}.auth-card{width:100%;max-width:430px}.auth-tab{flex:1;border-radius:12px;padding:10px;font-size:13px;color:#9ca3af}.auth-tab.active{background:color-mix(in srgb,var(--accent) 18%,transparent);color:#fff}
-.mini-heatmap .heatmap-day{min-height:32px;font-size:10px}.heatmap-day.large-heat{min-width:44px;min-height:44px;font-size:11px}.heatmap-day.large-heat span:last-child{font-size:9px}
+.mini-heatmap .heatmap-day{min-height:32px;font-size:10px}.heatmap-day.large-heat{min-width:44px;min-height:44px;font-size:11px}.heatmap-day.large-heat span:last-child{font-size:9px}.nav-scroll-fix{overflow-x:auto;overflow-y:hidden;justify-content:flex-start!important;gap:4px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.nav-scroll-fix::-webkit-scrollbar{display:none}.nav-scroll-fix>button{flex:0 0 auto;min-width:62px;white-space:nowrap}.month-heat-details{font-size:9px;color:#cbd5e1;line-height:1.25;white-space:nowrap}.heatmap-grid.month-view .heatmap-day{aspect-ratio:auto;min-width:0;min-height:78px;height:auto;padding:6px!important}@media(max-width:560px){.heatmap-grid.month-view{gap:3px}.heatmap-grid.month-view .heatmap-day{min-height:58px;padding:4px!important;border-radius:7px;font-size:9px}.heatmap-grid.month-view .month-heat-details{font-size:7px;white-space:normal;line-height:1.1}}
 .month-heat-details{font-size:9px;color:#cbd5e1;line-height:1.35}
 
 /* MoneyTracker v1.1 feature layer */
@@ -119,37 +119,8 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
 .theme-forest{--accent:#10b981;--accent-soft:#064e3b}.theme-ocean{--accent:#38bdf8;--accent-soft:#0c4a6e}.theme-violet{--accent:#a78bfa;--accent-soft:#4c1d95}.theme-amber{--accent:#f59e0b;--accent-soft:#78350f}.theme-rose{--accent:#fb7185;--accent-soft:#881337}
 .feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.65rem}.feature-stat{background:rgba(17,24,39,.7);border:1px solid rgba(255,255,255,.05);border-radius:14px;padding:.75rem}.heatmap-year{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.heatmap-year>div{min-height:240px;padding:1rem!important}.mini-heatmap{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.mini-heatmap .heatmap-day{font-size:12px;border-radius:9px;min-height:46px;display:flex;align-items:center;justify-content:center;cursor:pointer}.heatmap-day{cursor:pointer;transition:transform .15s ease,filter .15s ease}.heatmap-day:hover{transform:translateY(-1px);filter:brightness(1.08)}.heat-day-green{background:rgba(16,185,129,.18)!important;border-color:rgba(16,185,129,.55)!important;color:#6ee7b7!important}.heat-day-red{background:rgba(244,63,94,.18)!important;border-color:rgba(244,63,94,.55)!important;color:#fda4af!important}.notification-dot{width:8px;height:8px;border-radius:999px;display:inline-block}.offline-badge{font-size:10px;border:1px solid rgba(245,158,11,.3);color:#fbbf24;background:rgba(120,53,15,.2);padding:3px 7px;border-radius:999px}.install-banner{position:fixed;bottom:92px;left:16px;right:16px;z-index:150;display:none}.install-banner.active{display:block}
 @media(max-width:900px){.heatmap-year{grid-template-columns:repeat(2,minmax(0,1fr))}} @media(max-width:560px){.heatmap-year{grid-template-columns:1fr}.heatmap-year>div{min-height:160px}}
- 
-/* v1.5.0 navigation: each tab is independently addressable and the mobile
-   bar scrolls horizontally instead of compressing/off-screening items. */
-nav.fixed.bottom-0{
-  justify-content:flex-start !important;
-  overflow-x:auto !important;
-  overflow-y:hidden !important;
-  -webkit-overflow-scrolling:touch !important;
-  touch-action:pan-x !important;
-  scrollbar-width:none;
-  gap:4px;
-}
-nav.fixed.bottom-0::-webkit-scrollbar{display:none}
-nav.fixed.bottom-0 button[id^="nav-"]{
-  flex:0 0 auto !important;
-  min-width:72px;
-  white-space:nowrap;
-}
-.tab-content[aria-hidden="false"]{display:block !important}
-.tab-content[aria-hidden="true"]{display:none !important}
 </style>
-<style id="mt-v140-overrides">
-.dashboard-only-widgets{display:block}
-.heatmap-day{min-width:0;width:100%}
-@media(max-width:699px){
-  .heatmap-grid{gap:3px}
-  .heatmap-grid .heatmap-day{min-width:0!important;width:100%!important;min-height:0!important;padding:.28rem!important;border-radius:7px!important;font-size:9px!important;overflow:hidden}
-  .heatmap-grid .heatmap-day .month-heat-details{font-size:7px!important;white-space:nowrap}
-  .heatmap-grid .heatmap-day>span:nth-child(2){font-size:8px!important}
-}
-</style></head>
+</head>
 <body class="pb-24">
 
 <header class="sticky top-0 z-40 glass-card px-4 py-3 flex items-center justify-between border-b border-gray-800/80">
@@ -169,7 +140,7 @@ nav.fixed.bottom-0 button[id^="nav-"]{
 </header>
 
 <main class="max-w-5xl mx-auto px-4 pt-4 space-y-5">
-<div id="dashboard-overview-widgets" class="dashboard-only-widgets">
+<div id="tab-dashboard" class="tab-content space-y-5">
 <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
   <div class="glass-card p-4 rounded-2xl"><p class="small-stat">יתרה כוללת</p><h3 id="overview-balance" class="text-xl font-extrabold mt-1 amount text-white">₪0</h3><button onclick="openOverviewModal()" class="text-[10px] text-sky-400 mt-1">ערוך</button></div>
   <div class="glass-card p-4 rounded-2xl"><p class="small-stat">הכנסות החודש</p><h3 id="overview-income" class="text-xl font-extrabold text-emerald-400 mt-1 amount">₪0</h3><button onclick="openIncomeModal()" class="text-[10px] text-sky-400 mt-1">ערוך סכום</button></div>
@@ -184,7 +155,7 @@ nav.fixed.bottom-0 button[id^="nav-"]{
   </div>
 </section>
 
-<div id="tab-dashboard" class="tab-content space-y-5">
+
   <section class="glass-card p-4 rounded-2xl">
     <div class="flex justify-between items-center mb-3"><h2 class="font-bold text-sm text-white">מעקב חודשי</h2><input id="month-filter" type="month" onchange="selectAnalyticsMonth(this.value)" class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white"></div>
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -450,7 +421,7 @@ nav.fixed.bottom-0 button[id^="nav-"]{
   </div>
 </div>
 
-<nav class="fixed bottom-0 left-0 right-0 glass-card border-t border-gray-800/80 py-2 px-2 flex justify-around z-50 text-xs">
+<nav class="nav-scroll-fix fixed bottom-0 left-0 right-0 glass-card border-t border-gray-800/80 py-2 px-2 flex justify-around z-50 text-xs">
 <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-active flex flex-col items-center gap-1 py-1 px-2"><i data-lucide="layout-dashboard" class="w-5 h-5"></i><span>תקציב</span></button>
 <button onclick="switchTab('analytics')" id="nav-analytics" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2"><i data-lucide="bar-chart-3" class="w-5 h-5"></i><span>ניתוחים</span></button>
 <button onclick="switchTab('notifications')" id="nav-notifications" class="flex flex-col items-center gap-1 text-gray-400 py-1 px-2 relative"><i data-lucide="bell" class="w-5 h-5"></i><span>הודעות</span><span id="notification-count" class="hidden absolute -top-1 right-1 notification-dot bg-rose-500"></span></button>
@@ -474,7 +445,7 @@ nav.fixed.bottom-0 button[id^="nav-"]{
     <section class="glass-card rounded-3xl p-5 mb-4"><div class="flex items-center gap-4"><div class="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-600 text-white"><i data-lucide="user-round" class="w-8 h-8"></i></div><div><h3 id="profile-name" class="text-xl font-bold text-white">—</h3><p id="profile-email" class="text-sm text-gray-400">—</p><p id="profile-source" class="text-xs text-emerald-400 mt-1">מסד נתונים מקומי</p></div></div></section>
     <section class="glass-card rounded-3xl p-5 mb-4"><div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white">נתוני המשתמש</h3><p class="text-xs text-gray-400">הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.</p></div><button onclick="openProfileEditor()" class="text-xs text-sky-400">עריכה</button></div><div id="profile-stats" class="grid grid-cols-2 md:grid-cols-4 gap-2"></div></section>
     <section class="glass-card rounded-3xl p-5 mb-4"><div class="flex items-center justify-between mb-3"><div><h3 class="font-bold text-white">אנשי החשבון המשותף</h3><p class="text-xs text-gray-400">כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.</p></div><button onclick="openHouseholdMemberModal()" class="text-xs text-sky-400">+ הוסף אדם</button></div><div id="profile-users-list" class="space-y-2"></div></section>
-    <div class="grid grid-cols-2 gap-2"><button onclick="syncUserToServer(true)" class="bg-emerald-600 text-white rounded-xl py-3 font-semibold">סנכרן עכשיו</button><button onclick="logoutUser()" class="bg-rose-950/50 border border-rose-900/50 text-rose-300 rounded-xl py-3 font-semibold">התנתק</button></div>
+    <div class="grid grid-cols-2 gap-2"><button onclick="syncUserToServer(true)" class="hidden bg-emerald-600 text-white rounded-xl py-3 font-semibold">סנכרן עכשיו</button><button onclick="logoutUser()" class="bg-rose-950/50 border border-rose-900/50 text-rose-300 rounded-xl py-3 font-semibold">התנתק</button></div>
   </div>
 </div>
 
@@ -587,7 +558,7 @@ window.addEventListener('storage',(event)=>{
     scheduleAnalyticsRefresh();
   }catch(e){console.warn('Could not sync data from another tab',e)}
 });
-function money(n){return '₪'+Number(n||0).toLocaleString('he-IL',{maximumFractionDigits:2})}
+function money(n){return '₪'+Number(n||0).toLocaleString(state?.settings?.language==='en'?'en-US':'he-IL',{maximumFractionDigits:2})}
 function monthTx(m=currentMonth()){return state.transactions.filter(t=>String(t.date||'').slice(0,7)===m)}
 function sum(arr){return arr.reduce((a,b)=>a+Number(b.amount||0),0)}
 
@@ -610,11 +581,12 @@ function expenseTotal(m=currentMonth()){
   return sum(effectiveMonthTx(m).filter(t=>t.type==='expense'));
 }
 function incomeTotal(m=currentMonth()){return sum(effectiveMonthTx(m).filter(t=>t.type==='income'))}
-function monthLabel(m){const [y,mo]=m.split('-');return new Date(Number(y),Number(mo)-1,1).toLocaleDateString('he-IL',{month:'long',year:'numeric'})}
+function monthLabel(m){const [y,mo]=m.split('-');return new Date(Number(y),Number(mo)-1,1).toLocaleDateString(state?.settings?.language==='en'?'en-US':'he-IL',{month:'long',year:'numeric'})}
 
 function renderHeaderDate() {
   const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-  document.getElementById('header-date').innerText = new Date().toLocaleDateString('he-IL', options);
+  const locale=state?.settings?.language==='en'?'en-US':'he-IL';
+  const el=document.getElementById('header-date');if(el)el.innerText=new Date().toLocaleDateString(locale,options);
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
@@ -667,62 +639,14 @@ function checkMonthlySavingsProcess() {
 }
 
 function switchTab(tab){
-  const target=document.getElementById('tab-'+tab);
-  const nav=document.getElementById('nav-'+tab);
-  if(!target) return false;
-
-  document.querySelectorAll('.tab-content').forEach(x=>{
-    x.classList.add('hidden');
-    x.setAttribute('aria-hidden','true');
-  });
-  document.querySelectorAll('nav button[id^="nav-"]').forEach(x=>{
-    x.classList.remove('nav-active');
-    x.setAttribute('aria-selected','false');
-  });
-
-  target.classList.remove('hidden');
-  target.setAttribute('aria-hidden','false');
-  if(nav){
-    nav.classList.add('nav-active');
-    nav.setAttribute('aria-selected','true');
-  }
-
-  const overviewWidgets=document.getElementById('dashboard-overview-widgets');
-  if(overviewWidgets) overviewWidgets.style.display=tab==='dashboard'?'block':'none';
-
-  // Rendering is deliberately isolated: a chart/widget error must never
-  // prevent the selected tab from becoming visible.
-  try{
-    if(tab==='dashboard' && typeof renderAll==='function') renderAll();
-    else if(tab==='analytics'){
-      if(typeof renderAnalytics==='function') renderAnalytics();
-      if(typeof renderMonthlyComparison==='function') renderMonthlyComparison();
-      requestAnimationFrame(()=>{
-        try{if(typeof updateCharts==='function')updateCharts();}catch(e){console.warn('analytics charts',e);}
-        try{if(typeof renderHeatmap==='function')renderHeatmap();}catch(e){console.warn('analytics heatmap',e);}
-        if(window.lucide)lucide.createIcons();
-      });
-    }
-    else if(tab==='pockets'){
-      if(typeof renderSavingsAllocations==='function')renderSavingsAllocations();
-      if(typeof renderPockets==='function')renderPockets();
-      if(typeof renderRecurring==='function')renderRecurring();
-    }
-    else if(tab==='notifications'){
-      if(typeof renderNotifications==='function')renderNotifications();
-    }
-    else if(tab==='travel'){
-      if(typeof refreshFXRates==='function')refreshFXRates(false);
-      if(typeof convertFX==='function')convertFX();
-    }
-    else if(tab==='settings'){
-      if(typeof syncSettingsUI==='function')syncSettingsUI();
-    }
-  }catch(e){
-    console.warn('Tab render error:',tab,e);
-  }
-  if(window.lucide)lucide.createIcons();
-  return true;
+  document.querySelectorAll('.tab-content').forEach(x=>x.classList.add('hidden'));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+  document.getElementById('nav-'+tab).classList.add('nav-active');
+  if(tab==='dashboard'){renderAll();}
+  if(tab==='analytics'){renderAnalytics();renderMonthlyComparison();requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();});}
+  if(tab==='pockets'){renderSavingsAllocations();renderPockets();}
+  if(tab==='travel'){refreshFXRates(false);convertFX();}
 }
 
 function toggleDiscrete(){
@@ -896,18 +820,22 @@ function selectAnalyticsYear(y){analyticsYear=Number(y)||Number(currentMonth().s
 function moveAnalyticsYear(delta){selectAnalyticsYear(analyticsYear+delta);syncAnalyticsControls();}
 function getAnalyticsMonths(){return analyticsPeriod==='year'?analyticsMonthsForYear(analyticsYear):analyticsPeriod==='history'?analyticsMonthsForHistory():[analyticsMonth];}
 function getAnalyticsTransactions(){return getAnalyticsMonths().flatMap(m=>effectiveMonthTx(m).filter(t=>t.type==='expense'));}
+function displayCategory(cat){
+  if(state.settings?.language!=='en')return cat;
+  return I18N_HE_EN[cat]||cat;
+}
 function renderAnalytics(){
  syncAnalyticsControls();const tx=getAnalyticsTransactions(),by={};tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));const arr=Object.entries(by).sort((a,b)=>b[1]-a[1]);
  const title=analyticsPeriod==='month'?`מפת הוצאות / קטגוריות — ${monthLabel(analyticsMonth)}`:analyticsPeriod==='year'?`מפת הוצאות / קטגוריות — ${analyticsYear}`:'מפת הוצאות / קטגוריות — 36 חודשים';
  const h=document.querySelector('#category-map')?.parentElement?.querySelector('h3');if(h)h.innerHTML=`<i data-lucide="map" class="w-4 h-4 text-amber-400"></i>${title}`;
- document.getElementById('category-map').innerHTML=arr.length?arr.map(([c,n])=>`<div><div class="flex justify-between text-xs text-gray-300"><span>${esc(c)}</span><b>${money(n)}</b></div><div class="bg-gray-900 rounded-full h-2 mt-1 border border-gray-800"><div class="bg-indigo-500 h-2 rounded-full" style="width:${Math.min(100,n/(arr[0]?.[1]||1)*100)}%"></div></div></div>`).join(''):'<span class="text-gray-500 text-sm">אין נתונים</span>';
+ document.getElementById('category-map').innerHTML=arr.length?arr.map(([c,n])=>`<div><div class="flex justify-between text-xs text-gray-300"><span>${esc(displayCategory(c))}</span><b>${money(n)}</b></div><div class="bg-gray-900 rounded-full h-2 mt-1 border border-gray-800"><div class="bg-indigo-500 h-2 rounded-full" style="width:${Math.min(100,n/(arr[0]?.[1]||1)*100)}%"></div></div></div>`).join(''):'<span class="text-gray-500 text-sm">אין נתונים</span>';
  const total=sum(tx),months=getAnalyticsMonths(),budget=months.reduce((a,m)=>a+getMonthlyBudget(m),0),top=arr[0];
- document.getElementById('insights').innerHTML=[`הוצאות בתקופה: <b>${money(total)}</b>.`,top?`הקטגוריה הגדולה ביותר: <b>${esc(top[0])}</b> (${money(top[1])}).`:'אין עדיין קטגוריה מובילה.',`תקציב מצטבר לתקופה: <b>${money(budget)}</b>.`,`נשאר מהתקציב: <b>${money(budget-total)}</b>.`].map(x=>`<div class="bg-gray-900/60 rounded-xl p-3 border border-gray-800">${x}</div>`).join('');
+ document.getElementById('insights').innerHTML=[`הוצאות בתקופה: <b>${money(total)}</b>.`,top?`הקטגוריה הגדולה ביותר: <b>${esc(displayCategory(top[0]))}</b> (${money(top[1])}).`:'אין עדיין קטגוריה מובילה.',`תקציב מצטבר לתקופה: <b>${money(budget)}</b>.`,`נשאר מהתקציב: <b>${money(budget-total)}</b>.`].map(x=>`<div class="bg-gray-900/60 rounded-xl p-3 border border-gray-800">${x}</div>`).join('');
 }
 function updateCharts(){
- if(catChart){catChart.destroy();catChart=null;}const tx=getAnalyticsTransactions(),by={};tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));const c=document.getElementById('categoryChart')?.getContext('2d');if(c)catChart=new Chart(c,{type:'doughnut',data:{labels:Object.keys(by).length?Object.keys(by):['אין נתונים'],datasets:[{data:Object.values(by).length?Object.values(by):[1],backgroundColor:Object.keys(by).length?['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308']:['#1f2937'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{family:'Heebo',size:11}}}}}});
+ if(catChart){catChart.destroy();catChart=null;}const tx=getAnalyticsTransactions(),by={};tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));const c=document.getElementById('categoryChart')?.getContext('2d');if(c)catChart=new Chart(c,{type:'doughnut',data:{labels:Object.keys(by).length?Object.keys(by).map(displayCategory):[state.settings?.language==='en'?'No data':'אין נתונים'],datasets:[{data:Object.values(by).length?Object.values(by):[1],backgroundColor:Object.keys(by).length?['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308']:['#1f2937'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{family:'Heebo',size:11}}}}}});
  if(trendChart){trendChart.destroy();trendChart=null;}const ctx=document.getElementById('trendChart')?.getContext('2d');if(!ctx)return;let months;if(analyticsPeriod==='month'){months=[];const d=new Date(`${analyticsMonth}-01`);for(let i=5;i>=0;i--){const x=new Date(d);x.setMonth(d.getMonth()-i);months.push(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`);}}else months=getAnalyticsMonths();const exps=months.map(m=>expenseTotal(m)),incs=months.map(m=>incomeTotal(m));
- trendChart=new Chart(ctx,{type:'line',data:{labels:months.map(monthLabel),datasets:[{label:'הוצאות',data:exps,tension:.35,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.1)',fill:true},{label:'הכנסות',data:incs,tension:.35,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#6b7280',maxRotation:45,minRotation:0}},y:{ticks:{color:'#6b7280'}}},plugins:{legend:{labels:{color:'#9ca3af'}}}}});
+ trendChart=new Chart(ctx,{type:'line',data:{labels:months.map(monthLabel),datasets:[{label:state.settings?.language==='en'?'Expenses':'הוצאות',data:exps,tension:.35,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.1)',fill:true},{label:state.settings?.language==='en'?'Income':'הכנסות',data:incs,tension:.35,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#6b7280',maxRotation:45,minRotation:0}},y:{ticks:{color:'#6b7280'}}},plugins:{legend:{labels:{color:'#9ca3af'}}}}});
 }
 
 function renderRecurring(){
@@ -921,68 +849,106 @@ function renderRecurring(){
   if(summary){const total=subs.filter(r=>r.active!==false).reduce((a,r)=>a+Number(r.amount||0),0);summary.innerHTML=`<div class="feature-stat"><div class="small-stat">מנויים פעילים</div><b class="text-white">${subs.filter(r=>r.active!==false).length}</b></div><div class="feature-stat"><div class="small-stat">עלות חודשית</div><b class="text-sky-300 amount">${money(total)}</b></div>`;}
 }
 function openRecurringModal(mode='expense',id=null){
-  state.recurring=Array.isArray(state.recurring)?state.recurring:[];
   const existing=id?state.recurring.find(x=>x.id===id):null;
   const r=existing||{name:'',amount:'',date:'1 לחודש',active:true,subscriptionType:mode==='subscription'?'':'',subscriptionPlan:'',priceSource:'manual'};
   const isSub=mode==='subscription'||!!r.subscriptionType;
   const isEditingSub=!!existing&&!!existing.subscriptionType;
   const service=subscriptionCatalog[r.subscriptionType];
   const lockedServiceName=service?.name||r.subscriptionType||'';
-  const subFields=isSub&&!isEditingSub?`
-    <label class="text-sm text-gray-300 block mt-2">חיפוש שירות<input id="r-subscription-search" oninput="renderSubscriptionSearchResults(this.value)" autocomplete="off" placeholder="Netflix, Disney, iCloud..." class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label>
+
+  const subscriptionFields=isSub?`
+    ${!isEditingSub?`
+    <label class="text-sm text-gray-300 block mt-2">חיפוש שירות
+      <input id="r-subscription-search" oninput="renderSubscriptionSearchResults(this.value)" autocomplete="off" placeholder="Netflix, Disney, iCloud..." class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    </label>
     <div id="r-subscription-results" class="space-y-2 max-h-48 overflow-y-auto mt-2"></div>
-    <div id="r-selected-service" class="hidden mt-2"></div>
-    <div id="r-plan-wrap" class="hidden mt-3"><label class="text-sm text-gray-300">תוכנית<select id="r-plan" onchange="applySelectedSubscriptionPlan()" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></select></label></div>
+    <div id="r-selected-service" class="hidden mt-2"></div>`:''}
+    ${isEditingSub?`<input id="r-name" type="hidden" value="${attr(r.name||lockedServiceName)}"><input id="r-amount" type="hidden" value="${r.amount||''}">`:''}
+    <div id="r-plan-wrap" class="${isEditingSub?'mt-3':'hidden mt-3'}">
+      <label class="text-sm text-gray-300">תוכנית
+        <select id="r-plan" onchange="applySelectedSubscriptionPlan()" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></select>
+      </label>
+    </div>
+    <label class="text-sm text-gray-300 block mt-2">מועד חיוב
+      <input id="r-date" placeholder="למשל 1 לחודש" value="${attr(r.date)}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    </label>
+    <label class="flex items-center gap-2 text-sm text-gray-300 mt-2">
+      <input id="r-active" type="checkbox" ${r.active!==false?'checked':''}> פעיל
+    </label>
   `:'';
-  const fixedFields=isSub?`<label class="text-sm text-gray-300 block mt-2">מועד חיוב<input id="r-date" placeholder="למשל 1 לחודש" value="${attr(r.date)}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="flex items-center gap-2 text-sm text-gray-300 mt-2"><input id="r-active" type="checkbox" ${r.active!==false?'checked':''}> פעיל</label>`:`<label class="text-sm text-gray-300 block mt-2">שם<input id="r-name" placeholder="לדוגמה שכר דירה" value="${attr(r.name)}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label><label class="text-sm text-gray-300 block mt-2">סכום חודשי<input id="r-amount" type="number" step="0.01" placeholder="סכום חודשי" value="${r.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white"></label>${fixedFields}`;
-  const selectedView=isSub&&isEditingSub?`<div id="r-selected-service" class="bg-gray-900/70 border border-gray-800 rounded-xl p-3 mt-2"><div class="text-[10px] text-gray-500">שירות</div><div class="font-semibold text-white">${esc(lockedServiceName)}</div><div class="text-[10px] text-gray-500 mt-1">את השירות אי אפשר להחליף במנוי קיים. אפשר לשנות תוכנית.</div></div>`:'';
-  const body=`${isSub?subFields:''}${selectedView}${isSub?`<input id="r-name" type="hidden" value="${attr(r.name||lockedServiceName)}"><input id="r-amount" type="hidden" value="${r.amount||''}">`:''}${fixedFields}<div id="r-price-source" class="text-[10px] text-gray-500 mt-1"></div>`;
-  openModal(existing?(isSub?'עריכת מנוי':'עריכת הוצאה חודשית'):isSub?'מנוי חדש':'הוצאה חודשית קבועה',body,()=>{
-    const subscriptionType=isSub?(isEditingSub?r.subscriptionType:v('r-subscription-type')):'';
+
+  const fixedFields=!isSub?`
+    <label class="text-sm text-gray-300 block mt-2">שם
+      <input id="r-name" placeholder="לדוגמה שכר דירה" value="${attr(r.name)}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    </label>
+    <label class="text-sm text-gray-300 block mt-2">סכום חודשי
+      <input id="r-amount" type="number" step="0.01" placeholder="סכום חודשי" value="${r.amount}" class="w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    </label>
+    <label class="text-sm text-gray-300 block mt-2">מועד חיוב
+      <input id="r-date" placeholder="למשל 1 לחודש" value="${attr(r.date)}" class="mt-1 w-full bg-gray-900 border border-gray-800 rounded-xl p-2 text-white">
+    </label>
+    <label class="flex items-center gap-2 text-sm text-gray-300 mt-2">
+      <input id="r-active" type="checkbox" ${r.active!==false?'checked':''}> פעיל
+    </label>
+  `:'';
+
+  const selectedView=isSub&&isEditingSub?`
+    <div id="r-selected-service" class="bg-gray-900/70 border border-gray-800 rounded-xl p-3 mt-2">
+      <div class="text-[10px] text-gray-500">שירות</div>
+      <div class="font-semibold text-white">${esc(lockedServiceName)}</div>
+      <div class="text-[10px] text-gray-500 mt-1">את השירות אי אפשר להחליף במנוי קיים. אפשר לשנות תוכנית.</div>
+    </div>
+  `:'';
+
+  const subscriptionHidden=isSub?`<input id="r-subscription-type" type="hidden" value="${attr(r.subscriptionType||'')}">${!isEditingSub?`<input id="r-name" type="hidden" value="${attr(r.name||'')}"><input id="r-amount" type="hidden" value="${r.amount||''}">`:''}`:'';
+  const body=isSub?`${subscriptionFields}${selectedView}${subscriptionHidden}<div id="r-price-source" class="text-[10px] text-gray-500 mt-1"></div>`:`${fixedFields}`;
+
+  openModal(existing?(isSub?'עריכת מנוי':'עריכת הוצאה'):isSub?'מנוי חדש':'הוצאה חודשית קבועה',body,()=>{
+    const subscriptionType=isSub?v('r-subscription-type'):'';
     const plan=isSub?v('r-plan'):'';
-    const obj=isSub?{name:v('r-name').trim()||subscriptionCatalog[subscriptionType]?.name||'מנוי',amount:Number(v('r-amount')),date:v('r-date').trim(),active:document.getElementById('r-active').checked,subscriptionType,subscriptionPlan:plan,priceSource:'catalog',priceCheckedAt:new Date().toISOString()}:{name:v('r-name').trim(),amount:Number(v('r-amount')),date:v('r-date').trim(),active:document.getElementById('r-active').checked,subscriptionType:'',subscriptionPlan:'',priceSource:'manual',priceCheckedAt:''};
-    if(!obj.name||!Number.isFinite(obj.amount)||obj.amount<0){alert(isSub?'בחר שירות ותוכנית תקינים':'יש להזין שם וסכום תקין');return;}
-    if(!obj.date)obj.date='1 לחודש';
+    const active=document.getElementById('r-active')?.checked!==false;
+    const obj=isSub
+      ?{name:v('r-name').trim()||subscriptionCatalog[subscriptionType]?.name||'מנוי',amount:Number(v('r-amount')),date:v('r-date').trim(),active,subscriptionType,subscriptionPlan:plan,priceSource:'catalog',priceCheckedAt:new Date().toISOString()}
+      :{name:v('r-name').trim(),amount:Number(v('r-amount')),date:v('r-date').trim(),active,subscriptionType:'',subscriptionPlan:'',priceSource:'manual',priceCheckedAt:''};
+
+    if(!obj.name||!Number.isFinite(obj.amount)||obj.amount<0){
+      alert(isSub?'בחר שירות ותוכנית תקינים':'יש להזין שם וסכום תקין');
+      return;
+    }
     if(id)Object.assign(r,obj);else state.recurring.push({id:Date.now(),...obj});
     save();closeModal();renderAll();
   });
+
   setTimeout(async()=>{
     if(!isSub)return;
     await refreshSubscriptionCatalog(false);
-    if(isEditingSub){renderLockedSubscriptionPlan(r.subscriptionType,r.subscriptionPlan);}
-    else if(r.subscriptionType){selectSubscriptionService(r.subscriptionType,r.subscriptionPlan);}
+    if(isEditingSub)renderLockedSubscriptionPlan(r.subscriptionType,r.subscriptionPlan);
+    else if(r.subscriptionType)selectSubscriptionService(r.subscriptionType,r.subscriptionPlan);
     else renderSubscriptionSearchResults('');
   },40);
 }
 function renderSubscriptionSearchResults(query=''){
   const c=document.getElementById('r-subscription-results');if(!c)return;
   const q=String(query||'').trim().toLowerCase();
-  if(!q){c.innerHTML='';return;}
-  const items=Object.entries(subscriptionCatalog)
-    .filter(([id,s])=>s.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)||String(s.category||'').toLowerCase().includes(q))
-    .slice(0,8);
-  c.innerHTML=items.length?items.map(([id,s])=>`<button type="button" class="w-full text-right bg-gray-900/80 border border-gray-800 hover:border-sky-700 rounded-xl p-3 transition" onclick="selectSubscriptionService('${attr(id)}','')"><div class="flex justify-between items-center gap-2"><b class="text-white">${esc(s.name)}</b><span class="text-[10px] text-gray-500">${esc(s.category||'')}</span></div><div class="text-[10px] text-gray-400 mt-1">בחר שירות כדי לראות תוכניות</div></button>`).join(''):'<div class="text-xs text-gray-500 text-center py-3">לא נמצאו שירותים תואמים.</div>';
-}
-function unselectSubscriptionService(){
-  const input=document.getElementById('r-subscription-search'),results=document.getElementById('r-subscription-results');
-  const selected=document.getElementById('r-selected-service'),hidden=document.getElementById('r-subscription-type');
-  const wrap=document.getElementById('r-plan-wrap');
-  if(input)input.value=''; if(hidden)hidden.value='';
-  if(wrap)wrap.classList.add('hidden');
-  if(selected){selected.classList.add('hidden');selected.innerHTML='';}
-  if(results)results.innerHTML='';
-  const amount=document.getElementById('r-amount');if(amount)amount.value='';
-  const name=document.getElementById('r-name');if(name)name.value='';
-  const source=document.getElementById('r-price-source');if(source)source.innerHTML='';
-  if(input)input.focus();
+  const items=Object.entries(subscriptionCatalog).filter(([id,s])=>!q||s.name.toLowerCase().includes(q)||id.toLowerCase().includes(q)||String(s.category||'').toLowerCase().includes(q)).slice(0,10);
+  c.innerHTML=items.length?items.map(([id,s])=>`<button type="button" class="w-full text-right bg-gray-900/80 border border-gray-800 hover:border-sky-700 rounded-xl p-3" onclick="selectSubscriptionService('${attr(id)}','')"><div class="flex justify-between items-center"><b class="text-white">${esc(s.name)}</b><span class="text-[10px] text-gray-500">${esc(s.category||'')}</span></div><div class="text-[10px] text-gray-400 mt-1">${s.plans?.length||0} תוכניות</div></button>`).join(''):'<div class="text-xs text-gray-500 text-center py-3">לא נמצאו שירותים תואמים.</div>';
 }
 function selectSubscriptionService(type,selectedPlan=''){
   const s=subscriptionCatalog[type];if(!s)return;
   const input=document.getElementById('r-subscription-search');if(input)input.value=s.name;
   const results=document.getElementById('r-subscription-results');if(results)results.innerHTML='';
-  const selected=document.getElementById('r-selected-service');if(selected){selected.classList.remove('hidden');selected.innerHTML=`<div class="bg-gray-900/70 border border-sky-900/50 rounded-xl p-3 flex items-center justify-between gap-2"><div><div class="text-[10px] text-gray-500">שירות שנבחר</div><div class="font-semibold text-white">${esc(s.name)}</div></div><button type="button" class="text-xs text-gray-400 hover:text-white border border-gray-700 rounded-lg px-2 py-1" onclick="unselectSubscriptionService()">בטל בחירה</button></div>`;}
+  const selected=document.getElementById('r-selected-service');if(selected){selected.classList.remove('hidden');selected.innerHTML=`<div class="bg-gray-900/70 border border-sky-900/50 rounded-xl p-3 flex items-center justify-between gap-2"><div><div class="text-[10px] text-gray-500">שירות שנבחר</div><div class="font-semibold text-white">${esc(s.name)}</div></div><button type="button" onclick="unselectSubscriptionService()" class="text-xs text-rose-300 border border-rose-900/50 rounded-lg px-2 py-1">בטל בחירה</button></div>`;}
   let hidden=document.getElementById('r-subscription-type');if(!hidden){hidden=document.createElement('input');hidden.type='hidden';hidden.id='r-subscription-type';document.querySelector('#modal-root .modal')?.appendChild(hidden);}hidden.value=type;
   const wrap=document.getElementById('r-plan-wrap'),sel=document.getElementById('r-plan');if(!wrap||!sel)return;wrap.classList.remove('hidden');sel.innerHTML=s.plans.map(p=>`<option value="${attr(p.id)}" ${selectedPlan===p.id?'selected':''}>${esc(p.name)} — ${money(p.amount)}</option>`).join('');applySelectedSubscriptionPlan();
+}
+function unselectSubscriptionService(){
+  const hidden=document.getElementById('r-subscription-type');if(hidden)hidden.value='';
+  const name=document.getElementById('r-name');if(name)name.value='';
+  const amount=document.getElementById('r-amount');if(amount)amount.value='';
+  const search=document.getElementById('r-subscription-search');if(search)search.value='';
+  const selected=document.getElementById('r-selected-service');if(selected){selected.classList.add('hidden');selected.innerHTML='';}
+  const wrap=document.getElementById('r-plan-wrap');if(wrap)wrap.classList.add('hidden');
+  renderSubscriptionSearchResults('');
 }
 function renderLockedSubscriptionPlan(type,selectedPlan=''){
   const s=subscriptionCatalog[type];if(!s)return;
@@ -1400,7 +1366,16 @@ function mergeFeatureState(incoming){
   merged.savingsAllocations=Array.isArray(s.savingsAllocations)?s.savingsAllocations:[];merged.savingsProcessed=s.savingsProcessed||{};merged.security={...base.security,...(s.security||{})};return merged;
 }
 function persistUserState(){
-  if(!dbState)return;const u=dbState.users.find(x=>x.id===activeUserId);if(u){u.state=clone(state);u.lastActive=Date.now();}dbState.activeUserId=activeUserId;writeDB();
+  if(!dbState)return;
+  const snapshot=clone(state);
+  const u=dbState.users.find(x=>x.id===activeUserId);
+  if(u){u.state=snapshot;u.lastActive=Date.now();}
+  if(activeUserId==='local-account' && dbState.accountUser){
+    dbState.accountUser.state=snapshot;
+    dbState.accountUser.lastActive=Date.now();
+  }
+  dbState.activeUserId=activeUserId;
+  writeDB();
 }
 const originalSave=save;
 save=function(){originalSave();persistUserState();};
@@ -1434,7 +1409,7 @@ function markNotificationsRead(){if(!dbState)return;dbState.notificationRead=dbS
 function showPeriodSummary(){renderPeriodSummary(true);}
 function renderPeriodSummary(){const c=document.getElementById('period-summary');if(!c)return;const months=getAnalyticsMonths(),exp=months.reduce((a,m)=>a+expenseTotal(m),0),inc=months.reduce((a,m)=>a+incomeTotal(m),0),saveAmt=inc-exp,budget=months.reduce((a,m)=>a+getMonthlyBudget(m),0);const top=Object.entries(getAnalyticsTransactions().reduce((o,t)=>(o[t.cat]=(o[t.cat]||0)+Number(t.amount),o),{})).sort((a,b)=>b[1]-a[1])[0];const title=analyticsPeriod==='month'?monthLabel(analyticsMonth):analyticsPeriod==='year'?`שנת ${analyticsYear}`:'36 חודשים';c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(inc)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(exp)}</b></div><div class="feature-stat"><div class="small-stat">נטו</div><b class="${saveAmt>=0?'text-emerald-400':'text-rose-400'} amount">${money(saveAmt)}</b></div><div class="feature-stat"><div class="small-stat">ניצול תקציב</div><b class="text-white">${budget?Math.round(exp/budget*100):0}%</b></div></div><div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 text-xs text-gray-300">${esc(title)}: ${top?`הקטגוריה המובילה היא <b class="text-white">${esc(top[0])}</b> עם ${money(top[1])}.`:'אין עדיין מספיק נתונים לקטגוריה מובילה'} ${saveAmt>=0?'המאזן בתקופה חיובי.':'ההוצאות גבוהות מההכנסות בתקופה.'}</div>`;}
 function renderAnnualSummary(){const c=document.getElementById('annual-summary');if(!c)return;const y=analyticsYear,months=analyticsMonthsForYear(y),rows=months.map(m=>({m,inc:incomeTotal(m),exp:expenseTotal(m)}));const totalI=rows.reduce((a,x)=>a+x.inc,0),totalE=rows.reduce((a,x)=>a+x.exp,0),top=rows.slice().sort((a,b)=>b.exp-a.exp)[0];setText('annual-summary-year',String(y));c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(totalI)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(totalE)}</b></div><div class="feature-stat"><div class="small-stat">חיסכון / נטו</div><b class="${totalI-totalE>=0?'text-emerald-400':'text-rose-400'} amount">${money(totalI-totalE)}</b></div><div class="feature-stat"><div class="small-stat">חודש יקר</div><b class="text-white">${top?monthLabel(top.m):'—'}</b></div></div><div class="space-y-1">${rows.map(x=>`<div class="flex items-center gap-2 text-xs"><span class="w-20 text-gray-400">${esc(monthLabel(x.m))}</span><div class="flex-1 bg-gray-900 rounded-full h-2 overflow-hidden"><div class="bg-rose-500 h-full" style="width:${Math.min(100,totalE?x.exp/Math.max(...rows.map(r=>r.exp),1)*100:0)}%"></div></div><b class="w-20 text-left amount">${money(x.exp)}</b></div>`).join('')}</div>`;}
-function renderAdvancedHeatmap(){const c=document.getElementById('monthly-heatmap');if(!c)return;const m=analyticsMonth||currentMonth();if(analyticsPeriod==='month'){const [y,mo]=m.split('-').map(Number),days=new Date(y,mo,0).getDate(),first=new Date(y,mo-1,1).getDay();const ex={};monthTx(m).filter(t=>t.type==='expense').forEach(t=>{const d=Number(String(t.date).slice(8,10));ex[d]=(ex[d]||0)+Number(t.amount)});let h='';for(let i=0;i<first;i++)h+='<div></div>';for(let d=1;d<=days;d++){const date=`${m}-${String(d).padStart(2,'0')}`,v=ex[d]||0,b=getDailyBudgetSnapshot(date),ratio=b?v/b:0,cls=ratio<=1?'heat-day-green':'heat-day-red',pct=b?Math.round(ratio*100):0;h+=`<button type="button" class="heatmap-day ${cls} p-2 border rounded-xl flex flex-col justify-between text-right" onclick="openDailyExpensesModal('${date}')" title="${date} • ${money(v)} • תקציב ${money(b)}"><span class="opacity-70 text-[10px]">${d}</span><span class="text-[10px] truncate">${v?money(v):'—'}</span><span class="month-heat-details">${money(b)} • ${pct}%</span></button>`;}c.className='heatmap-grid pt-2';c.innerHTML=h;return;}const years=analyticsPeriod==='year'?[analyticsYear]:[...new Set(analyticsMonthsForHistory().map(m=>Number(m.slice(0,4))))];c.className='heatmap-year pt-2';c.innerHTML=years.map(y=>`<div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-3"><div class="flex justify-between items-center mb-3"><div class="text-sm font-bold text-white">${y}</div><div class="text-[10px] text-gray-500">12 חודשים</div></div><div class="mini-heatmap">${analyticsMonthsForYear(y).map(mm=>{const e=expenseTotal(mm),b=getMonthlyBudget(mm),ratio=b?e/b:0;const cls=ratio<=1?'heat-day-green':'heat-day-red';return `<button type="button" class="heatmap-day ${cls}" onclick="selectAnalyticsMonth('${mm}')" title="${monthLabel(mm)} • ${money(e)} מתוך ${money(b)}"><span class="text-[10px] font-semibold">${mm.slice(5)}</span></button>`}).join('')}</div></div>`).join('');}
+function renderAdvancedHeatmap(){const c=document.getElementById('monthly-heatmap');if(!c)return;const m=analyticsMonth||currentMonth();if(analyticsPeriod==='month'){const [y,mo]=m.split('-').map(Number),days=new Date(y,mo,0).getDate(),first=new Date(y,mo-1,1).getDay();const ex={};monthTx(m).filter(t=>t.type==='expense').forEach(t=>{const d=Number(String(t.date).slice(8,10));ex[d]=(ex[d]||0)+Number(t.amount)});let h='';for(let i=0;i<first;i++)h+='<div></div>';for(let d=1;d<=days;d++){const date=`${m}-${String(d).padStart(2,'0')}`,v=ex[d]||0,b=getDailyBudgetSnapshot(date),ratio=b?v/b:0,cls=ratio<=1?'heat-day-green':'heat-day-red',pct=b?Math.round(ratio*100):0;h+=`<button type="button" class="heatmap-day ${cls} p-2 border rounded-xl flex flex-col justify-between text-right" onclick="openDailyExpensesModal('${date}')" title="${date} • ${money(v)} • תקציב ${money(b)}"><span class="opacity-70 text-[10px]">${d}</span><span class="text-[10px] truncate">${v?money(v):'—'}</span><span class="month-heat-details">${money(b)} • ${pct}%</span></button>`;}c.className='heatmap-grid month-view pt-2';c.innerHTML=h;return;}const years=analyticsPeriod==='year'?[analyticsYear]:[...new Set(analyticsMonthsForHistory().map(m=>Number(m.slice(0,4))))];c.className='heatmap-year pt-2';c.innerHTML=years.map(y=>`<div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-3"><div class="flex justify-between items-center mb-3"><div class="text-sm font-bold text-white">${y}</div><div class="text-[10px] text-gray-500">12 חודשים</div></div><div class="mini-heatmap">${analyticsMonthsForYear(y).map(mm=>{const e=expenseTotal(mm),b=getMonthlyBudget(mm),ratio=b?e/b:0;const cls=ratio<=1?'heat-day-green':'heat-day-red';return `<button type="button" class="heatmap-day ${cls}" onclick="selectAnalyticsMonth('${mm}')" title="${monthLabel(mm)} • ${money(e)} מתוך ${money(b)}"><span class="text-[10px] font-semibold">${mm.slice(5)}</span></button>`}).join('')}</div></div>`).join('');}
 function enhanceHeatmapStyles(){const st=document.createElement('style');st.textContent='.heat-0{background:#111827;border-color:#1f2937;color:#6b7280}.heat-1{background:#064e3b;border-color:#065f46;color:#a7f3d0}.heat-2{background:#047857;border-color:#059669;color:#d1fae5}.heat-3{background:#92400e;border-color:#b45309;color:#fde68a}.heat-4{background:#881337;border-color:#be123c;color:#fecdd3}';document.head.appendChild(st);}
 const originalRenderAnalytics=renderAnalytics;renderAnalytics=function(){originalRenderAnalytics();renderPeriodSummary();renderAnnualSummary();renderNotifications();};
 renderHeatmap=renderAdvancedHeatmap;
@@ -1442,8 +1417,8 @@ function setAppTheme(theme){document.body.classList.remove('theme-ocean','theme-
 function loadTheme(){const t=state.settings?.theme||state.theme||'ocean';setAppTheme(t);const sel=document.getElementById('theme-select');if(sel)sel.value=t;}
 function openUserManager(){openHouseholdMemberModal();}
 function deleteCurrentUser(){if(!dbState||dbState.users.length<2)return alert('חייב להישאר לפחות משתמש אחד');if(!confirm('למחוק את המשתמש והנתונים שלו?'))return;dbState.users=dbState.users.filter(u=>u.id!==activeUserId);activeUserId=dbState.users[0].id;state=mergeFeatureState(dbState.users[0].state);dbState.activeUserId=activeUserId;writeDB();save();renderAll();syncSettingsUI();}
-function syncSettingsUI(){updateFXStatus();const u=dbState?.users?.find(x=>x.id===activeUserId);setText('active-user-name',u?.name||'—');setText('db-status','Local DB • '+(dbState?.users?.length||0)+' משתמשים');loadTheme();updateConnectionStatus();}
-function updateConnectionStatus(){const el=document.getElementById('connection-status');if(!el)return;el.innerHTML=navigator.onLine?'🟢 מחובר לרשת':'<span class="offline-badge">⚠️ לא מחובר — האפליקציה ממשיכה לעבוד מקומית</span>';}
+function syncSettingsUI(){updateFXStatus();const u=activeUserId==='local-account'?dbState?.accountUser:dbState?.users?.find(x=>x.id===activeUserId);setText('active-user-name',u?.name||'—');setText('db-status','Local DB • '+(dbState?.users?.length||1)+' משתמשים');loadTheme();updateConnectionStatus();}
+function updateConnectionStatus(){const el=document.getElementById('connection-status');if(!el)return;el.innerHTML='<span class="offline-badge">💾 מצב מקומי — הנתונים נשמרים במכשיר</span>';}
 function lockNow(){if(state.security?.enabled)lockApp();else openSecurityModal();}
 function scheduleAutoLock(){clearTimeout(autoLockTimer);if(state.security?.enabled){const mins=Number(state.settings.autoLockMinutes||30);autoLockTimer=setTimeout(()=>lockApp(),mins*60*1000);}}
 ['click','keydown','touchstart'].forEach(ev=>window.addEventListener(ev,()=>{if(!document.getElementById('lock-screen')?.classList.contains('hidden'))return;scheduleAutoLock();},{passive:true}));
@@ -1622,444 +1597,172 @@ async function submitAuth(){
 }
 async function bootAccountLayer(){ensureFeatureDB();renderThemeSwatches();await detectServer();if(isRemoteReady()&&getAuthToken()){try{const me=await apiFetch('/api/me');await loadRemoteUserState(me);hideAuthGate();renderAll();syncSettingsUI();startRemoteSyncLoop();return;}catch{setAuthToken(null);}}showAuthGate();}
 /* Initial account boot handled by v1.3 override above. */
+/* Local-first mode: the server/authentication code remains available, but this build
+   intentionally does not contact the server or show the login gate. */
+bootAccountLayer=async function(){
+  ensureFeatureDB();
+  REMOTE_API_ENABLED=false;
+  remoteSession=false;
+  setAuthToken(null);
+  hideAuthGate();
+  renderAll();
+  syncSettingsUI();
+  return true;
+};
+startRemoteSyncLoop=function(){clearInterval(window.__mtRemotePoll);};
+
 /* Language layer: keeps original source text and translates known UI strings without touching user-entered data. */
 const I18N_HE_EN={
-'עברית':'Hebrew','English':'English','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.'
+'עברית':'English','English':'עברית','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.'
 };
 Object.assign(I18N_HE_EN,{
   'הוצאות בתקופה:':'Expenses in period:',
   'הקטגוריה הגדולה ביותר:':'Largest category:',
-  'אין עדיין קטגוריה מובילה.':'There is no leading category yet.',
-  'תקציב מצטבר לתקופה:':'Cumulative budget for period:',
+  'אין עדיין קטגוריה מובילה.':'No leading category yet.',
+  'תקציב מצטבר לתקופה:':'Cumulative budget for the period:',
   'נשאר מהתקציב:':'Budget remaining:',
-  'המאזן בתקופה חיובי.':'The balance for this period is positive.',
-  'ההוצאות גבוהות מההכנסות בתקופה.':'Expenses are higher than income for this period.',
+  'הקטגוריה המובילה היא':'The leading category is',
+  'אין עדיין מספיק נתונים לקטגוריה מובילה':'Not enough data for a leading category yet',
+  'המאזן בתקופה חיובי.':'The balance for the period is positive.',
+  'ההוצאות גבוהות מההכנסות בתקופה.':'Expenses are higher than income for the period.',
+  'חיסכון / נטו':'Savings / net',
+  'חודש יקר':'Most expensive month',
+  'נטו':'Net',
+  'ניצול תקציב':'Budget usage',
+  'שינוי בהוצאה קבועה':'Change in fixed expense',
+  'מתקרבים לתקציב':'Approaching budget',
+  'חריגה מהתקציב':'Over budget',
+  'מגמת הוצאות חיובית':'Positive expense trend',
+  'אין הודעות חדשות 🎉':'No new notifications 🎉',
+  'הסכום המוגדר גבוה ב-':'The configured amount is ',
+  'מהחיוב האחרון.':'higher than the last charge.',
+  'ההוצאות בחודש':'Expenses in',
+  'הגיעו ל-':'reached',
+  'מעל התקציב של':'above the budget of',
+  'ניצלת':'You used',
+  'מהתקציב החודשי.':'of the monthly budget.',
+  'ההוצאות נמוכות בכ-':'Expenses are lower by about',
+  'לעומת החודש הקודם.':'compared with the previous month.',
   'שירות שנבחר':'Selected service',
   'בטל בחירה':'Unselect',
-  'בחר שירות כדי לראות תוכניות':'Choose a service to see plans',
-  'לא נמצאו שירותים תואמים.':'No matching services found.',
-  'בחר שירות ותוכנית תקינים':'Choose a valid service and plan',
-  'יש להזין שם וסכום תקין':'Enter a valid name and amount',
-  'הוצאה חודשית קבועה':'Fixed monthly expense',
-  'מנוי חדש':'New subscription',
-  'עריכת מנוי':'Edit subscription',
-  'עריכת הוצאה חודשית':'Edit monthly expense',
+  'שירות':'Service',
+  'תוכנית':'Plan',
   'מועד חיוב':'Billing date',
   'פעיל':'Active',
-  'תוכנית':'Plan',
-  'שירות':'Service',
+  'מושהה':'Paused',
+  'חיפוש שירות':'Search service',
+  'לא נמצאו שירותים תואמים.':'No matching services found.',
+  'תוכניות':'plans',
   'מחיר מידע:':'Price info:',
-  'נבדק':'Checked'
+  'נבדק':'Checked',
+  'מקור':'Source',
+  'עריכת מנוי':'Edit subscription',
+  'מנוי חדש':'New subscription',
+  'עריכת הוצאה':'Edit expense',
+  'הוצאה חודשית קבועה':'Fixed monthly expense',
+  'עריכת תנועה':'Edit transaction',
+  'משיכה מקופת חיסכון':'Withdraw from savings pocket',
+  'הגדרות טיול':'Trip settings',
+  'הגדרות תקציב בסיס':'Base budget settings',
+  'עריכת משכורת — ':'Edit salary — ',
+  'נעילת אפליקציה':'Lock app',
+  'הוספת אדם לחשבון משותף':'Add shared account member',
+  'עריכת אדם':'Edit member',
+  'ערכות עיצוב':'Theme presets',
+  'פרטי משתמש':'User details',
+  'פרטי חשבון':'Account details',
+  'שנת':'Year ',
+  '36 חודשים':'36 months',
+  '12 חודשים':'12 months',
+  'אין נתונים':'No data',
+  'מלא את כל השדות.':'Fill in all fields.',
+  'הסיסמה צריכה להכיל לפחות 6 תווים.':'Password must contain at least 6 characters.',
+  'אימייל או סיסמה שגויים':'Incorrect email or password',
+  'לא נמצא משתמש מקומי עם האימייל הזה':'No local user found with this email',
+  'האימייל כבר קיים במכשיר':'This email already exists on this device',
+  'בחר שירות ותוכנית תקינים':'Select a valid service and plan',
+  'יש להזין שם וסכום תקין':'Enter a valid name and amount',
+  'הזן תיאור וסכום תקינים':'Enter a valid description and amount'
 });
 const I18N_EN_HE=Object.fromEntries(Object.entries(I18N_HE_EN).map(([a,b])=>[b,a]));
 function normalizeI18nText(s){return String(s||'').replace(/\s+/g,' ').trim();}
-const i18nOriginalText=new WeakMap();
-const i18nOriginalAttr=new WeakMap();
-function translateCompositeText(source,dict){
-  const raw=String(source??'');
-  const exact=dict[normalizeI18nText(raw)];
-  if(exact)return raw.replace(normalizeI18nText(raw),exact);
-  let out=raw;
-  const pairs=Object.entries(dict).filter(([a,b])=>a&&b&&a.length>1).sort((a,b)=>b[0].length-a[0].length);
-  for(const [from,to] of pairs){if(out.includes(from))out=out.split(from).join(to);}
-  return out;
-}
 function applyLanguageToDOM(){
-  const lang=state.settings?.language||'he';
-  document.documentElement.lang=lang;document.documentElement.dir=lang==='en'?'ltr':'rtl';
-  const dict=lang==='en'?I18N_HE_EN:I18N_EN_HE;
-  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),nodes=[];
-  while(walker.nextNode())nodes.push(walker.currentNode);
-  nodes.forEach(n=>{
-    if(n.parentElement?.closest('#language-select'))return;
-    const current=n.nodeValue||'';
-    if(!i18nOriginalText.has(n))i18nOriginalText.set(n,current);
-    const source=i18nOriginalText.get(n);
-    if(!source.trim())return;
-    n.nodeValue=translateCompositeText(source,dict);
-  });
-  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el=>{
-    for(const a of ['placeholder','title','aria-label']){
-      const v=el.getAttribute(a);if(!v)continue;
-      let map=i18nOriginalAttr.get(el);if(!map){map={};i18nOriginalAttr.set(el,map);}
-      if(map[a]===undefined)map[a]=v;
-      el.setAttribute(a,translateCompositeText(map[a],dict));
-    }
-  });
-  const ls=document.getElementById('language-select');
-  if(ls){ls.value=lang;const heOpt=ls.querySelector('option[value="he"]'),enOpt=ls.querySelector('option[value="en"]');if(heOpt)heOpt.textContent='עברית';if(enOpt)enOpt.textContent='English';}
-}
-function setAppLanguage(lang){
-  if(!['he','en'].includes(lang))lang='he';
-  state.settings=state.settings||{};state.settings.language=lang;save();
-  applyLanguageToDOM();renderAll();setTimeout(applyLanguageToDOM,30);
-}
-// Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
-window.addEventListener('load',()=>{setTimeout(async()=>{ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();await bootAccountLayer();applyLanguageToDOM();if(window.lucide)lucide.createIcons();},50);});
-</script>
-
-<style>
-/* v1.5.1 mobile navigation + heatmap fixes */
-@media (max-width:699px){
-  nav.fixed.bottom-0{
-    justify-content:flex-start !important;
-    overflow-x:auto !important;
-    overflow-y:hidden !important;
-    -webkit-overflow-scrolling:touch;
-    scrollbar-width:none;
-    touch-action:pan-x;
-    gap:4px;
-  }
-  nav.fixed.bottom-0::-webkit-scrollbar{display:none}
-  nav.fixed.bottom-0 > button{
-    flex:0 0 auto !important;
-    min-width:68px;
-    white-space:nowrap;
-  }
-  #tab-analytics .heatmap-grid,
-  #tab-analytics .advanced-heatmap-grid,
-  .heatmap-grid{
-    max-width:100%;
-  }
-  #tab-analytics .heatmap-day{
-    min-width:0 !important;
-    width:auto !important;
-    height:auto !important;
-    aspect-ratio:1/1 !important;
-    border-radius:5px !important;
-    font-size:8px !important;
-    padding:1px !important;
-  }
-  #tab-analytics .heatmap-grid{
-    gap:3px !important;
-  }
-  main{width:100%;min-width:0;overflow-x:hidden}
-  .tab-content{min-width:0;overflow-x:hidden}
-}
-</style>
-<script>
-/* ================= v1.5.1 local-first / i18n / navigation patch ================= */
-
-/* The server/auth code remains in the project, but is intentionally dormant
-   until a real API is configured. In the meantime the app is local-only. */
-async function bootAccountLayer(){
-  try{
-    await restoreMoneyTrackerCache();
-  }catch(e){ console.warn('Local cache restore failed',e); }
-  ensureFeatureDB();
-  REMOTE_API_ENABLED=false;
-  remoteSession=false;
-  hideAuthGate();
-  renderAll();
-  syncSettingsUI();
-  applyLanguageToDOM();
-  if(window.lucide) lucide.createIcons();
-}
-
-/* Local Cache mirror: localStorage remains the fast primary store, while
-   Cache Storage keeps a second local copy of the user's app state. */
-const MT_CACHE_NAME='money-tracker-local-data-v1';
-const MT_CACHE_URL='/__moneytracker_local_state__.json';
-
-async function writeMoneyTrackerCache(){
-  try{
-    if(!('caches' in window)) return;
-    const cache=await caches.open(MT_CACHE_NAME);
-    const payload=JSON.stringify({
-      savedAt:Date.now(),
-      state:state,
-      dbState:dbState
-    });
-    await cache.put(MT_CACHE_URL,new Response(payload,{
-      headers:{'Content-Type':'application/json'}
-    }));
-  }catch(e){ console.warn('Local cache write failed',e); }
-}
-async function restoreMoneyTrackerCache(){
-  if(!('caches' in window)) return false;
-  try{
-    const cache=await caches.open(MT_CACHE_NAME);
-    const response=await cache.match(MT_CACHE_URL);
-    if(!response) return false;
-    const data=await response.json();
-    const localRaw=localStorage.getItem(KEY);
-    const dbRaw=localStorage.getItem(DB_KEY);
-    const localSaved=Number(localStorage.getItem('moneytracker_local_saved_at')||0);
-    if(!localRaw || Number(data.savedAt||0)>localSaved){
-      if(data.state) localStorage.setItem(KEY,JSON.stringify(data.state));
-      if(data.dbState) localStorage.setItem(DB_KEY,JSON.stringify(data.dbState));
-      if(data.savedAt) localStorage.setItem('moneytracker_local_saved_at',String(data.savedAt));
-      state=load();
-      ensureFeatureDB();
-      return true;
-    }
-  }catch(e){ console.warn('Local cache restore error',e); }
-  return false;
-}
-
-/* Preserve the existing save logic, but mirror every save to the browser's
-   local Cache Storage as well. */
-const __mtSave141 = save;
-save = function(){
-  __mtSave141();
-  try{ localStorage.setItem('moneytracker_local_saved_at',String(Date.now())); }catch{}
-  writeMoneyTrackerCache();
-};
-
-/* v1.5.1: deterministic tab navigation. */
-(function installDeterministicNavigation(){
-  const tabNames=['dashboard','analytics','notifications','pockets','travel','settings'];
-
-  function setTabVisibility(tab){
-    tabNames.forEach(name=>{
-      const el=document.getElementById('tab-'+name);
-      if(!el) return;
-      const active=name===tab;
-      el.classList.toggle('hidden',!active);
-      el.setAttribute('aria-hidden',String(!active));
-      el.style.display=active?'block':'none';
-      el.style.visibility=active?'visible':'';
-      el.style.opacity=active?'1':'';
-    });
-    document.querySelectorAll('nav button[id^="nav-"]').forEach(btn=>{
-      const active=btn.id==='nav-'+tab;
-      btn.classList.toggle('nav-active',active);
-      btn.setAttribute('aria-selected',String(active));
-      btn.setAttribute('aria-current',active?'page':'false');
-    });
-    const overviewWidgets=document.getElementById('dashboard-overview-widgets');
-    if(overviewWidgets) overviewWidgets.style.display=tab==='dashboard'?'block':'none';
-  }
-
-  window.switchTab=function(tab){
-    if(!tabNames.includes(tab)) return false;
-    setTabVisibility(tab);
-    try{
-      if(tab==='dashboard'){
-        if(typeof renderAll==='function') renderAll();
-      }else if(tab==='analytics'){
-        if(typeof renderAnalytics==='function') renderAnalytics();
-        if(typeof renderMonthlyComparison==='function') renderMonthlyComparison();
-        if(typeof updateCharts==='function') updateCharts();
-        if(typeof renderHeatmap==='function') renderHeatmap();
-      }else if(tab==='notifications'){
-        if(typeof renderNotifications==='function') renderNotifications();
-        if(typeof renderPeriodSummary==='function') renderPeriodSummary();
-        if(typeof renderAnnualSummary==='function') renderAnnualSummary();
-        if(typeof renderAdvancedHeatmap==='function') renderAdvancedHeatmap();
-      }else if(tab==='pockets'){
-        if(typeof renderSavingsAllocations==='function') renderSavingsAllocations();
-        if(typeof renderPockets==='function') renderPockets();
-        if(typeof renderRecurring==='function') renderRecurring();
-      }else if(tab==='travel'){
-        if(typeof refreshFXRates==='function') refreshFXRates(false);
-        if(typeof convertFX==='function') convertFX();
-        if(typeof renderTrip==='function') renderTrip();
-      }else if(tab==='settings'){
-        if(typeof syncSettingsUI==='function') syncSettingsUI();
-      }
-    }catch(e){
-      console.warn('Tab renderer failed; keeping tab visible:',tab,e);
-    }
-    requestAnimationFrame(()=>{
-      setTabVisibility(tab);
-      if(window.lucide) lucide.createIcons();
-      if(typeof applyLanguageToDOM==='function') applyLanguageToDOM();
-    });
-    return true;
-  };
-
-  window.__setMoneyTrackerTabVisibility=setTabVisibility;
-
-  document.addEventListener('DOMContentLoaded',()=>{
-    document.querySelectorAll('nav button[id^="nav-"]').forEach(btn=>{
-      if(btn.__mt151Bound) return;
-      btn.__mt151Bound=true;
-      btn.addEventListener('click',e=>{
-        const tab=btn.id.replace(/^nav-/,'');
-        if(tabNames.includes(tab)){
-          e.preventDefault();
-          window.switchTab(tab);
-        }
-      });
-    });
-    setTabVisibility('dashboard');
-  });
-})();
-
-/* Localized dates/month labels. */
-monthLabel = function(m){
-  const [y,mo]=String(m||'').split('-');
-  const locale=(state?.settings?.language||'he')==='en'?'en-US':'he-IL';
-  return new Date(Number(y),Number(mo)-1,1).toLocaleDateString(locale,{month:'long',year:'numeric'});
-};
-renderHeaderDate = function(){
-  const el=document.getElementById('header-date');
-  if(!el) return;
-  const locale=(state?.settings?.language||'he')==='en'?'en-US':'he-IL';
-  el.innerText=new Date().toLocaleDateString(locale,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-};
-
-/* More complete offline UI translation. This deliberately targets interface
-   text; user-entered values are kept in the application's source data. */
-const MT_EXTRA_EN={
-'תקציב יומי':'Daily budget','הוצאות יומיות':'Daily expenses','הוצאות':'Expenses','הכנסות':'Income',
-'תאריך':'Date','תאריך התחלה':'Start date','תאריך סיום':'End date','תיאור':'Description',
-'סכום':'Amount','סכום חודשי':'Monthly amount','סכום משיכה':'Withdrawal amount','קטגוריה':'Category',
-'סוג הוצאה':'Expense type','סוג':'Type','בחירה':'Selection','בחר':'Select','בחירת':'Select',
-'בחר תוכנית':'Choose a plan','בחר שירות':'Choose a service','חיפוש':'Search','חיפוש שירות':'Search service',
-'ביטול':'Cancel','סגור':'Close','מחיקה':'Delete','מחק':'Delete','הוספה':'Add','הוסף':'Add',
-'עדכון':'Update','עדכן':'Update','שמור':'Save','שמירה':'Save','יצירה':'Create','צור':'Create',
-'עריכת תנועה':'Edit transaction','עריכת קופה':'Edit pocket','קופה חדשה':'New pocket',
-'קופה':'Pocket','קופת חיסכון':'Savings pocket','משיכה מקופת חיסכון':'Withdrawal from savings pocket',
-'פרטים':'Details','פרטי חשבון':'Account details','חשבון':'Account','הפרופיל שלי':'My profile',
-'ניהול חשבון':'Account management','אזור אישי':'Personal area','אדם':'Person','אנשים':'People',
-'בעל החשבון':'Account owner','אדם בחשבון':'Account member','מסונכרן':'Synced','לא מסונכרן':'Not synced',
-'אין נתונים':'No data','אין הוצאות':'No expenses','אין תנועות':'No transactions','אין הודעות':'No notifications',
-'אין מנויים מוגדרים.':'No subscriptions configured.','אין הוצאות חודשיות קבועות.':'No fixed monthly expenses.',
-'אין עדיין אנשים נוספים.':'No additional people yet.','אין קופות':'No pockets',
-'מצב פעיל':'Active status','מושהה':'Paused','פעיל':'Active','לא פעיל':'Inactive',
-'חודשי':'Monthly','יומי':'Daily','שנתי':'Annual','שבועי':'Weekly','היום':'Today','אתמול':'Yesterday',
-'מחר':'Tomorrow','החודש':'This month','השנה':'This year','החודש הקודם':'Previous month',
-'חודש קודם':'Previous month','החודשים האחרונים':'Recent months','היסטוריה':'History',
-'סיכום':'Summary','סיכום תקופה':'Period summary','סיכום חודשי':'Monthly summary',
-'סיכום שנתי':'Annual summary','השוואה':'Comparison','מגמה':'Trend','מגמות':'Trends',
-'חיסכון':'Savings','הפרשה':'Allocation','הפרשות':'Allocations','יעד':'Target','יתרה':'Balance',
-'עלות':'Cost','עלות חודשית':'Monthly cost','מחיר':'Price','מקור':'Source','נבדק':'Checked',
-'תוכנית':'Plan','שירות':'Service','סוג מנוי':'Subscription type','מנוי':'Subscription',
-'מנוי חדש':'New subscription','עריכת מנוי':'Edit subscription','הוצאה חודשית':'Monthly expense',
-'קבוע':'Fixed','קבועות':'Fixed','הוצאה חודשית קבועה':'Fixed monthly expense',
-'מפת חום':'Heatmap','מפת חום של הוצאות יומיות':'Daily expense heatmap','מפת הוצאות / קטגוריות':'Expense / category map',
-'תובנות':'Insights','תובנה':'Insight','הודעות':'Notifications','הודעה':'Notification',
-'מרכז הודעות':'Notification center','הודעות אחרונות':'Recent notifications','חדש':'New',
-'נקרא':'Read','לא נקרא':'Unread','סמן כנקרא':'Mark as read','סמן הכל כנקרא':'Mark all as read',
-'גרף':'Chart','גרפים':'Charts','ניתוחים':'Analytics','נתונים':'Data','הגדרות':'Settings',
-'עיצוב ותצוגה':'Appearance & display','ערכת עיצוב':'Theme','ערכות עיצוב':'Themes','רקע':'Background',
-'מצב דיסקרטי':'Discreet mode','שפה':'Language','אבטחה':'Security','ייצוא':'Export','ייבוא':'Import',
-'גיבוי':'Backup','שחזור':'Restore','עדכוני אפליקציה':'App updates','בדוק עדכונים':'Check for updates',
-'בדיקה':'Check','בדוק':'Check','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.',
-'טיול':'Trip','מצב טיול':'Trip mode','כלים':'Tools','חלוקת חשבון':'Bill split','מחשבון':'Calculator',
-'מחשבון המרת מט"ח':'Currency converter','תוצאה בשקלים':'Result in ILS','כל אחד משלם':'Each person pays',
-'הפרשות חודשיות לחיסכון':'Monthly savings allocations','קופות חיסכון':'Savings pockets',
-'קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)',
-'מומלץ להיום':'Recommended for today','עמד בתקציב':'Within budget','חריגה':'Over budget',
-'ניצול':'Used','נשאר מהתקציב':'Budget remaining','תקציב מצטבר לתקופה:':'Cumulative budget for period:',
-'נשאר מהתקציב:':'Budget remaining:','הקטגוריה הגדולה ביותר:':'Largest category:',
-'אין עדיין קטגוריה מובילה.':'There is no leading category yet.',
-'אין שינויים משמעותיים בהוצאות בהשוואה לחודש שעבר.':'No significant changes in expenses compared with last month.',
-'הוצאות בתקופה:':'Expenses in period:','עלות חודשית':'Monthly cost','מחיר מידע:':'Price information:',
-'שגיאת שרת':'Server error','לא ניתן להתחבר כרגע.':'Unable to connect right now.',
-'מלא את כל השדות.':'Please fill in all fields.','הזן שם':'Enter a name','הזן סכום תקין':'Enter a valid amount',
-'יש ליצור קופת חיסכון תחילה לפני הגדרת הפרשה':'Create a savings pocket before setting an allocation',
-'אין הוצאות רשומות ביום הזה.':'No expenses recorded on this day.',
-'השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the interface. User data is kept in its original language.'
-};
-Object.assign(I18N_HE_EN,MT_EXTRA_EN);
-Object.assign(I18N_EN_HE,Object.fromEntries(Object.entries(MT_EXTRA_EN).map(([a,b])=>[b,a])));
-
-/* Translate common Hebrew words inside dynamic sentences too. */
-const MT_WORDS={
-'הוצאות':'Expenses','הוצאה':'Expense','הכנסות':'Income','הכנסה':'Income','תקציב':'Budget','נשאר':'Remaining',
-'חודש':'Month','חודשים':'Months','שנה':'Year','שנים':'Years','יום':'Day','ימים':'Days','שבוע':'Week','שבועות':'Weeks',
-'קטגוריה':'Category','קטגוריות':'Categories','אוכל':'Food','מזון':'Food','מגורים':'Housing','חשבונות':'Bills',
-'תחבורה':'Transport','פנאי':'Leisure','בילויים':'Entertainment','קניות':'Shopping','משכורת':'Salary',
-'השקעות':'Investments','שונות':'Other','מנויים':'Subscriptions','מנוי':'Subscription','שירות':'Service',
-'תוכנית':'Plan','עלות':'Cost','מחיר':'Price','חיסכון':'Savings','הפרשה':'Allocation','קופה':'Pocket',
-'קופות':'Pockets','טיול':'Trip','הודעות':'Notifications','הודעה':'Notification','תובנות':'Insights',
-'שינוי':'Change','עלו':'increased','ירדו':'decreased','לעומת':'compared with','היום':'today','אתמול':'yesterday',
-'פעיל':'Active','מושהה':'Paused','ניצול':'Usage','חריגה':'Over budget','יתרה':'Balance','התחלתי':'Initial',
-'חודשי':'Monthly','יומי':'Daily','שנתי':'Annual','כולל':'including','כולל':'including','אין':'No','נתונים':'data'
-};
-function translateDynamicText(source,dict){
-  let out=translateCompositeText(source,dict);
-  if(dict===I18N_HE_EN){
-    Object.entries(MT_WORDS).forEach(([a,b])=>{
-      out=out.replace(new RegExp('(^|[\\s:•()\\-—/])'+a+'(?=$|[\\s:•,().\\-—/])','g'),'$1'+b);
-    });
-  }
-  return out;
-}
-applyLanguageToDOM = function(){
   const lang=state.settings?.language||'he';
   document.documentElement.lang=lang;
   document.documentElement.dir=lang==='en'?'ltr':'rtl';
   const dict=lang==='en'?I18N_HE_EN:I18N_EN_HE;
   const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
   const nodes=[];
-  while(walker.nextNode()) nodes.push(walker.currentNode);
+  while(walker.nextNode())nodes.push(walker.currentNode);
   nodes.forEach(n=>{
-    if(n.parentElement?.closest('script,style,#language-select')) return;
-    const current=n.nodeValue||'';
-    if(!n.__mtOriginalText) n.__mtOriginalText=current;
-    const source=n.__mtOriginalText;
-    if(!source.trim()) return;
-    n.nodeValue=translateDynamicText(source,dict);
+    const parent=n.parentElement;
+    if(!parent||parent.closest('#language-select')||parent.tagName==='OPTION')return;
+    const raw=normalizeI18nText(n.nodeValue);if(!raw)return;
+    const translated=dict[raw];
+    if(translated){
+      const leading=n.nodeValue.match(/^\s*/)?.[0]||'',trailing=n.nodeValue.match(/\s*$/)?.[0]||'';
+      n.nodeValue=leading+translated+trailing;
+    }
   });
   document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el=>{
-    if(el.id==='language-select') return;
-    ['placeholder','title','aria-label'].forEach(a=>{
-      const current=el.getAttribute(a);
-      if(!current) return;
-      el.__mtOriginalAttrs=el.__mtOriginalAttrs||{};
-      if(el.__mtOriginalAttrs[a]===undefined) el.__mtOriginalAttrs[a]=current;
-      el.setAttribute(a,translateDynamicText(el.__mtOriginalAttrs[a],dict));
-    });
+    if(el.id==='language-select')return;
+    for(const a of ['placeholder','title','aria-label']){
+      const value=el.getAttribute(a);if(!value)continue;
+      const translated=dict[normalizeI18nText(value)];
+      if(translated)el.setAttribute(a,translated);
+    }
   });
+
+  // Translate generated UI sentences without translating user-entered values.
+  if(lang==='en'){
+    const phrasePairs=[
+      ['הוצאות בתקופה:','Expenses in period:'],['הקטגוריה הגדולה ביותר:','Largest category:'],
+      ['אין עדיין קטגוריה מובילה.','No leading category yet.'],['תקציב מצטבר לתקופה:','Cumulative budget for the period:'],
+      ['נשאר מהתקציב:','Budget remaining:'],['הקטגוריה המובילה היא','The leading category is'],
+      ['אין עדיין מספיק נתונים לקטגוריה מובילה','Not enough data for a leading category yet'],
+      ['המאזן בתקופה חיובי.','The balance for the period is positive.'],
+      ['ההוצאות גבוהות מההכנסות בתקופה.','Expenses are higher than income for the period.'],
+      ['מפת הוצאות / קטגוריות —','Expense / category map —'],['12 חודשים','12 months'],['36 חודשים','36 months'],
+      ['שינוי בהוצאה קבועה:','Change in fixed expense:'],['חריגה מהתקציב','Over budget'],
+      ['מתקרבים לתקציב','Approaching budget'],['מגמת הוצאות חיובית','Positive expense trend'],
+      ['אין הודעות חדשות 🎉','No new notifications 🎉'],['ניצלת','You used'],
+      ['מהתקציב החודשי.','of the monthly budget.'],['לעומת החודש הקודם.','compared with the previous month.'],
+      ['ההוצאות נמוכות בכ-','Expenses are lower by about'],['ההוצאות בחודש','Expenses in'],
+      ['הגיעו ל-','reached'],['מעל התקציב של','above the budget of'],['הסכום המוגדר גבוה ב-','The configured amount is'],
+      ['מהחיוב האחרון.','higher than the last charge.'],['אין נתונים','No data']
+    ];
+    const targets=['#insights','#period-summary','#annual-summary','#notifications-list','#notification-popover-list','#category-map'];
+    targets.forEach(sel=>{
+      const root=document.querySelector(sel);if(!root)return;
+      const tw=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const ns=[];while(tw.nextNode())ns.push(tw.currentNode);
+      ns.forEach(n=>{
+        let value=n.nodeValue;
+        phrasePairs.forEach(([he,en])=>{value=value.split(he).join(en);});
+        n.nodeValue=value;
+      });
+    });
+  }
+
   const ls=document.getElementById('language-select');
   if(ls){
+    // Keep option values and labels semantically correct; never run the
+    // general translator over these two options.
+    ls.innerHTML='<option value="he">עברית</option><option value="en">English</option>';
     ls.value=lang;
-    const heOpt=ls.querySelector('option[value="he"]'), enOpt=ls.querySelector('option[value="en"]');
-    if(heOpt) heOpt.textContent='עברית';
-    if(enOpt) enOpt.textContent='English';
   }
   renderHeaderDate();
-};
-
-/* Language change: store the language, re-render, then translate the newly
-   generated DOM so dynamic titles, insights and dates are translated too. */
-setAppLanguage = function(lang){
-  if(lang!=='he' && lang!=='en') lang='he';
+}
+function setAppLanguage(lang){
+  if(!['he','en'].includes(lang))lang='he';
   state.settings=state.settings||{};
   state.settings.language=lang;
   save();
   renderAll();
-  syncSettingsUI();
-  requestAnimationFrame(()=>{
-    applyLanguageToDOM();
-    lucide.createIcons();
-  });
-};
-
-/* Ensure dynamic renderers are translated after every complete render. */
-const __mtRenderAll141 = renderAll;
-renderAll = function(){
-  try{ __mtRenderAll141(); }
-  finally{
-    requestAnimationFrame(()=>{applyLanguageToDOM();if(window.lucide)lucide.createIcons();});
-  }
-};
-
-/* Do not automatically show the login wall while there is no server. */
-hideAuthGate();
-document.body.classList.remove('auth-locked');
-</script>
-
-<script>
-/* v1.5.0: navigation fallback. Uses event delegation so navigation keeps
-   working even if a renderer throws an exception. */
-document.addEventListener('DOMContentLoaded',function(){
-  document.querySelectorAll('nav button[id^="nav-"]').forEach(function(btn){
-    btn.addEventListener('click',function(ev){
-      ev.preventDefault();
-      const tab=this.id.replace(/^nav-/,'');
-      if(typeof switchTab==='function') switchTab(tab);
-    },{passive:false});
-  });
-  // Make the current tab explicit on first load.
-  document.querySelectorAll('.tab-content').forEach(function(el){
-    el.setAttribute('aria-hidden',el.classList.contains('hidden')?'true':'false');
-  });
-});
+  applyLanguageToDOM();
+  setTimeout(applyLanguageToDOM,30);
+}
+// Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
+window.addEventListener('load',()=>{setTimeout(async()=>{ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();await bootAccountLayer();applyLanguageToDOM();if(window.lucide)lucide.createIcons();},50);});
 </script>
 </body>
 </html>
