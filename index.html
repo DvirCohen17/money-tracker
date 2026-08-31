@@ -8,7 +8,7 @@
 <script src="https://unpkg.com/lucide@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="./config.js" onerror="this.remove()"></script>
-<script src="./script.js?v=1.4.0"></script>
+<script src="./script.js?v=1.4.1"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
 *{box-sizing:border-box}
@@ -651,14 +651,8 @@ function switchTab(tab){
   document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
   const overviewWidgets=document.getElementById('dashboard-overview-widgets');
   if(overviewWidgets)overviewWidgets.style.display=tab==='dashboard'?'block':'none';
-  const target=document.getElementById('tab-'+tab);
-  const nav=document.getElementById('nav-'+tab);
-  if(!target || !nav){
-    console.warn('Unknown MoneyTracker tab:', tab);
-    return;
-  }
-  target.classList.remove('hidden');
-  nav.classList.add('nav-active');
+  document.getElementById('tab-'+tab).classList.remove('hidden');
+  document.getElementById('nav-'+tab).classList.add('nav-active');
   if(tab==='dashboard'){renderAll();}
   if(tab==='analytics'){renderAnalytics();renderMonthlyComparison();requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();});}
   if(tab==='pockets'){renderSavingsAllocations();renderPockets();}
@@ -1408,27 +1402,9 @@ let profileOpen=false;
 function apiUrl(path){return API_BASE_URL ? API_BASE_URL + path : path;}
 function isRemoteReady(){return REMOTE_API_ENABLED;}
 async function detectServer(){
-  if(location.protocol==='file:'){
-    REMOTE_API_ENABLED=false;
-    return false;
-  }
-  try{
-    const r=await fetch('/api/health',{cache:'no-store',headers:{'Accept':'application/json'}});
-    if(!r.ok){REMOTE_API_ENABLED=false;return false;}
-    const type=(r.headers.get('content-type')||'').toLowerCase();
-    if(!type.includes('application/json')){
-      // Static hosts can return index.html with HTTP 200 for unknown /api paths.
-      // That is not a backend.
-      REMOTE_API_ENABLED=false;
-      return false;
-    }
-    const body=await r.json();
-    REMOTE_API_ENABLED=body?.ok===true || body?.status==='ok';
-    return REMOTE_API_ENABLED;
-  }catch{
-    REMOTE_API_ENABLED=false;
-    return false;
-  }
+  if(isRemoteReady()){REMOTE_API_ENABLED=true;return true;}
+  if(location.protocol==='file:'){REMOTE_API_ENABLED=false;return false;}
+  try{const r=await fetch('/api/health',{cache:'no-store'});REMOTE_API_ENABLED=r.ok;return REMOTE_API_ENABLED;}catch{REMOTE_API_ENABLED=false;return false;}
 }
 function getAuthToken(){return localStorage.getItem('moneytracker_auth_token')||sessionStorage.getItem('moneytracker_auth_token')||'';}
 function setAuthToken(t,remember=true){localStorage.removeItem('moneytracker_auth_token');sessionStorage.removeItem('moneytracker_auth_token');if(t)(remember?localStorage:sessionStorage).setItem('moneytracker_auth_token',t);}
@@ -1578,33 +1554,7 @@ async function submitAuth(){
     msg.textContent='';
   }catch(e){console.error(e);msg.textContent=e.message||'לא ניתן להתחבר כרגע.';}finally{btn.disabled=false;btn.textContent=authMode==='register'?'צור משתמש':'התחבר';}
 }
-async function bootAccountLayer(){
-  ensureFeatureDB();
-  renderThemeSwatches();
-  await detectServer();
-  // When the app is running without a real backend (GitHub Pages, local file, etc.),
-  // keep the existing local-app experience instead of blocking the entire UI with login.
-  if(!isRemoteReady()){
-    hideAuthGate();
-    renderAll();
-    syncSettingsUI();
-    return;
-  }
-  if(getAuthToken()){
-    try{
-      const me=await apiFetch('/api/me');
-      await loadRemoteUserState(me);
-      hideAuthGate();
-      renderAll();
-      syncSettingsUI();
-      startRemoteSyncLoop();
-      return;
-    }catch{
-      setAuthToken(null);
-    }
-  }
-  showAuthGate();
-}
+async function bootAccountLayer(){ensureFeatureDB();renderThemeSwatches();await detectServer();if(isRemoteReady()&&getAuthToken()){try{const me=await apiFetch('/api/me');await loadRemoteUserState(me);hideAuthGate();renderAll();syncSettingsUI();startRemoteSyncLoop();return;}catch{setAuthToken(null);}}showAuthGate();}
 /* Initial account boot handled by v1.3 override above. */
 /* Language layer: keeps original source text and translates known UI strings without touching user-entered data. */
 const I18N_HE_EN={
@@ -1680,6 +1630,316 @@ function setAppLanguage(lang){
 }
 // Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
 window.addEventListener('load',()=>{setTimeout(async()=>{ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();await bootAccountLayer();applyLanguageToDOM();if(window.lucide)lucide.createIcons();},50);});
+</script>
+
+<style>
+/* v1.4.1 mobile navigation + heatmap fixes */
+@media (max-width:699px){
+  nav.fixed.bottom-0{
+    justify-content:flex-start !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    touch-action:pan-x;
+    gap:4px;
+  }
+  nav.fixed.bottom-0::-webkit-scrollbar{display:none}
+  nav.fixed.bottom-0 > button{
+    flex:0 0 auto !important;
+    min-width:68px;
+    white-space:nowrap;
+  }
+  #tab-analytics .heatmap-grid,
+  #tab-analytics .advanced-heatmap-grid,
+  .heatmap-grid{
+    max-width:100%;
+  }
+  #tab-analytics .heatmap-day{
+    min-width:0 !important;
+    width:auto !important;
+    height:auto !important;
+    aspect-ratio:1/1 !important;
+    border-radius:5px !important;
+    font-size:8px !important;
+    padding:1px !important;
+  }
+  #tab-analytics .heatmap-grid{
+    gap:3px !important;
+  }
+  main{width:100%;min-width:0;overflow-x:hidden}
+  .tab-content{min-width:0;overflow-x:hidden}
+}
+</style>
+<script>
+/* ================= v1.4.1 local-first / i18n / navigation patch ================= */
+
+/* The server/auth code remains in the project, but is intentionally dormant
+   until a real API is configured. In the meantime the app is local-only. */
+async function bootAccountLayer(){
+  try{
+    await restoreMoneyTrackerCache();
+  }catch(e){ console.warn('Local cache restore failed',e); }
+  ensureFeatureDB();
+  REMOTE_API_ENABLED=false;
+  remoteSession=false;
+  hideAuthGate();
+  renderAll();
+  syncSettingsUI();
+  applyLanguageToDOM();
+  if(window.lucide) lucide.createIcons();
+}
+
+/* Local Cache mirror: localStorage remains the fast primary store, while
+   Cache Storage keeps a second local copy of the user's app state. */
+const MT_CACHE_NAME='money-tracker-local-data-v1';
+const MT_CACHE_URL='/__moneytracker_local_state__.json';
+
+async function writeMoneyTrackerCache(){
+  try{
+    if(!('caches' in window)) return;
+    const cache=await caches.open(MT_CACHE_NAME);
+    const payload=JSON.stringify({
+      savedAt:Date.now(),
+      state:state,
+      dbState:dbState
+    });
+    await cache.put(MT_CACHE_URL,new Response(payload,{
+      headers:{'Content-Type':'application/json'}
+    }));
+  }catch(e){ console.warn('Local cache write failed',e); }
+}
+async function restoreMoneyTrackerCache(){
+  if(!('caches' in window)) return false;
+  try{
+    const cache=await caches.open(MT_CACHE_NAME);
+    const response=await cache.match(MT_CACHE_URL);
+    if(!response) return false;
+    const data=await response.json();
+    const localRaw=localStorage.getItem(KEY);
+    const dbRaw=localStorage.getItem(DB_KEY);
+    const localSaved=Number(localStorage.getItem('moneytracker_local_saved_at')||0);
+    if(!localRaw || Number(data.savedAt||0)>localSaved){
+      if(data.state) localStorage.setItem(KEY,JSON.stringify(data.state));
+      if(data.dbState) localStorage.setItem(DB_KEY,JSON.stringify(data.dbState));
+      if(data.savedAt) localStorage.setItem('moneytracker_local_saved_at',String(data.savedAt));
+      state=load();
+      ensureFeatureDB();
+      return true;
+    }
+  }catch(e){ console.warn('Local cache restore error',e); }
+  return false;
+}
+
+/* Preserve the existing save logic, but mirror every save to the browser's
+   local Cache Storage as well. */
+const __mtSave141 = save;
+save = function(){
+  __mtSave141();
+  try{ localStorage.setItem('moneytracker_local_saved_at',String(Date.now())); }catch{}
+  writeMoneyTrackerCache();
+};
+
+/* Make navigation fail-safe: never leave the user with a blank page if a
+   renderer has an isolated problem. */
+switchTab = function(tab){
+  const target=document.getElementById('tab-'+tab);
+  if(!target){
+    console.warn('Unknown tab:',tab);
+    return;
+  }
+  document.querySelectorAll('.tab-content').forEach(x=>x.classList.add('hidden'));
+  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
+  target.classList.remove('hidden');
+  document.getElementById('nav-'+tab)?.classList.add('nav-active');
+  const overviewWidgets=document.getElementById('dashboard-overview-widgets');
+  if(overviewWidgets) overviewWidgets.style.display=tab==='dashboard'?'block':'none';
+
+  try{
+    if(tab==='dashboard') renderAll();
+    else if(tab==='analytics'){
+      renderAnalytics();
+      renderMonthlyComparison();
+      requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();applyLanguageToDOM();});
+    }else if(tab==='notifications'){
+      renderNotifications();
+      renderPeriodSummary();
+      renderAnnualSummary();
+      renderAdvancedHeatmap();
+    }else if(tab==='pockets'){
+      renderSavingsAllocations();
+      renderPockets();
+      renderRecurring();
+    }else if(tab==='travel'){
+      refreshFXRates(false);
+      convertFX();
+      renderTrip();
+    }else if(tab==='settings'){
+      syncSettingsUI();
+    }
+    lucide.createIcons();
+    applyLanguageToDOM();
+  }catch(e){
+    console.error('Tab render failed:',tab,e);
+    /* Keep the tab visible; do not turn a renderer error into an empty screen. */
+  }
+};
+
+/* Localized dates/month labels. */
+monthLabel = function(m){
+  const [y,mo]=String(m||'').split('-');
+  const locale=(state?.settings?.language||'he')==='en'?'en-US':'he-IL';
+  return new Date(Number(y),Number(mo)-1,1).toLocaleDateString(locale,{month:'long',year:'numeric'});
+};
+renderHeaderDate = function(){
+  const el=document.getElementById('header-date');
+  if(!el) return;
+  const locale=(state?.settings?.language||'he')==='en'?'en-US':'he-IL';
+  el.innerText=new Date().toLocaleDateString(locale,{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+};
+
+/* More complete offline UI translation. This deliberately targets interface
+   text; user-entered values are kept in the application's source data. */
+const MT_EXTRA_EN={
+'תקציב יומי':'Daily budget','הוצאות יומיות':'Daily expenses','הוצאות':'Expenses','הכנסות':'Income',
+'תאריך':'Date','תאריך התחלה':'Start date','תאריך סיום':'End date','תיאור':'Description',
+'סכום':'Amount','סכום חודשי':'Monthly amount','סכום משיכה':'Withdrawal amount','קטגוריה':'Category',
+'סוג הוצאה':'Expense type','סוג':'Type','בחירה':'Selection','בחר':'Select','בחירת':'Select',
+'בחר תוכנית':'Choose a plan','בחר שירות':'Choose a service','חיפוש':'Search','חיפוש שירות':'Search service',
+'ביטול':'Cancel','סגור':'Close','מחיקה':'Delete','מחק':'Delete','הוספה':'Add','הוסף':'Add',
+'עדכון':'Update','עדכן':'Update','שמור':'Save','שמירה':'Save','יצירה':'Create','צור':'Create',
+'עריכת תנועה':'Edit transaction','עריכת קופה':'Edit pocket','קופה חדשה':'New pocket',
+'קופה':'Pocket','קופת חיסכון':'Savings pocket','משיכה מקופת חיסכון':'Withdrawal from savings pocket',
+'פרטים':'Details','פרטי חשבון':'Account details','חשבון':'Account','הפרופיל שלי':'My profile',
+'ניהול חשבון':'Account management','אזור אישי':'Personal area','אדם':'Person','אנשים':'People',
+'בעל החשבון':'Account owner','אדם בחשבון':'Account member','מסונכרן':'Synced','לא מסונכרן':'Not synced',
+'אין נתונים':'No data','אין הוצאות':'No expenses','אין תנועות':'No transactions','אין הודעות':'No notifications',
+'אין מנויים מוגדרים.':'No subscriptions configured.','אין הוצאות חודשיות קבועות.':'No fixed monthly expenses.',
+'אין עדיין אנשים נוספים.':'No additional people yet.','אין קופות':'No pockets',
+'מצב פעיל':'Active status','מושהה':'Paused','פעיל':'Active','לא פעיל':'Inactive',
+'חודשי':'Monthly','יומי':'Daily','שנתי':'Annual','שבועי':'Weekly','היום':'Today','אתמול':'Yesterday',
+'מחר':'Tomorrow','החודש':'This month','השנה':'This year','החודש הקודם':'Previous month',
+'חודש קודם':'Previous month','החודשים האחרונים':'Recent months','היסטוריה':'History',
+'סיכום':'Summary','סיכום תקופה':'Period summary','סיכום חודשי':'Monthly summary',
+'סיכום שנתי':'Annual summary','השוואה':'Comparison','מגמה':'Trend','מגמות':'Trends',
+'חיסכון':'Savings','הפרשה':'Allocation','הפרשות':'Allocations','יעד':'Target','יתרה':'Balance',
+'עלות':'Cost','עלות חודשית':'Monthly cost','מחיר':'Price','מקור':'Source','נבדק':'Checked',
+'תוכנית':'Plan','שירות':'Service','סוג מנוי':'Subscription type','מנוי':'Subscription',
+'מנוי חדש':'New subscription','עריכת מנוי':'Edit subscription','הוצאה חודשית':'Monthly expense',
+'קבוע':'Fixed','קבועות':'Fixed','הוצאה חודשית קבועה':'Fixed monthly expense',
+'מפת חום':'Heatmap','מפת חום של הוצאות יומיות':'Daily expense heatmap','מפת הוצאות / קטגוריות':'Expense / category map',
+'תובנות':'Insights','תובנה':'Insight','הודעות':'Notifications','הודעה':'Notification',
+'מרכז הודעות':'Notification center','הודעות אחרונות':'Recent notifications','חדש':'New',
+'נקרא':'Read','לא נקרא':'Unread','סמן כנקרא':'Mark as read','סמן הכל כנקרא':'Mark all as read',
+'גרף':'Chart','גרפים':'Charts','ניתוחים':'Analytics','נתונים':'Data','הגדרות':'Settings',
+'עיצוב ותצוגה':'Appearance & display','ערכת עיצוב':'Theme','ערכות עיצוב':'Themes','רקע':'Background',
+'מצב דיסקרטי':'Discreet mode','שפה':'Language','אבטחה':'Security','ייצוא':'Export','ייבוא':'Import',
+'גיבוי':'Backup','שחזור':'Restore','עדכוני אפליקציה':'App updates','בדוק עדכונים':'Check for updates',
+'בדיקה':'Check','בדוק':'Check','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.',
+'טיול':'Trip','מצב טיול':'Trip mode','כלים':'Tools','חלוקת חשבון':'Bill split','מחשבון':'Calculator',
+'מחשבון המרת מט"ח':'Currency converter','תוצאה בשקלים':'Result in ILS','כל אחד משלם':'Each person pays',
+'הפרשות חודשיות לחיסכון':'Monthly savings allocations','קופות חיסכון':'Savings pockets',
+'קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)',
+'מומלץ להיום':'Recommended for today','עמד בתקציב':'Within budget','חריגה':'Over budget',
+'ניצול':'Used','נשאר מהתקציב':'Budget remaining','תקציב מצטבר לתקופה:':'Cumulative budget for period:',
+'נשאר מהתקציב:':'Budget remaining:','הקטגוריה הגדולה ביותר:':'Largest category:',
+'אין עדיין קטגוריה מובילה.':'There is no leading category yet.',
+'אין שינויים משמעותיים בהוצאות בהשוואה לחודש שעבר.':'No significant changes in expenses compared with last month.',
+'הוצאות בתקופה:':'Expenses in period:','עלות חודשית':'Monthly cost','מחיר מידע:':'Price information:',
+'שגיאת שרת':'Server error','לא ניתן להתחבר כרגע.':'Unable to connect right now.',
+'מלא את כל השדות.':'Please fill in all fields.','הזן שם':'Enter a name','הזן סכום תקין':'Enter a valid amount',
+'יש ליצור קופת חיסכון תחילה לפני הגדרת הפרשה':'Create a savings pocket before setting an allocation',
+'אין הוצאות רשומות ביום הזה.':'No expenses recorded on this day.',
+'השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the interface. User data is kept in its original language.'
+};
+Object.assign(I18N_HE_EN,MT_EXTRA_EN);
+Object.assign(I18N_EN_HE,Object.fromEntries(Object.entries(MT_EXTRA_EN).map(([a,b])=>[b,a])));
+
+/* Translate common Hebrew words inside dynamic sentences too. */
+const MT_WORDS={
+'הוצאות':'Expenses','הוצאה':'Expense','הכנסות':'Income','הכנסה':'Income','תקציב':'Budget','נשאר':'Remaining',
+'חודש':'Month','חודשים':'Months','שנה':'Year','שנים':'Years','יום':'Day','ימים':'Days','שבוע':'Week','שבועות':'Weeks',
+'קטגוריה':'Category','קטגוריות':'Categories','אוכל':'Food','מזון':'Food','מגורים':'Housing','חשבונות':'Bills',
+'תחבורה':'Transport','פנאי':'Leisure','בילויים':'Entertainment','קניות':'Shopping','משכורת':'Salary',
+'השקעות':'Investments','שונות':'Other','מנויים':'Subscriptions','מנוי':'Subscription','שירות':'Service',
+'תוכנית':'Plan','עלות':'Cost','מחיר':'Price','חיסכון':'Savings','הפרשה':'Allocation','קופה':'Pocket',
+'קופות':'Pockets','טיול':'Trip','הודעות':'Notifications','הודעה':'Notification','תובנות':'Insights',
+'שינוי':'Change','עלו':'increased','ירדו':'decreased','לעומת':'compared with','היום':'today','אתמול':'yesterday',
+'פעיל':'Active','מושהה':'Paused','ניצול':'Usage','חריגה':'Over budget','יתרה':'Balance','התחלתי':'Initial',
+'חודשי':'Monthly','יומי':'Daily','שנתי':'Annual','כולל':'including','כולל':'including','אין':'No','נתונים':'data'
+};
+function translateDynamicText(source,dict){
+  let out=translateCompositeText(source,dict);
+  if(dict===I18N_HE_EN){
+    Object.entries(MT_WORDS).forEach(([a,b])=>{
+      out=out.replace(new RegExp('(^|[\\s:•()\\-—/])'+a+'(?=$|[\\s:•,().\\-—/])','g'),'$1'+b);
+    });
+  }
+  return out;
+}
+applyLanguageToDOM = function(){
+  const lang=state.settings?.language||'he';
+  document.documentElement.lang=lang;
+  document.documentElement.dir=lang==='en'?'ltr':'rtl';
+  const dict=lang==='en'?I18N_HE_EN:I18N_EN_HE;
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const nodes=[];
+  while(walker.nextNode()) nodes.push(walker.currentNode);
+  nodes.forEach(n=>{
+    if(n.parentElement?.closest('script,style,#language-select')) return;
+    const current=n.nodeValue||'';
+    if(!n.__mtOriginalText) n.__mtOriginalText=current;
+    const source=n.__mtOriginalText;
+    if(!source.trim()) return;
+    n.nodeValue=translateDynamicText(source,dict);
+  });
+  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el=>{
+    if(el.id==='language-select') return;
+    ['placeholder','title','aria-label'].forEach(a=>{
+      const current=el.getAttribute(a);
+      if(!current) return;
+      el.__mtOriginalAttrs=el.__mtOriginalAttrs||{};
+      if(el.__mtOriginalAttrs[a]===undefined) el.__mtOriginalAttrs[a]=current;
+      el.setAttribute(a,translateDynamicText(el.__mtOriginalAttrs[a],dict));
+    });
+  });
+  const ls=document.getElementById('language-select');
+  if(ls){
+    ls.value=lang;
+    const heOpt=ls.querySelector('option[value="he"]'), enOpt=ls.querySelector('option[value="en"]');
+    if(heOpt) heOpt.textContent='עברית';
+    if(enOpt) enOpt.textContent='English';
+  }
+  renderHeaderDate();
+};
+
+/* Language change: store the language, re-render, then translate the newly
+   generated DOM so dynamic titles, insights and dates are translated too. */
+setAppLanguage = function(lang){
+  if(lang!=='he' && lang!=='en') lang='he';
+  state.settings=state.settings||{};
+  state.settings.language=lang;
+  save();
+  renderAll();
+  syncSettingsUI();
+  requestAnimationFrame(()=>{
+    applyLanguageToDOM();
+    lucide.createIcons();
+  });
+};
+
+/* Ensure dynamic renderers are translated after every complete render. */
+const __mtRenderAll141 = renderAll;
+renderAll = function(){
+  try{ __mtRenderAll141(); }
+  finally{
+    requestAnimationFrame(()=>{applyLanguageToDOM();if(window.lucide)lucide.createIcons();});
+  }
+};
+
+/* Do not automatically show the login wall while there is no server. */
+hideAuthGate();
+document.body.classList.remove('auth-locked');
 </script>
 </body>
 </html>
