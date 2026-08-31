@@ -130,6 +130,8 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
   .mini-heatmap .heatmap-day{width:auto!important;min-width:0!important;max-width:100%!important;height:auto!important;min-height:24px!important;aspect-ratio:1/1;padding:0!important;font-size:8px!important;border-radius:5px!important}
   .mini-heatmap .heatmap-day span{font-size:7px!important;line-height:1!important}
 }
+
+@media (max-width: 640px){body{overflow-x:hidden}.heatmap-year{grid-template-columns:minmax(0,1fr)!important;gap:.65rem}.heatmap-year>div{min-width:0!important;width:100%!important;padding:.65rem!important}.mini-heatmap{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:2px!important}.mini-heatmap .heatmap-day{min-width:0!important;min-height:32px!important;font-size:9px!important;padding:2px!important}.heatmap-day{min-width:0;max-width:100%}}
 </style>
 </head>
 <body class="pb-24">
@@ -557,7 +559,12 @@ let state=load();
 state.settings = state.settings || {};
 state.settings.rates = {...defaults.settings.rates,...(state.settings.rates||{})};
 state.settings.localAI = {...defaults.settings.localAI,...(state.settings.localAI||{}),examples:{...(state.settings.localAI?.examples||{})}};
-state.savingsAllocations = state.savingsAllocations || [];
+state.transactions = Array.isArray(state.transactions) ? state.transactions : [];
+state.recurring = Array.isArray(state.recurring) ? state.recurring : [];
+state.pockets = Array.isArray(state.pockets) ? state.pockets : [];
+state.savingsAllocations = Array.isArray(state.savingsAllocations) ? state.savingsAllocations : [];
+state.trip = state.trip && typeof state.trip === 'object' ? state.trip : clone(defaults.trip);
+state.trip.expenses = Array.isArray(state.trip.expenses) ? state.trip.expenses : [];
 state.savingsProcessed = state.savingsProcessed || {};
 state.dailySnapshot = state.dailySnapshot || {date:'',amount:0};
 state.history = state.history || {dailySnapshots:{},monthlySnapshots:{}};
@@ -723,6 +730,32 @@ function addTransaction(e){
   state.transactions.unshift(tx); save(); if(e&&e.target) e.target.reset(); document.getElementById('tx-date').value=today(); renderAll();
 }
 
+function localTranslateUserText(text,target='en'){
+  const source=String(text||'').trim(); if(!source)return source;
+  const heToEn={
+    'סופרמרקט':'Supermarket','מסעדה':'Restaurant','המבורגר':'Burger','פיצה':'Pizza','סושי':'Sushi','שווארמה':'Shawarma','פלאפל':'Falafel','קפה':'Coffee','ארוחה':'Meal','אוכל':'Food','וולט':'Wolt','תן ביס':'10bis','דלק':'Fuel','תחנת דלק':'Gas station','מונית':'Taxi','אוטובוס':'Bus','רכבת':'Train','חניה':'Parking','שכר דירה':'Rent','חשמל':'Electricity','מים':'Water','גז':'Gas','אינטרנט':'Internet','ביטוח':'Insurance','בגדים':'Clothes','נעליים':'Shoes','קניות':'Shopping','משכורת חודשית':'Monthly salary','משכורת':'Salary','חופשה':'Vacation','מלון':'Hotel','כרטיס':'Ticket','הופעה':'Concert','קולנוע':'Cinema','נטפליקס':'Netflix','מנוי כושר':'Gym membership','קרן חירום':'Emergency fund','סיכום הוצאות טיול':'Trip expenses summary','המשתמש שלי':'My account'
+  };
+  if(target==='he'){
+    const enToHe=Object.fromEntries(Object.entries(heToEn).map(([a,b])=>[b,a]));
+    return enToHe[source]||source;
+  }
+  if(heToEn[source])return heToEn[source];
+  let out=source;
+  Object.entries(heToEn).sort((a,b)=>b[0].length-a[0].length).forEach(([he,en])=>{out=out.split(he).join(en);});
+  return out;
+}
+function displayUserText(text){
+  const source=String(text||'');
+  if(state.settings?.language!=='en')return source;
+  const cache=state.settings.translationCache||{};
+  return cache[`he-en:${source}`]||localTranslateUserText(source,'en');
+}
+function translatedCategory(cat){
+  const source=String(cat||'שונות');
+  if(state.settings?.language!=='en')return source;
+  return I18N_HE_EN?.[source]||localTranslateUserText(source,'en');
+}
+
 function renderTransactions(){
   const m=document.getElementById('month-filter').value||currentMonth();
   const rows=effectiveMonthTx(m).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
@@ -867,9 +900,37 @@ function renderAnalytics(){
  document.getElementById('insights').innerHTML=[`הוצאות בתקופה: <b>${money(total)}</b>.`,top?`הקטגוריה הגדולה ביותר: <b>${esc(displayCategory(top[0]))}</b> (${money(top[1])}).`:'אין עדיין קטגוריה מובילה.',`תקציב מצטבר לתקופה: <b>${money(budget)}</b>.`,`נשאר מהתקציב: <b>${money(budget-total)}</b>.`].map(x=>`<div class="bg-gray-900/60 rounded-xl p-3 border border-gray-800">${x}</div>`).join('');
 }
 function updateCharts(){
- if(catChart){catChart.destroy();catChart=null;}const tx=getAnalyticsTransactions(),by={};tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount));const c=document.getElementById('categoryChart')?.getContext('2d');if(c)catChart=new Chart(c,{type:'doughnut',data:{labels:Object.keys(by).length?Object.keys(by).map(displayCategory):[state.settings?.language==='en'?'No data':'אין נתונים'],datasets:[{data:Object.values(by).length?Object.values(by):[1],backgroundColor:Object.keys(by).length?['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308']:['#1f2937'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#9ca3af',font:{family:'Heebo',size:11}}}}}});
- if(trendChart){trendChart.destroy();trendChart=null;}const ctx=document.getElementById('trendChart')?.getContext('2d');if(!ctx)return;let months;if(analyticsPeriod==='month'){months=[];const d=new Date(`${analyticsMonth}-01`);for(let i=5;i>=0;i--){const x=new Date(d);x.setMonth(d.getMonth()-i);months.push(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`);}}else months=getAnalyticsMonths();const exps=months.map(m=>expenseTotal(m)),incs=months.map(m=>incomeTotal(m));
- trendChart=new Chart(ctx,{type:'line',data:{labels:months.map(monthLabel),datasets:[{label:state.settings?.language==='en'?'Expenses':'הוצאות',data:exps,tension:.35,borderColor:'#f43f5e',backgroundColor:'rgba(244,63,94,.1)',fill:true},{label:state.settings?.language==='en'?'Income':'הכנסות',data:incs,tension:.35,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,.1)',fill:true}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:'#6b7280',maxRotation:45,minRotation:0}},y:{ticks:{color:'#6b7280'}}},plugins:{legend:{labels:{color:'#9ca3af'}}}}});
+  const draw = () => {
+    const tx=getAnalyticsTransactions(), by={};
+    tx.forEach(t=>by[t.cat]=(by[t.cat]||0)+Number(t.amount||0));
+    const pie=document.getElementById('categoryChart');
+    if(pie){
+      const rect=pie.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+      const w=Math.max(280,Math.floor(rect.width||pie.parentElement?.clientWidth||320)),h=Math.max(240,Math.floor(rect.height||240));
+      pie.width=w*dpr; pie.height=h*dpr; pie.style.width=w+'px'; pie.style.height=h+'px';
+      const c=pie.getContext('2d'); c.setTransform(dpr,0,0,dpr,0,0); c.clearRect(0,0,w,h);
+      const values=Object.values(by), labels=Object.keys(by), total=values.reduce((a,b)=>a+b,0);
+      const cx=w/2,cy=Math.min(h/2,125),r=Math.min(w,h)*.29; let angle=-Math.PI/2;
+      const colors=['#f43f5e','#3b82f6','#10b981','#f59e0b','#8b5cf6','#ec4899','#06b6d4','#eab308'];
+      if(!values.length){c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fillStyle='#1f2937';c.fill();c.fillStyle='#9ca3af';c.font='12px Heebo, sans-serif';c.textAlign='center';c.fillText(state.settings?.language==='en'?'No data':'אין נתונים',cx,cy+4);}
+      else values.forEach((v,i)=>{const next=angle+(v/total)*Math.PI*2;c.beginPath();c.moveTo(cx,cy);c.arc(cx,cy,r,angle,next);c.closePath();c.fillStyle=colors[i%colors.length];c.fill();angle=next;});
+      if(values.length){c.beginPath();c.arc(cx,cy,r*.52,0,Math.PI*2);c.fillStyle='#0f172a';c.fill();}
+      c.font='11px Heebo, sans-serif';c.textAlign='left';let ly=Math.min(h-15,Math.max(155,cy+r+18));
+      labels.slice(0,8).forEach((lab,i)=>{c.fillStyle=colors[i%colors.length];c.fillRect(10,ly+i*18,8,8);c.fillStyle='#d1d5db';c.fillText(`${displayCategory(translatedCategory(lab))} ${money(values[i])}`,24,ly+8+i*18);});
+    }
+    const trend=document.getElementById('trendChart');
+    if(trend){
+      const rect=trend.getBoundingClientRect(),dpr=window.devicePixelRatio||1,w=Math.max(300,Math.floor(rect.width||trend.parentElement?.clientWidth||320)),h=Math.max(220,Math.floor(rect.height||256));
+      trend.width=w*dpr;trend.height=h*dpr;trend.style.width=w+'px';trend.style.height=h+'px';const c=trend.getContext('2d');c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,w,h);
+      let months;if(analyticsPeriod==='month'){months=[];const d=new Date(`${analyticsMonth}-01`);for(let i=5;i>=0;i--){const x=new Date(d);x.setMonth(d.getMonth()-i);months.push(`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}`);}}else months=getAnalyticsMonths();
+      const exps=months.map(m=>expenseTotal(m)),incs=months.map(m=>incomeTotal(m)),max=Math.max(1,...exps,...incs),left=42,right=12,top=16,bottom=42,plotW=w-left-right,plotH=h-top-bottom;
+      c.strokeStyle='#374151';c.lineWidth=1;for(let i=0;i<4;i++){const y=top+plotH*i/3;c.beginPath();c.moveTo(left,y);c.lineTo(w-right,y);c.stroke();}
+      const plot=(vals,stroke,fill)=>{c.beginPath();vals.forEach((v,i)=>{const x=left+(months.length===1?plotW/2:plotW*i/(months.length-1)),y=top+plotH-(v/max)*plotH;i?c.lineTo(x,y):c.moveTo(x,y);});c.strokeStyle=stroke;c.lineWidth=2.5;c.stroke();};
+      plot(exps,'#f43f5e');plot(incs,'#10b981');c.font='10px Heebo, sans-serif';c.fillStyle='#6b7280';c.textAlign='center';months.forEach((m,i)=>{const x=left+(months.length===1?plotW/2:plotW*i/(months.length-1));c.fillText(monthLabel(m),x,h-10);});
+      c.textAlign='left';c.fillStyle='#f43f5e';c.fillText(state.settings?.language==='en'?'Expenses':'הוצאות',left,12);c.fillStyle='#10b981';c.fillText(state.settings?.language==='en'?'Income':'הכנסות',left+75,12);
+    }
+  };
+  requestAnimationFrame(draw);
 }
 
 function renderRecurring(){
@@ -1397,7 +1458,12 @@ function ensureFeatureDB(){
 function mergeFeatureState(incoming){
   const base=clone(defaults);const s=incoming||{};
   const merged={...base,...s,settings:{...base.settings,...(s.settings||{}),rates:{...base.settings.rates,...(s.settings?.rates||{})},autoLockMinutes:Number(s.settings?.autoLockMinutes||30)},history:{...base.history,...(s.history||{}),dailySnapshots:{...(s.history?.dailySnapshots||{})},monthlySnapshots:{...(s.history?.monthlySnapshots||{})}}};
-  merged.savingsAllocations=Array.isArray(s.savingsAllocations)?s.savingsAllocations:[];merged.savingsProcessed=s.savingsProcessed||{};merged.security={...base.security,...(s.security||{})};return merged;
+  merged.transactions=Array.isArray(s.transactions)?s.transactions:[];
+  merged.recurring=Array.isArray(s.recurring)?s.recurring:[];
+  merged.savingsAllocations=Array.isArray(s.savingsAllocations)?s.savingsAllocations:[];
+  merged.pockets=Array.isArray(s.pockets)?s.pockets:[];
+  merged.trip={...base.trip,...(s.trip||{}),expenses:Array.isArray(s.trip?.expenses)?s.trip.expenses:[]};
+  merged.savingsProcessed=s.savingsProcessed||{};merged.security={...base.security,...(s.security||{})};return merged;
 }
 function persistUserState(){
   if(!dbState)return;
@@ -1485,7 +1551,14 @@ function generateSmartNotifications(){
   dbState.notifications=items.concat((dbState.notifications||[]).filter(n=>n.manual)).slice(0,40);writeDB();renderNotifications();
 }
 function renderNotifications(){const c=document.getElementById('notifications-list');if(!c)return;const list=(dbState?.notifications||[]).slice(0,30);const unread=list.filter(n=>!dbState.notificationRead?.[n.id]).length;document.getElementById('notification-count')?.classList.toggle('hidden',!unread);document.getElementById('header-notification-dot')?.classList.toggle('hidden',!unread);c.innerHTML=list.length?list.map(n=>`<div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3 ${dbState.notificationRead?.[n.id]?'opacity-60':''}"><div class="flex gap-3"><span class="notification-dot mt-1.5 ${n.type==='warning'?'bg-amber-400':n.type==='success'?'bg-emerald-400':'bg-sky-400'}"></span><div class="flex-1"><b class="text-white text-sm">${esc(n.title)}</b><p class="text-xs text-gray-400 mt-1">${esc(n.body)}</p></div></div></div>`).join(''):'<div class="text-sm text-gray-500 text-center py-8">אין הודעות חדשות 🎉</div>';}
-function markNotificationsRead(){if(!dbState)return;dbState.notificationRead=dbState.notificationRead||{};(dbState.notifications||[]).forEach(n=>dbState.notificationRead[n.id]=true);writeDB();renderNotifications();}
+function markNotificationsRead(){
+  if(!dbState)return;
+  dbState.notifications=[];
+  dbState.notificationRead={};
+  writeDB();
+  renderNotifications();
+  renderNotificationPopover();
+}
 function showPeriodSummary(){renderPeriodSummary(true);}
 function renderPeriodSummary(){const c=document.getElementById('period-summary');if(!c)return;const months=getAnalyticsMonths(),exp=months.reduce((a,m)=>a+expenseTotal(m),0),inc=months.reduce((a,m)=>a+incomeTotal(m),0),saveAmt=inc-exp,budget=months.reduce((a,m)=>a+getMonthlyBudget(m),0);const top=Object.entries(getAnalyticsTransactions().reduce((o,t)=>(o[t.cat]=(o[t.cat]||0)+Number(t.amount),o),{})).sort((a,b)=>b[1]-a[1])[0];const title=analyticsPeriod==='month'?monthLabel(analyticsMonth):analyticsPeriod==='year'?`שנת ${analyticsYear}`:'36 חודשים';c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(inc)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(exp)}</b></div><div class="feature-stat"><div class="small-stat">נטו</div><b class="${saveAmt>=0?'text-emerald-400':'text-rose-400'} amount">${money(saveAmt)}</b></div><div class="feature-stat"><div class="small-stat">ניצול תקציב</div><b class="text-white">${budget?Math.round(exp/budget*100):0}%</b></div></div><div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 text-xs text-gray-300">${esc(title)}: ${top?`הקטגוריה המובילה היא <b class="text-white">${esc(translatedCategory(top[0]))}</b> עם ${money(top[1])}.`:'אין עדיין מספיק נתונים לקטגוריה מובילה'} ${saveAmt>=0?'המאזן בתקופה חיובי.':'ההוצאות גבוהות מההכנסות בתקופה.'}</div>`;}
 function renderAnnualSummary(){const c=document.getElementById('annual-summary');if(!c)return;const y=analyticsYear,months=analyticsMonthsForYear(y),rows=months.map(m=>({m,inc:incomeTotal(m),exp:expenseTotal(m)}));const totalI=rows.reduce((a,x)=>a+x.inc,0),totalE=rows.reduce((a,x)=>a+x.exp,0),top=rows.slice().sort((a,b)=>b.exp-a.exp)[0];setText('annual-summary-year',String(y));c.innerHTML=`<div class="feature-grid"><div class="feature-stat"><div class="small-stat">הכנסות</div><b class="text-emerald-400 amount">${money(totalI)}</b></div><div class="feature-stat"><div class="small-stat">הוצאות</div><b class="text-rose-400 amount">${money(totalE)}</b></div><div class="feature-stat"><div class="small-stat">חיסכון / נטו</div><b class="${totalI-totalE>=0?'text-emerald-400':'text-rose-400'} amount">${money(totalI-totalE)}</b></div><div class="feature-stat"><div class="small-stat">חודש יקר</div><b class="text-white">${top?monthLabel(top.m):'—'}</b></div></div><div class="space-y-1">${rows.map(x=>`<div class="flex items-center gap-2 text-xs"><span class="w-20 text-gray-400">${esc(monthLabel(x.m))}</span><div class="flex-1 bg-gray-900 rounded-full h-2 overflow-hidden"><div class="bg-rose-500 h-full" style="width:${Math.min(100,totalE?x.exp/Math.max(...rows.map(r=>r.exp),1)*100:0)}%"></div></div><b class="w-20 text-left amount">${money(x.exp)}</b></div>`).join('')}</div>`;}
@@ -1509,7 +1582,7 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredIns
 window.addEventListener('appinstalled',()=>document.getElementById('install-banner')?.classList.remove('active'));
 window.addEventListener('online',updateConnectionStatus);window.addEventListener('offline',updateConnectionStatus);
 const originalSwitchTab=switchTab;switchTab=function(tab){originalSwitchTab(tab);if(tab==='notifications')renderNotifications();if(tab==='analytics'){renderPeriodSummary();renderAnnualSummary();renderAdvancedHeatmap();}syncSettingsUI();};
-const originalRenderAll=renderAll;renderAll=function(){originalRenderAll();setupCategoryAssistant();renderNotifications();renderPeriodSummary();renderAnnualSummary();renderAdvancedHeatmap();generateSmartNotifications();syncSettingsUI();scheduleAutoLock();};
+const originalRenderAll=renderAll;renderAll=function(){try{originalRenderAll();}catch(e){console.error('renderAll failed',e);}setupCategoryAssistant();renderNotifications();renderPeriodSummary();renderAnnualSummary();renderAdvancedHeatmap();generateSmartNotifications();syncSettingsUI();applyLanguageToDOM();if(state.settings?.language==='en')setTimeout(()=>translateAllVisibleText(),0);scheduleAutoLock();};
 function showMonthlySummaryNotification(){const m=currentMonth(),key=`summary-${m}`;if(!dbState.notificationRead?.[key]&&getEffectiveNow().getDate()>=28){dbState.notifications.unshift({id:key,type:'info',title:`סיכום ${monthLabel(m)} מתקרב`,body:'זה זמן טוב לבדוק את ההוצאות, התקציב והחיסכון של החודש.'});writeDB();}}
 function upgradeFeatureState(){state.settings=state.settings||{};state.settings.autoLockMinutes=Number(state.settings.autoLockMinutes||30);state.settings.theme=state.settings.theme||'ocean';state.settings.language=state.settings.language||'he';ensureHistoryContainers();initializePeriodHistory(false);persistUserState();}
 // Override security modal to include auto-lock policy.
@@ -1565,10 +1638,26 @@ function loadTheme(){const t=state.settings?.theme||state.theme||'ocean';setAppT
 /* Notification tray like a phone: header shows three latest, full tab keeps everything. */
 function notificationAction(n){if(n.action==='analytics'){closeNotificationPopover();switchTab('analytics');if(n.month)analyticsMonth=n.month;if(n.period)analyticsPeriod=n.period;setTimeout(()=>{renderPeriodSummary();renderAnnualSummary();renderAdvancedHeatmap();},0);return;}if(n.action==='recurring'){closeNotificationPopover();switchTab('pockets');return;}markNotificationRead(n.id);}
 function notificationItemHTML(n,compact=false){const read=!!dbState?.notificationRead?.[n.id];const tone=n.type==='warning'?'bg-amber-400':n.type==='success'?'bg-emerald-400':'bg-sky-400';const inferredAction=n.action||(String(n.title||'').includes('תקציב')||String(n.title||'').includes('מגמת')||String(n.title||'').includes('סיכום')||String(n.title||'').includes('חריגה')?'analytics':String(n.title||'').includes('קבועה')?'recurring':''); const nn={...n,action:inferredAction,month:n.month||currentMonth(),period:n.period||'month'}; const action=inferredAction?`<button type="button" onclick='notificationAction(${JSON.stringify(nn).replace(/'/g,"&#39;")})' class="text-[11px] text-sky-300 mt-2">${inferredAction==='analytics'?'פתח ניתוח':'פתח'}</button>`:'';return `<div class="bg-gray-900/70 border border-gray-800 rounded-xl p-3 ${read?'opacity-60':''}"><div class="flex gap-3"><span class="notification-dot mt-1.5 ${tone}"></span><div class="flex-1 min-w-0"><div class="flex items-start justify-between gap-2"><b class="text-white text-sm">${esc(n.title)}</b>${!read?'<span class="text-[9px] text-sky-300">חדש</span>':''}</div><p class="text-xs text-gray-400 mt-1">${esc(n.body)}</p>${action}<button type="button" onclick="markNotificationRead('${attr(n.id)}')" class="block text-[10px] text-gray-500 mt-1">${read?'סומן כנקרא':'סמן כנקרא'}</button></div></div></div>`;}
-function markNotificationRead(id){if(!dbState)return;dbState.notificationRead=dbState.notificationRead||{};dbState.notificationRead[id]=true;writeDB();renderNotifications();renderNotificationPopover();}
+function markNotificationRead(id){
+  if(!dbState)return;
+  dbState.notificationRead=dbState.notificationRead||{};
+  dbState.notificationRead[id]=true;
+  dbState.notifications=(dbState.notifications||[]).filter(n=>String(n.id)!==String(id));
+  delete dbState.notificationRead[id];
+  writeDB();
+  renderNotifications();
+  renderNotificationPopover();
+}
 function renderNotificationPopover(){const c=document.getElementById('notification-popover-list');if(!c)return;const list=(dbState?.notifications||[]).slice(0,3);c.innerHTML=list.length?list.map(n=>notificationItemHTML(n,true)).join(''):'<div class="text-sm text-gray-500 text-center py-5">אין הודעות 🎉</div>';}
 function renderNotifications(){const c=document.getElementById('notifications-list');const list=(dbState?.notifications||[]).slice(0,40);const unread=list.filter(n=>!dbState.notificationRead?.[n.id]).length;document.getElementById('notification-count')?.classList.toggle('hidden',!unread);document.getElementById('header-notification-dot')?.classList.toggle('hidden',!unread);if(c)c.innerHTML=list.length?list.map(n=>notificationItemHTML(n)).join(''):'<div class="text-sm text-gray-500 text-center py-8">אין הודעות חדשות 🎉</div>';renderNotificationPopover();}
-function markNotificationsRead(){if(!dbState)return;dbState.notificationRead=dbState.notificationRead||{};(dbState.notifications||[]).forEach(n=>dbState.notificationRead[n.id]=true);writeDB();renderNotifications();}
+function markNotificationsRead(){
+  if(!dbState)return;
+  dbState.notifications=[];
+  dbState.notificationRead={};
+  writeDB();
+  renderNotifications();
+  renderNotificationPopover();
+}
 function toggleNotificationPopover(e){e?.stopPropagation();const p=document.getElementById('notification-popover'),b=document.getElementById('notification-backdrop');if(!p)return;const open=!p.classList.contains('active');if(open){renderNotificationPopover();p.classList.add('active');b?.classList.add('active');}else closeNotificationPopover();}
 function closeNotificationPopover(){document.getElementById('notification-popover')?.classList.remove('active');document.getElementById('notification-backdrop')?.classList.remove('active');}
 
@@ -1832,15 +1921,38 @@ async function translateUserContentRemote(){
   nodes.forEach(n=>{const src=n.dataset.userOriginal;if(src&&map.has(src))n.textContent=map.get(src);});
 }
 
-function setAppLanguage(lang){
+async function translateAllVisibleText(){
+  const lang=state.settings?.language||'he';
+  if(lang!=='en'){
+    document.querySelectorAll('[data-i18n-source]').forEach(n=>{n.textContent=n.dataset.i18nSource;});
+    return;
+  }
+  const dict=I18N_HE_EN;
+  const nodes=[];const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  while(walker.nextNode()){
+    const n=walker.currentNode,p=n.parentElement;if(!p||['SCRIPT','STYLE','NOSCRIPT'].includes(p.tagName)||p.closest('#language-select'))continue;
+    const raw=n.dataset.i18nSource||n.nodeValue;const clean=normalizeI18nText(raw);if(!clean||!/[\u0590-\u05FF]/.test(clean))continue;
+    if(!n.dataset.i18nSource)n.dataset.i18nSource=n.nodeValue;
+    if(dict[clean]){const lead=raw.match(/^\s*/)?.[0]||'',trail=raw.match(/\s*$/)?.[0]||'';n.nodeValue=lead+dict[clean]+trail;continue;}
+    nodes.push(n);
+  }
+  const unique=[...new Set(nodes.map(n=>normalizeI18nText(n.dataset.i18nSource||n.nodeValue)))].slice(0,60);
+  if(unique.length){const results=await Promise.all(unique.map(x=>remoteTranslateText(x,'en')));const map=new Map(unique.map((x,i)=>[x,results[i]]));nodes.forEach(n=>{const src=n.dataset.i18nSource||'';const tr=map.get(normalizeI18nText(src));if(tr){const lead=src.match(/^\s*/)?.[0]||'',trail=src.match(/\s*$/)?.[0]||'';n.nodeValue=lead+tr+trail;}});}
+  await translateUserContentRemote();
+}
+
+async function setAppLanguage(lang){
   if(!['he','en'].includes(lang))lang='he';
   state.settings=state.settings||{};
   state.settings.language=lang;
   save();
-  renderAll();
+  try{renderAll();}catch(e){console.warn('render after language change failed',e);}
   applyLanguageToDOM();
-  translateUserContentRemote();
-  setTimeout(()=>{renderAll();applyLanguageToDOM();translateUserContentRemote();if(window.lucide)lucide.createIcons();},30);
+  await translateAllVisibleText();
+  try{renderAll();}catch(e){console.warn('second render after language change failed',e);}
+  applyLanguageToDOM();
+  await translateAllVisibleText();
+  if(window.lucide)lucide.createIcons();
 }
 // Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
 window.addEventListener('local-ai-progress',e=>renderLocalAIStatus(e.detail));
