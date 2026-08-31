@@ -77,5 +77,9 @@
   to { transform: translateY(0); }
 }
 
-/* v1.4.1 mobile navigation */
+/* v1.5.1 mobile navigation */
 @media (max-width:699px){nav.fixed.bottom-0{justify-content:flex-start!important;overflow-x:auto!important;overflow-y:hidden!important;-webkit-overflow-scrolling:touch;scrollbar-width:none;touch-action:pan-x;gap:4px}nav.fixed.bottom-0::-webkit-scrollbar{display:none}nav.fixed.bottom-0>button{flex:0 0 auto!important;min-width:68px;white-space:nowrap}.tab-content{min-width:0;overflow-x:hidden}main{width:100%;min-width:0;overflow-x:hidden}}
+
+/* v1.5.1 deterministic tab containers */
+.tab-content[aria-hidden="true"]{display:none!important}
+.tab-content[aria-hidden="false"]{display:block!important;visibility:visible!important;opacity:1!important}

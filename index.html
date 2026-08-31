@@ -1699,7 +1699,7 @@ window.addEventListener('load',()=>{setTimeout(async()=>{ensureFeatureDB();upgra
 </script>
 
 <style>
-/* v1.4.1 mobile navigation + heatmap fixes */
+/* v1.5.1 mobile navigation + heatmap fixes */
 @media (max-width:699px){
   nav.fixed.bottom-0{
     justify-content:flex-start !important;
@@ -1738,7 +1738,7 @@ window.addEventListener('load',()=>{setTimeout(async()=>{ensureFeatureDB();upgra
 }
 </style>
 <script>
-/* ================= v1.4.1 local-first / i18n / navigation patch ================= */
+/* ================= v1.5.1 local-first / i18n / navigation patch ================= */
 
 /* The server/auth code remains in the project, but is intentionally dormant
    until a real API is configured. In the meantime the app is local-only. */
@@ -1806,50 +1806,86 @@ save = function(){
   writeMoneyTrackerCache();
 };
 
-/* Make navigation fail-safe: never leave the user with a blank page if a
-   renderer has an isolated problem. */
-switchTab = function(tab){
-  const target=document.getElementById('tab-'+tab);
-  if(!target){
-    console.warn('Unknown tab:',tab);
-    return;
-  }
-  document.querySelectorAll('.tab-content').forEach(x=>x.classList.add('hidden'));
-  document.querySelectorAll('nav button').forEach(x=>x.classList.remove('nav-active'));
-  target.classList.remove('hidden');
-  document.getElementById('nav-'+tab)?.classList.add('nav-active');
-  const overviewWidgets=document.getElementById('dashboard-overview-widgets');
-  if(overviewWidgets) overviewWidgets.style.display=tab==='dashboard'?'block':'none';
+/* v1.5.1: deterministic tab navigation. */
+(function installDeterministicNavigation(){
+  const tabNames=['dashboard','analytics','notifications','pockets','travel','settings'];
 
-  try{
-    if(tab==='dashboard') renderAll();
-    else if(tab==='analytics'){
-      renderAnalytics();
-      renderMonthlyComparison();
-      requestAnimationFrame(()=>{updateCharts();renderHeatmap();lucide.createIcons();applyLanguageToDOM();});
-    }else if(tab==='notifications'){
-      renderNotifications();
-      renderPeriodSummary();
-      renderAnnualSummary();
-      renderAdvancedHeatmap();
-    }else if(tab==='pockets'){
-      renderSavingsAllocations();
-      renderPockets();
-      renderRecurring();
-    }else if(tab==='travel'){
-      refreshFXRates(false);
-      convertFX();
-      renderTrip();
-    }else if(tab==='settings'){
-      syncSettingsUI();
-    }
-    lucide.createIcons();
-    applyLanguageToDOM();
-  }catch(e){
-    console.error('Tab render failed:',tab,e);
-    /* Keep the tab visible; do not turn a renderer error into an empty screen. */
+  function setTabVisibility(tab){
+    tabNames.forEach(name=>{
+      const el=document.getElementById('tab-'+name);
+      if(!el) return;
+      const active=name===tab;
+      el.classList.toggle('hidden',!active);
+      el.setAttribute('aria-hidden',String(!active));
+      el.style.display=active?'block':'none';
+      el.style.visibility=active?'visible':'';
+      el.style.opacity=active?'1':'';
+    });
+    document.querySelectorAll('nav button[id^="nav-"]').forEach(btn=>{
+      const active=btn.id==='nav-'+tab;
+      btn.classList.toggle('nav-active',active);
+      btn.setAttribute('aria-selected',String(active));
+      btn.setAttribute('aria-current',active?'page':'false');
+    });
+    const overviewWidgets=document.getElementById('dashboard-overview-widgets');
+    if(overviewWidgets) overviewWidgets.style.display=tab==='dashboard'?'block':'none';
   }
-};
+
+  window.switchTab=function(tab){
+    if(!tabNames.includes(tab)) return false;
+    setTabVisibility(tab);
+    try{
+      if(tab==='dashboard'){
+        if(typeof renderAll==='function') renderAll();
+      }else if(tab==='analytics'){
+        if(typeof renderAnalytics==='function') renderAnalytics();
+        if(typeof renderMonthlyComparison==='function') renderMonthlyComparison();
+        if(typeof updateCharts==='function') updateCharts();
+        if(typeof renderHeatmap==='function') renderHeatmap();
+      }else if(tab==='notifications'){
+        if(typeof renderNotifications==='function') renderNotifications();
+        if(typeof renderPeriodSummary==='function') renderPeriodSummary();
+        if(typeof renderAnnualSummary==='function') renderAnnualSummary();
+        if(typeof renderAdvancedHeatmap==='function') renderAdvancedHeatmap();
+      }else if(tab==='pockets'){
+        if(typeof renderSavingsAllocations==='function') renderSavingsAllocations();
+        if(typeof renderPockets==='function') renderPockets();
+        if(typeof renderRecurring==='function') renderRecurring();
+      }else if(tab==='travel'){
+        if(typeof refreshFXRates==='function') refreshFXRates(false);
+        if(typeof convertFX==='function') convertFX();
+        if(typeof renderTrip==='function') renderTrip();
+      }else if(tab==='settings'){
+        if(typeof syncSettingsUI==='function') syncSettingsUI();
+      }
+    }catch(e){
+      console.warn('Tab renderer failed; keeping tab visible:',tab,e);
+    }
+    requestAnimationFrame(()=>{
+      setTabVisibility(tab);
+      if(window.lucide) lucide.createIcons();
+      if(typeof applyLanguageToDOM==='function') applyLanguageToDOM();
+    });
+    return true;
+  };
+
+  window.__setMoneyTrackerTabVisibility=setTabVisibility;
+
+  document.addEventListener('DOMContentLoaded',()=>{
+    document.querySelectorAll('nav button[id^="nav-"]').forEach(btn=>{
+      if(btn.__mt151Bound) return;
+      btn.__mt151Bound=true;
+      btn.addEventListener('click',e=>{
+        const tab=btn.id.replace(/^nav-/,'');
+        if(tabNames.includes(tab)){
+          e.preventDefault();
+          window.switchTab(tab);
+        }
+      });
+    });
+    setTabVisibility('dashboard');
+  });
+})();
 
 /* Localized dates/month labels. */
 monthLabel = function(m){
