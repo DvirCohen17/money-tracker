@@ -1895,157 +1895,19 @@ Object.assign(I18N_HE_EN,{
 });
 const I18N_EN_HE=Object.fromEntries(Object.entries(I18N_HE_EN).map(([a,b])=>[b,a]));
 function normalizeI18nText(s){return String(s||'').replace(/\s+/g,' ').trim();}
-function applyLanguageToDOM(){
-  const lang=state.settings?.language||'he';
-  document.documentElement.lang=lang;
-  document.documentElement.dir=lang==='en'?'ltr':'rtl';
-  const dict=lang==='en'?I18N_HE_EN:I18N_EN_HE;
-  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
-  const nodes=[];
-  while(walker.nextNode())nodes.push(walker.currentNode);
-  nodes.forEach(n=>{
-    const parent=n.parentElement;
-    if(!parent||parent.closest('#language-select')||parent.tagName==='OPTION')return;
-    if(!n.dataset.i18nSource)n.dataset.i18nSource=n.nodeValue;
-    const source=n.dataset.i18nSource;
-    const raw=normalizeI18nText(source);if(!raw)return;
-    const translated=dict[raw];
-    if(translated){
-      const leading=source.match(/^\s*/)?.[0]||'',trailing=source.match(/\s*$/)?.[0]||'';
-      n.nodeValue=leading+translated+trailing;
-    }else if(lang==='he'){
-      n.nodeValue=source;
-    }
-  });
-  document.querySelectorAll('[placeholder],[title],[aria-label]').forEach(el=>{
-    if(el.id==='language-select')return;
-    ['placeholder','title','aria-label'].forEach(a=>{
-      if(!el.hasAttribute(a))return;
-      const key='i18nSource'+a.charAt(0).toUpperCase()+a.slice(1);
-      if(!el.dataset[key])el.dataset[key]=el.getAttribute(a)||'';
-      const source=el.dataset[key],translated=dict[normalizeI18nText(source)];
-      if(translated)el.setAttribute(a,translated); else if(lang==='he')el.setAttribute(a,source);
-    });
-  });
-  const ls=document.getElementById('language-select');
-  if(ls){ls.innerHTML='<option value="he">עברית</option><option value="en">English</option>';ls.value=lang;}
-  renderHeaderDate();
-}
-
-async function remoteTranslateText(text,target='en'){
-  const source=String(text||'').trim(); if(!source)return source;
-  if(target==='he')return localTranslateUserText(source,'he');
-  const cache=state.settings.translationCache||{};
-  const key=`he-en:${source}`;
-  if(cache[key])return cache[key];
-  const local=localTranslateUserText(source,'en');
-  // If the local glossary changed the text, use it immediately; otherwise try
-  // the public translation service. No API key is embedded in the app.
-  if(local!==source){cache[key]=local;state.settings.translationCache=cache;save();return local;}
-  try{
-    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),3500);
-    const url=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(source)}&langpair=he|en`;
-    const r=await fetch(url,{signal:controller.signal,cache:'no-store'});clearTimeout(timer);
-    if(r.ok){const data=await r.json();const translated=data?.responseData?.translatedText;if(translated&&translated!==source){cache[key]=translated;state.settings.translationCache=cache;save();return translated;}}
-  }catch(e){/* offline: keep original/local translation */}
-  return local;
-}
-async function translateAttributesRemote() {
-  if(state.settings?.language!=='en') return;
-  const els=[...document.querySelectorAll('input[placeholder],textarea[placeholder],select option,[title],[aria-label]')].filter(el=>!el.closest('#language-select'));
-  const items=[];
-  for(const el of els){
-    for(const a of ['placeholder','title','aria-label']){
-      if(!el.hasAttribute(a)) continue;
-      const key='i18nSource'+a.charAt(0).toUpperCase()+a.slice(1);
-      if(!el.dataset[key]) el.dataset[key]=el.getAttribute(a)||'';
-      const src=el.dataset[key];
-      if(src && /[\u0590-\u05FF]/.test(src)) items.push({el,a,src});
-    }
-    if(el.tagName==='OPTION'){
-      if(!el.dataset.i18nSource) el.dataset.i18nSource=el.textContent||'';
-      const src=el.dataset.i18nSource;
-      if(src && /[\u0590-\u05FF]/.test(src)) items.push({el,a:'text',src});
-    }
-  }
-  const unique=[...new Set(items.map(x=>normalizeI18nText(x.src)).filter(Boolean))];
-  const map=new Map();
-  for(let i=0;i<unique.length;i+=20){
-    const batch=unique.slice(i,i+20);
-    const results=await Promise.all(batch.map(x=>remoteTranslateText(x,'en')));
-    batch.forEach((x,j)=>map.set(x,results[j]));
-  }
-  items.forEach(({el,a,src})=>{const tr=map.get(normalizeI18nText(src));if(!tr)return;if(a==='text')el.textContent=tr;else el.setAttribute(a,tr);});
-}
-
-async function translateUserContentRemote(){
-  if(state.settings?.language!=='en')return;
-  const nodes=[...document.querySelectorAll('[data-user-original]')];
-  const unique=[...new Set(nodes.map(n=>n.dataset.userOriginal||'').filter(Boolean))];
-  const map=new Map();
-  for(let i=0;i<unique.length;i+=20){
-    const batch=unique.slice(i,i+20);
-    const results=await Promise.all(batch.map(x=>remoteTranslateText(x,'en')));
-    batch.forEach((x,j)=>map.set(x,results[j]));
-  }
-  nodes.forEach(n=>{const src=n.dataset.userOriginal;if(src&&map.has(src))n.textContent=map.get(src);});
-}
-
-async function translateAllVisibleText(){
-  const lang=state.settings?.language||'he';
-  if(lang!=='en'){
-    document.querySelectorAll('[data-i18n-source]').forEach(n=>{n.nodeValue!==undefined?n.nodeValue=n.dataset.i18nSource:n.textContent=n.dataset.i18nSource;});
-    await translateAttributesRemote();
-    return;
-  }
-  const dict=I18N_HE_EN;
-  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
-  const nodes=[];
-  while(walker.nextNode()){
-    const n=walker.currentNode,p=n.parentElement;
-    if(!p||['SCRIPT','STYLE','NOSCRIPT'].includes(p.tagName)||p.closest('#language-select'))continue;
-    if(!n.dataset.i18nSource)n.dataset.i18nSource=n.nodeValue;
-    const src=n.dataset.i18nSource||'';
-    const clean=normalizeI18nText(src);
-    if(!clean||!/[\u0590-\u05FF]/.test(clean))continue;
-    if(dict[clean]){
-      const lead=src.match(/^\s*/)?.[0]||'',trail=src.match(/\s*$/)?.[0]||'';
-      n.nodeValue=lead+dict[clean]+trail;
-    } else nodes.push(n);
-  }
-  const unique=[...new Set(nodes.map(n=>normalizeI18nText(n.dataset.i18nSource||n.nodeValue)).filter(Boolean))];
-  const map=new Map();
-  for(let i=0;i<unique.length;i+=20){
-    const batch=unique.slice(i,i+20);
-    const results=await Promise.all(batch.map(x=>remoteTranslateText(x,'en')));
-    batch.forEach((x,j)=>map.set(x,results[j]));
-  }
-  nodes.forEach(n=>{const src=n.dataset.i18nSource||'';const tr=map.get(normalizeI18nText(src));if(tr){const lead=src.match(/^\s*/)?.[0]||'',trail=src.match(/\s*$/)?.[0]||'';n.nodeValue=lead+tr+trail;}});
-  await translateAttributesRemote();
-  await translateUserContentRemote();
-}
-
-async function setAppLanguage(lang){
-  if(!['he','en'].includes(lang))lang='he';
-  state.settings=state.settings||{};
-  // Always render from the canonical Hebrew source first. This prevents a
-  // second render from turning already-translated DOM nodes into the new source.
-  const previous=state.settings.language||'he';
-  state.settings.language='he';
-  try{renderAll();}catch(e){console.warn('canonical render failed',e);}
-  state.settings.language=lang;
-  save();
-  document.getElementById('language-select')?.setAttribute('value',lang);
-  applyLanguageToDOM();
-  await translateAllVisibleText();
-  if(lang==='en') await translateUserContentRemote();
-  try{renderAll();}catch(e){console.warn('final render failed',e);}
-  // renderAll uses Hebrew source strings; translate the complete freshly-built DOM again.
-  applyLanguageToDOM();
-  await translateAllVisibleText();
-  if(window.lucide)lucide.createIcons();
-}
-
+let languageTranslationBusy=false;
+let languageTranslationTimer=null;
+let languageTranslationObserver=null;
+function applyLanguageToDOM(){const lang=state.settings?.language||'he';document.documentElement.lang=lang;document.documentElement.dir=lang==='en'?'ltr':'rtl';const ls=document.getElementById('language-select');if(ls){ls.innerHTML='<option value="he">עברית</option><option value="en">English</option>';ls.value=lang;}renderHeaderDate();}
+async function remoteTranslateText(text,target='en'){const source=String(text||'').trim();if(!source||target==='he')return source;const cache=state.settings.translationCache||{},key=`he-en:${source}`;if(cache[key])return cache[key];const local=localTranslateUserText(source,'en');if(local!==source){cache[key]=local;state.settings.translationCache=cache;save();return local;}try{const c=new AbortController(),tm=setTimeout(()=>c.abort(),4500),r=await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(source)}&langpair=he|en`,{signal:c.signal,cache:'no-store'});clearTimeout(tm);if(r.ok){const d=await r.json(),tr=d?.responseData?.translatedText;if(tr&&tr!==source){cache[key]=tr;state.settings.translationCache=cache;save();return tr;}}}catch(e){}return source;}
+function collectVisibleTextNodes(){const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT),a=[];while(w.nextNode()){const n=w.currentNode,p=n.parentElement;if(!p||p.closest('script,style,noscript,#language-select')||p.tagName==='OPTION')continue;if(!n.dataset.i18nCanonical)n.dataset.i18nCanonical=n.nodeValue||'';const src=n.dataset.i18nCanonical||'';if(normalizeI18nText(src))a.push({node:n,source:src});}return a;}
+async function translateAttributesRemote(){if(state.settings?.language!=='en')return;const items=[];document.querySelectorAll('input[placeholder],textarea[placeholder],select option,[title],[aria-label]').forEach(el=>{if(el.closest('#language-select'))return;for(const a of ['placeholder','title','aria-label']){if(!el.hasAttribute(a))continue;const k='i18nCanonical'+a.charAt(0).toUpperCase()+a.slice(1);if(!el.dataset[k])el.dataset[k]=el.getAttribute(a)||'';if(el.dataset[k])items.push({el,a,src:el.dataset[k]});}if(el.tagName==='OPTION'){if(!el.dataset.i18nCanonicalOption)el.dataset.i18nCanonicalOption=el.textContent||'';if(el.dataset.i18nCanonicalOption)items.push({el,a:'text',src:el.dataset.i18nCanonicalOption});}});const unique=[...new Set(items.map(x=>normalizeI18nText(x.src)).filter(Boolean))],map=new Map();for(let i=0;i<unique.length;i+=12){const b=unique.slice(i,i+12),r=await Promise.all(b.map(x=>remoteTranslateText(x,'en')));b.forEach((x,j)=>map.set(x,r[j]));}items.forEach(x=>{const tr=map.get(normalizeI18nText(x.src));if(tr)x.a==='text'?x.el.textContent=tr:x.el.setAttribute(x.a,tr);});}
+async function translateUserContentRemote(){if(state.settings?.language!=='en')return;const nodes=[...document.querySelectorAll('[data-user-original]')],unique=[...new Set(nodes.map(n=>n.dataset.userOriginal||'').filter(Boolean))],map=new Map();for(let i=0;i<unique.length;i+=12){const b=unique.slice(i,i+12),r=await Promise.all(b.map(x=>remoteTranslateText(x,'en')));b.forEach((x,j)=>map.set(x,r[j]));}nodes.forEach(n=>{const s=n.dataset.userOriginal;if(s&&map.has(s))n.textContent=map.get(s);});}
+async function translateAllVisibleText(){if(state.settings?.language!=='en'||languageTranslationBusy)return;languageTranslationBusy=true;try{const dict=I18N_HE_EN||{},nodes=collectVisibleTextNodes(),pending=[];nodes.forEach(x=>{const clean=normalizeI18nText(x.source),tr=dict[clean];if(tr){const lead=x.source.match(/^\s*/)?.[0]||'',tail=x.source.match(/\s*$/)?.[0]||'';x.node.nodeValue=lead+tr+tail;}else if(/[\u0590-\u05FF]/.test(clean))pending.push({...x,clean});});const unique=[...new Set(pending.map(x=>x.clean))],map=new Map();for(let i=0;i<unique.length;i+=12){const b=unique.slice(i,i+12),r=await Promise.all(b.map(x=>remoteTranslateText(x,'en')));b.forEach((x,j)=>map.set(x,r[j]));}pending.forEach(x=>{const tr=map.get(x.clean);if(tr){const lead=x.source.match(/^\s*/)?.[0]||'',tail=x.source.match(/\s*$/)?.[0]||'';x.node.nodeValue=lead+tr+tail;}});await translateAttributesRemote();await translateUserContentRemote();}finally{languageTranslationBusy=false;}}
+function scheduleLanguageRefresh(delay=80){clearTimeout(languageTranslationTimer);languageTranslationTimer=setTimeout(()=>{languageTranslationTimer=null;if(state.settings?.language==='en')translateAllVisibleText().catch(()=>{});},delay);}
+function installLanguageObserver(){if(languageTranslationObserver||!document.body)return;languageTranslationObserver=new MutationObserver(ms=>{if(languageTranslationBusy||state.settings?.language!=='en')return;if(ms.some(m=>m.type==='childList'&&m.addedNodes.length))scheduleLanguageRefresh(100);});languageTranslationObserver.observe(document.body,{childList:true,subtree:true});}
+async function setAppLanguage(lang){if(!['he','en'].includes(lang))lang='he';state.settings=state.settings||{};state.settings.language=lang;save();applyLanguageToDOM();try{renderAll();}catch(e){console.warn('language render failed',e);}applyLanguageToDOM();if(window.lucide)lucide.createIcons();if(lang==='en')await translateAllVisibleText();scheduleLanguageRefresh(0);}
+window.addEventListener('local-ai-progress',e=>renderLocalAIStatus(e.detail));window.addEventListener('local-ai-status',()=>renderLocalAIStatus());window.addEventListener('load',()=>{setTimeout(async()=>{installLanguageObserver();ensureFeatureDB();upgradeFeatureState();enhanceHeatmapStyles();setupCategoryAssistant();generateSmartNotifications();showMonthlySummaryNotification();syncSettingsUI();renderNotifications();loadTheme();scheduleAutoLock();await bootAccountLayer();applyLanguageToDOM();if(window.lucide)lucide.createIcons();if(state.settings?.language==='en')await translateAllVisibleText();},50);});
 // Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
 window.addEventListener('local-ai-progress',e=>renderLocalAIStatus(e.detail));
 window.addEventListener('local-ai-status',()=>renderLocalAIStatus());

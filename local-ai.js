@@ -1,7 +1,7 @@
 /* MoneyTracker Local AI bridge */
 (function () {
   const MODEL_ID = 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
-  const MODEL_VERSION = '1';
+  const MODEL_VERSION = '2c4055b';
   let worker = null;
   let requestId = 0;
   const pending = new Map();

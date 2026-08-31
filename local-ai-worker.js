@@ -6,7 +6,7 @@
 
 let extractorPromise = null;
 const MODEL_ID = 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
-const MODEL_REVISION = 'main';
+const MODEL_REVISION = '2c4055b';
 
 const BASE_PROTOTYPES = {
   'אוכל ומזון': [
