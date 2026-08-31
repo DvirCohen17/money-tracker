@@ -1229,7 +1229,7 @@ function editPocket(id){openPocketModal(id)} function deletePocket(id){if(confir
 function renderTrip(){
   const t=state.trip; const total=sum(t.expenses.map(e=>({amount:Number(e.amount)*Number(e.rate||1)}))); const left=Number(t.budget)-total; const start=new Date(t.start),end=new Date(t.end); const days=isNaN(start)?0:Math.max(1,Math.round((end-start)/86400000)+1);
   setText('trip-budget',money(t.budget));setText('trip-total',money(total));setText('trip-left',money(left));setText('trip-days',days);
-  document.getElementById('trip-expenses-list').innerHTML=(t.expenses||[]).length?t.expenses.map(e=>`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex justify-between"><div><b class="text-white">${esc(e.desc)}</b><div class="text-[10px] text-gray-400">${e.amount} ${e.currency} • ${e.date}</div></div><div class="text-right"><b class="text-emerald-400 amount">${money(Number(e.amount)*Number(e.rate||1))}</b><div><button onclick="editTrip(${e.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deleteTrip(${e.id})" class="text-rose-400 text-xs mr-2">מחק</button></div></div></div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות טיול</div>';
+  document.getElementById('trip-expenses-list').innerHTML=(t.expenses||[]).length?t.expenses.map(e=>`<div class="bg-gray-900/60 border border-gray-800 rounded-xl p-3 flex justify-between"><div><b class="text-white"><span data-user-original="${attr(e.desc)}">${esc(displayUserText(e.desc))}</span></b><div class="text-[10px] text-gray-400">${e.amount} ${esc(e.currency)} • ${esc(e.date)}</div></div><div class="text-right"><b class="text-emerald-400 amount">${money(Number(e.amount)*Number(e.rate||1))}</b><div><button onclick="editTrip(${e.id})" class="text-sky-400 text-xs">ערוך</button><button onclick="deleteTrip(${e.id})" class="text-rose-400 text-xs mr-2">מחק</button></div></div></div>`).join(''):'<div class="text-gray-500 text-sm">אין הוצאות טיול</div>';
 }
 
 function openTripModal(id=null){
@@ -1276,27 +1276,52 @@ function openTripSettings(){
 }
 
 function finishTrip() {
-  const totalInILS = sum(state.trip.expenses.map(e => ({ amount: Number(e.amount) * Number(e.rate || 1) })));
+  const expenses = Array.isArray(state.trip?.expenses) ? state.trip.expenses : [];
+  const totalInILS = sum(expenses.map(e => ({ amount: Number(e.amount) * Number(e.rate || 1) })));
   if (totalInILS <= 0) {
-    return alert('אין הוצאות טיול להוספה');
+    return alert(t('אין הוצאות טיול להוספה'));
   }
 
-  if (confirm(`האם לסיים את הטיול ולהוסיף הוצאה על סך ${money(totalInILS)} לחשבון הכללי?`)) {
-    state.transactions.unshift({
-      id: Date.now(),
-      desc: 'סיכום הוצאות טיול',
-      amount: totalInILS,
-      type: 'expense',
-      cat: 'פנאי ובילויים',
-      date: today(),
-      isTripSummary: true
-    });
+  const tTrip = state.trip;
+  const budget = Number(tTrip.budget || 0);
+  const remaining = budget - totalInILS;
+  const start = new Date(tTrip.start);
+  const end = new Date(tTrip.end);
+  const days = !isNaN(start) && !isNaN(end) ? Math.max(1, Math.round((end-start)/86400000)+1) : expenses.length;
+  const byCategory = {};
+  expenses.forEach(e => {
+    const cat = autoCategory(e.desc, 'expense');
+    byCategory[cat] = (byCategory[cat] || 0) + Number(e.amount || 0) * Number(e.rate || 1);
+  });
+  const top = Object.entries(byCategory).sort((a,b)=>b[1]-a[1])[0];
+  const lang = state.settings?.language === 'en';
+  const title = lang ? 'Trip summary' : 'סיכום הטיול';
+  const subtitle = lang ? 'Review the trip before adding its expenses to your account.' : 'בדוק את סיכום הטיול לפני הוספת ההוצאות לחשבון הכללי.';
+  const dates = lang ? `${tTrip.start || '—'} → ${tTrip.end || '—'}` : `${tTrip.start || '—'} ← ${tTrip.end || '—'}`;
+  const remainingClass = remaining >= 0 ? 'text-emerald-400' : 'text-rose-400';
+  const catRows = Object.entries(byCategory).sort((a,b)=>b[1]-a[1]).map(([cat,amount])=>`<div class="flex items-center justify-between py-2 border-b border-gray-800/70 last:border-0"><span class="text-gray-300 text-sm">${esc(translatedCategory(cat))}</span><b class="text-white amount">${money(amount)}</b></div>`).join('');
 
-    state.trip.expenses = [];
-    save();
-    renderAll();
-    alert('הטיול הסתיים בהצלחה וההוצאה שוקללה בחשבון!');
-  }
+  document.getElementById('modal-root').innerHTML = `<div class="modal fixed inset-0 z-[100] flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()"><div class="glass-card border border-gray-800 w-full max-w-lg rounded-3xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
+    <div class="flex items-start justify-between gap-3"><div><div class="text-[11px] text-sky-400 font-semibold uppercase tracking-wider">${lang?'Trip completed':'טיול הסתיים'}</div><h3 class="font-bold text-white text-xl mt-1">${title}</h3><p class="text-xs text-gray-400 mt-1">${subtitle}</p></div><button onclick="closeModal()" class="text-gray-400"><i data-lucide="x"></i></button></div>
+    <div class="bg-gray-900/70 border border-gray-800 rounded-2xl p-4"><div class="flex items-center justify-between"><div><div class="text-xs text-gray-500">${lang?'Dates':'תאריכים'}</div><div class="font-semibold text-white mt-1">${esc(dates)}</div></div><div class="text-right"><div class="text-xs text-gray-500">${lang?'Trip days':'ימי טיול'}</div><div class="font-bold text-white">${days}</div></div></div></div>
+    <div class="grid grid-cols-2 gap-2"><div class="bg-gray-900/70 border border-gray-800 rounded-2xl p-3"><div class="text-xs text-gray-500">${lang?'Trip budget':'תקציב טיול'}</div><b class="text-white amount text-lg">${money(budget)}</b></div><div class="bg-gray-900/70 border border-gray-800 rounded-2xl p-3"><div class="text-xs text-gray-500">${lang?'Total spent':'סה״כ הוצאות'}</div><b class="text-rose-300 amount text-lg">${money(totalInILS)}</b></div></div>
+    <div class="bg-gray-900/70 border border-gray-800 rounded-2xl p-3 flex items-center justify-between"><span class="text-sm text-gray-300">${lang?'Remaining':'נשאר'}</span><b class="${remainingClass} amount text-lg">${money(remaining)}</b></div>
+    <div class="bg-gray-900/50 border border-gray-800 rounded-2xl p-3"><div class="text-xs text-gray-500 mb-1">${lang?'Expenses by category':'הוצאות לפי קטגוריה'}</div>${catRows || `<div class="text-sm text-gray-500">${lang?'No data':'אין נתונים'}</div>`}</div>
+    ${top ? `<div class="text-xs text-gray-400">${lang?'Largest category':'הקטגוריה הגדולה ביותר'}: <b class="text-white">${esc(translatedCategory(top[0]))}</b> · <b class="amount">${money(top[1])}</b></div>` : ''}
+    <div class="bg-amber-950/30 border border-amber-900/50 rounded-2xl p-3 text-xs text-amber-200">${lang?'Confirming will add one trip expense to your general account and clear the trip expense list.':'אישור יוסיף הוצאה אחת של סיכום הטיול לחשבון הכללי וינקה את רשימת הוצאות הטיול.'}</div>
+    <div class="flex gap-2 pt-1"><button onclick="closeModal()" class="flex-1 bg-gray-800 text-white rounded-xl px-4 py-3 text-sm">${lang?'Back':'חזרה'}</button><button id="trip-finish-confirm" class="flex-1 bg-indigo-600 text-white rounded-xl px-4 py-3 text-sm font-semibold">${lang?'Confirm & add expense':'אישור והוספת ההוצאה'}</button></div>
+  </div></div>`;
+  document.getElementById('trip-finish-confirm').onclick = () => confirmFinishTrip(totalInILS);
+  lucide.createIcons();
+  if (state.settings?.language === 'en') { applyLanguageToDOM(); setTimeout(()=>translateAllVisibleText(),0); }
+}
+function confirmFinishTrip(totalInILS) {
+  state.transactions.unshift({id:Date.now(),desc:'סיכום הוצאות טיול',amount:Number(totalInILS),type:'expense',cat:'פנאי ובילויים',date:today(),isTripSummary:true});
+  state.trip.expenses=[];
+  save();
+  closeModal();
+  renderAll();
+  alert(t('הטיול הסתיים בהצלחה וההוצאה שוקללה בחשבון!'));
 }
 
 function openOverviewModal(){
@@ -1428,6 +1453,12 @@ function clearAllData(){
 function openModal(title,body,onSave){
   document.getElementById('modal-root').innerHTML=`<div class="modal fixed inset-0 z-[100] flex items-center justify-center p-4" onclick="if(event.target===this)closeModal()"><div class="glass-card border border-gray-800 w-full max-w-md rounded-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center"><h3 class="font-bold text-white">${esc(title)}</h3><button onclick="closeModal()" class="text-gray-400"><i data-lucide="x"></i></button></div><div class="space-y-2">${body}</div><div class="flex justify-end gap-2"><button onclick="closeModal()" class="bg-gray-800 text-white rounded-xl px-4 py-2 text-sm">ביטול</button><button id="modal-save" class="bg-indigo-600 text-white rounded-xl px-4 py-2 text-sm font-semibold">שמור</button></div></div></div>`;
   document.getElementById('modal-save').onclick=onSave;lucide.createIcons();applyNumericKeyboard();
+  // Dynamic modals are rendered from Hebrew source strings; immediately run the
+  // same language pipeline used by the rest of the application.
+  if(state.settings?.language==='en'){
+    applyLanguageToDOM();
+    setTimeout(()=>translateAllVisibleText(),0);
+  }
 }
 function closeModal(){document.getElementById('modal-root').innerHTML=''}
 function v(id){return document.getElementById(id)?.value??''}
@@ -1782,6 +1813,13 @@ bootAccountLayer=async function(){
 };
 startRemoteSyncLoop=function(){clearInterval(window.__mtRemotePoll);};
 
+/* Central translation helper for dynamic strings and notifications. */
+function t(source, fallback='') {
+  const text=String(source ?? '');
+  if(state.settings?.language!=='en') return text;
+  return I18N_HE_EN?.[text] || localTranslateUserText(text,'en') || fallback || text;
+}
+
 /* Language layer: keeps original source text and translates known UI strings without touching user-entered data. */
 const I18N_HE_EN={
 'עברית':'English','English':'עברית','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','תאריך מערכת לבדיקות':'System date for testing','מצב בדיקה בלבד. מאפשר לדמות את \"היום\" לתאריך אחר.':'Testing mode only. Lets you simulate a different current date.','אפס להיום':'Reset to today','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.'
@@ -1912,48 +1950,102 @@ async function remoteTranslateText(text,target='en'){
   }catch(e){/* offline: keep original/local translation */}
   return local;
 }
+async function translateAttributesRemote() {
+  if(state.settings?.language!=='en') return;
+  const els=[...document.querySelectorAll('input[placeholder],textarea[placeholder],select option,[title],[aria-label]')].filter(el=>!el.closest('#language-select'));
+  const items=[];
+  for(const el of els){
+    for(const a of ['placeholder','title','aria-label']){
+      if(!el.hasAttribute(a)) continue;
+      const key='i18nSource'+a.charAt(0).toUpperCase()+a.slice(1);
+      if(!el.dataset[key]) el.dataset[key]=el.getAttribute(a)||'';
+      const src=el.dataset[key];
+      if(src && /[\u0590-\u05FF]/.test(src)) items.push({el,a,src});
+    }
+    if(el.tagName==='OPTION'){
+      if(!el.dataset.i18nSource) el.dataset.i18nSource=el.textContent||'';
+      const src=el.dataset.i18nSource;
+      if(src && /[\u0590-\u05FF]/.test(src)) items.push({el,a:'text',src});
+    }
+  }
+  const unique=[...new Set(items.map(x=>normalizeI18nText(x.src)).filter(Boolean))];
+  const map=new Map();
+  for(let i=0;i<unique.length;i+=20){
+    const batch=unique.slice(i,i+20);
+    const results=await Promise.all(batch.map(x=>remoteTranslateText(x,'en')));
+    batch.forEach((x,j)=>map.set(x,results[j]));
+  }
+  items.forEach(({el,a,src})=>{const tr=map.get(normalizeI18nText(src));if(!tr)return;if(a==='text')el.textContent=tr;else el.setAttribute(a,tr);});
+}
+
 async function translateUserContentRemote(){
   if(state.settings?.language!=='en')return;
   const nodes=[...document.querySelectorAll('[data-user-original]')];
-  const unique=[...new Set(nodes.map(n=>n.dataset.userOriginal||'').filter(Boolean))].slice(0,25);
-  const results=await Promise.all(unique.map(x=>remoteTranslateText(x,'en')));
-  const map=new Map(unique.map((x,i)=>[x,results[i]]));
+  const unique=[...new Set(nodes.map(n=>n.dataset.userOriginal||'').filter(Boolean))];
+  const map=new Map();
+  for(let i=0;i<unique.length;i+=20){
+    const batch=unique.slice(i,i+20);
+    const results=await Promise.all(batch.map(x=>remoteTranslateText(x,'en')));
+    batch.forEach((x,j)=>map.set(x,results[j]));
+  }
   nodes.forEach(n=>{const src=n.dataset.userOriginal;if(src&&map.has(src))n.textContent=map.get(src);});
 }
 
 async function translateAllVisibleText(){
   const lang=state.settings?.language||'he';
   if(lang!=='en'){
-    document.querySelectorAll('[data-i18n-source]').forEach(n=>{n.textContent=n.dataset.i18nSource;});
+    document.querySelectorAll('[data-i18n-source]').forEach(n=>{n.nodeValue!==undefined?n.nodeValue=n.dataset.i18nSource:n.textContent=n.dataset.i18nSource;});
+    await translateAttributesRemote();
     return;
   }
   const dict=I18N_HE_EN;
-  const nodes=[];const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const walker=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);
+  const nodes=[];
   while(walker.nextNode()){
-    const n=walker.currentNode,p=n.parentElement;if(!p||['SCRIPT','STYLE','NOSCRIPT'].includes(p.tagName)||p.closest('#language-select'))continue;
-    const raw=n.dataset.i18nSource||n.nodeValue;const clean=normalizeI18nText(raw);if(!clean||!/[\u0590-\u05FF]/.test(clean))continue;
+    const n=walker.currentNode,p=n.parentElement;
+    if(!p||['SCRIPT','STYLE','NOSCRIPT'].includes(p.tagName)||p.closest('#language-select'))continue;
     if(!n.dataset.i18nSource)n.dataset.i18nSource=n.nodeValue;
-    if(dict[clean]){const lead=raw.match(/^\s*/)?.[0]||'',trail=raw.match(/\s*$/)?.[0]||'';n.nodeValue=lead+dict[clean]+trail;continue;}
-    nodes.push(n);
+    const src=n.dataset.i18nSource||'';
+    const clean=normalizeI18nText(src);
+    if(!clean||!/[\u0590-\u05FF]/.test(clean))continue;
+    if(dict[clean]){
+      const lead=src.match(/^\s*/)?.[0]||'',trail=src.match(/\s*$/)?.[0]||'';
+      n.nodeValue=lead+dict[clean]+trail;
+    } else nodes.push(n);
   }
-  const unique=[...new Set(nodes.map(n=>normalizeI18nText(n.dataset.i18nSource||n.nodeValue)))].slice(0,60);
-  if(unique.length){const results=await Promise.all(unique.map(x=>remoteTranslateText(x,'en')));const map=new Map(unique.map((x,i)=>[x,results[i]]));nodes.forEach(n=>{const src=n.dataset.i18nSource||'';const tr=map.get(normalizeI18nText(src));if(tr){const lead=src.match(/^\s*/)?.[0]||'',trail=src.match(/\s*$/)?.[0]||'';n.nodeValue=lead+tr+trail;}});}
+  const unique=[...new Set(nodes.map(n=>normalizeI18nText(n.dataset.i18nSource||n.nodeValue)).filter(Boolean))];
+  const map=new Map();
+  for(let i=0;i<unique.length;i+=20){
+    const batch=unique.slice(i,i+20);
+    const results=await Promise.all(batch.map(x=>remoteTranslateText(x,'en')));
+    batch.forEach((x,j)=>map.set(x,results[j]));
+  }
+  nodes.forEach(n=>{const src=n.dataset.i18nSource||'';const tr=map.get(normalizeI18nText(src));if(tr){const lead=src.match(/^\s*/)?.[0]||'',trail=src.match(/\s*$/)?.[0]||'';n.nodeValue=lead+tr+trail;}});
+  await translateAttributesRemote();
   await translateUserContentRemote();
 }
 
 async function setAppLanguage(lang){
   if(!['he','en'].includes(lang))lang='he';
   state.settings=state.settings||{};
+  // Always render from the canonical Hebrew source first. This prevents a
+  // second render from turning already-translated DOM nodes into the new source.
+  const previous=state.settings.language||'he';
+  state.settings.language='he';
+  try{renderAll();}catch(e){console.warn('canonical render failed',e);}
   state.settings.language=lang;
   save();
-  try{renderAll();}catch(e){console.warn('render after language change failed',e);}
+  document.getElementById('language-select')?.setAttribute('value',lang);
   applyLanguageToDOM();
   await translateAllVisibleText();
-  try{renderAll();}catch(e){console.warn('second render after language change failed',e);}
+  if(lang==='en') await translateUserContentRemote();
+  try{renderAll();}catch(e){console.warn('final render failed',e);}
+  // renderAll uses Hebrew source strings; translate the complete freshly-built DOM again.
   applyLanguageToDOM();
   await translateAllVisibleText();
   if(window.lucide)lucide.createIcons();
 }
+
 // Initial feature bootstrap after the existing DOMContentLoaded handlers have run.
 window.addEventListener('local-ai-progress',e=>renderLocalAIStatus(e.detail));
 window.addEventListener('local-ai-status',()=>renderLocalAIStatus());
