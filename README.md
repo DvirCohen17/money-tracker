@@ -18,3 +18,17 @@
 
 ## Frontend
 אם ה-API וה-frontend באותו host, אין צורך להגדיר `MONEYTRACKER_API_URL`. אם הם נפרדים, הגדירו אותו ב-`config.js`.
+
+## v1.5.0 — Local AI category engine
+
+MoneyTracker now includes an optional multilingual local AI classifier for automatic transaction categories.
+
+- Uses Transformers.js in a Web Worker.
+- Model: `Xenova/paraphrase-multilingual-MiniLM-L12-v2`.
+- The model is downloaded from Hugging Face on first use (or manually from Settings) and cached in the browser.
+- Transaction descriptions are embedded/classified locally after the model is downloaded; they are not sent to an AI API.
+- The classifier supports Hebrew and English and combines semantic similarity with the existing fast local keyword fallback.
+- Manually selected categories are stored as local examples so the classifier can learn the user's preferences.
+- The app continues to work without a server; only the initial model download requires internet access.
+
+The model is relatively large, so the first download may take time and storage. Subsequent use is local and uses the browser cache.
