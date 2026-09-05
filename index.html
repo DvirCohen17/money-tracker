@@ -104,6 +104,37 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
 }
 
 @media (max-width: 640px){body{overflow-x:hidden}.heatmap-year{grid-template-columns:minmax(0,1fr)!important;gap:.65rem}.heatmap-year>div{min-width:0!important;width:100%!important;padding:.65rem!important}.mini-heatmap{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:2px!important}.mini-heatmap .heatmap-day{min-width:0!important;min-height:32px!important;font-size:9px!important;padding:2px!important}.heatmap-day{min-width:0;max-width:100%}}
+
+/* Stable mobile sizing for bilingual UI */
+html,body{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
+}
+*,*::before,*::after{box-sizing:border-box}
+@media(max-width:640px){
+  body{overflow-x:hidden}
+  main,header,section,.glass-card,.feature-grid,.grid,.flex{min-width:0;max-width:100%}
+  .glass-card{overflow:hidden}
+  input,select,textarea,button{max-width:100%;min-width:0}
+  .feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  header{gap:.5rem}
+  header>div{min-width:0}
+  header h1{font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tab-content{min-width:0;width:100%}
+  .tab-content .grid{min-width:0}
+  .tab-content [class*="grid-cols-"]>*{min-width:0}
+  .text-xs,.text-sm{overflow-wrap:anywhere}
+  nav button{min-width:0}
+}
+@media(max-width:390px){
+  .feature-grid{gap:.45rem}
+  .feature-stat{padding:.6rem}
+  header{padding-left:.65rem!important;padding-right:.65rem!important}
+}
+
 </style>
 </head>
 <body class="pb-24">
@@ -163,6 +194,20 @@ body .border-indigo-500\/20{border-color:color-mix(in srgb,var(--accent) 28%,tra
 <input class="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white" id="tx-date" type="date"/>
 <button class="col-span-2 md:col-span-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 py-2 text-sm font-semibold btn">שמור</button>
 </form>
+<div class="mt-3 rounded-2xl border border-indigo-500/20 bg-indigo-950/20 p-4" id="quick-expense-box">
+  <div class="flex items-center justify-between gap-3 mb-2">
+    <div>
+      <h3 class="font-bold text-sm text-white" data-i18n="הוספת הוצאה במשפט">הוספת הוצאה במשפט</h3>
+      <p class="text-[11px] text-gray-400" data-i18n="כתוב למשל: המבורגר -70 שקל או Burger -70 shekels">כתוב למשל: המבורגר -70 שקל או Burger -70 shekels</p>
+    </div>
+    <i class="w-5 h-5 text-violet-400" data-lucide="wand-sparkles"></i>
+  </div>
+  <div class="flex gap-2">
+    <input id="quick-expense-input" class="flex-1 min-w-0 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white" data-i18n-placeholder="המבורגר -70 שקל" placeholder="המבורגר -70 שקל" autocomplete="off">
+    <button id="quick-expense-btn" type="button" onclick="processQuickExpense()" class="bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-4 py-2 text-sm font-semibold whitespace-nowrap" data-i18n="הוסף">הוסף</button>
+  </div>
+  <div id="quick-expense-preview" class="hidden mt-3"></div>
+</div>
 </section>
 <section class="glass-card p-4 rounded-2xl">
 <div class="flex justify-between items-center mb-3">
@@ -656,6 +701,67 @@ function addTransaction(e){
   state.transactions.unshift(tx); save(); if(e&&e.target) e.target.reset(); document.getElementById('tx-date').value=today(); renderAll();
 }
 
+function parseQuickExpense(text){
+  const raw=String(text||'').trim();
+  if(!raw)return null;
+  const matches=[...raw.matchAll(/([-+]?\d+(?:[.,]\d{1,2})?)\s*(₪|ILS|NIS|שקל(?:ים)?|שח|shekels?)?/gi)];
+  if(!matches.length)return null;
+  const m=matches[matches.length-1];
+  const numeric=Number(m[1].replace(',','.'));
+  if(!Number.isFinite(numeric)||numeric===0)return null;
+  const amount=Math.abs(numeric);
+  let desc=(raw.slice(0,m.index)+raw.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim().replace(/[-–—:]$/,'').trim();
+  const type=numeric<0?'expense':(/\b(income|salary|received|refund|expense|הכנסה|משכורת|החזר|קיבלתי|הוצאה)\b/i.test(raw)?( /\b(income|salary|received|refund|הכנסה|משכורת|החזר|קיבלתי)\b/i.test(raw)?'income':'expense'):'expense');
+  return buildQuickParsed(raw,desc,amount,type);
+}
+function buildQuickParsed(raw,desc,amount,type){
+  let cleanDesc=desc.replace(/\b(?:ב|for)\s+(?:שקל|שקלים|shekels?|ILS|NIS)\b/ig,'').replace(/\s+/g,' ').trim();
+  cleanDesc=cleanDesc.replace(/^(?:הוצאה|expense)\s*[:\-]?\s*/i,'').trim()||raw;
+  const category=autoCategory(cleanDesc,type);
+  return {raw,desc:cleanDesc,amount,type,category,date:today()};
+}
+function renderQuickExpensePreview(parsed,categoryResult){
+  const box=document.getElementById('quick-expense-preview'); if(!box)return;
+  if(!parsed){box.classList.add('hidden');box.innerHTML='';return;}
+  const cat=categoryResult?.category||parsed.category;
+  const confidence=categoryResult?.confidence;
+  const en=state.settings?.language==='en';
+  const t=(he,enText)=>en?enText:he;
+  box.classList.remove('hidden');
+  box.innerHTML=`<div class="rounded-xl bg-gray-900/80 border border-gray-800 p-3">
+    <div class="text-[10px] text-gray-500 mb-2">${t('זיהיתי את ההוצאה כך','I understood the expense as')}</div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="min-w-0"><div class="font-bold text-white truncate">${esc(parsed.desc)}</div><div class="text-xs text-gray-400 mt-1">${esc(displayCategory(cat))}${confidence!=null?` · ${Math.round(confidence*100)}%`:''}</div></div>
+      <div class="font-extrabold text-rose-400 amount whitespace-nowrap">-${money(parsed.amount)}</div>
+    </div>
+    <div class="flex gap-2 mt-3">
+      <button type="button" onclick="confirmQuickExpense()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-2 text-sm font-semibold">${t('הוסף הוצאה','Add expense')}</button>
+      <button type="button" onclick="clearQuickExpense()" class="bg-gray-800 text-gray-300 rounded-xl px-3 py-2 text-sm">${t('ביטול','Cancel')}</button>
+    </div>
+  </div>`;
+}
+let pendingQuickExpense=null;
+async function processQuickExpense(){
+  const input=document.getElementById('quick-expense-input');
+  const parsed=parseQuickExpense(input?.value||'');
+  if(!parsed){alert(state.settings?.language==='en'?'I could not find an amount. Try: Burger -70 shekels':'לא הצלחתי לזהות סכום. נסה למשל: המבורגר -70 שקל');return;}
+  pendingQuickExpense=parsed;
+  renderQuickExpensePreview(parsed,{category:parsed.category,confidence:.4});
+  if(parsed.type==='expense'){
+    try{
+      const result=await classifyDescriptionAsync(parsed.desc,'expense',{loadModel:false,quickExpense:true});
+      if(pendingQuickExpense===parsed){pendingQuickExpense.category=result.category||parsed.category;renderQuickExpensePreview(pendingQuickExpense,result);}
+    }catch(_e){}
+  }
+}
+async function confirmQuickExpense(){
+  if(!pendingQuickExpense)return;
+  const q={...pendingQuickExpense};
+  const cat=q.category||autoCategory(q.desc,q.type);
+  state.transactions.unshift({id:Date.now(),desc:q.desc,amount:q.amount,type:q.type,cat,date:q.date,autoCategorized:true,categoryAIConfidence:.4,categoryAISource:'quick-text'});
+  save(); clearQuickExpense(); renderAll(); generateSmartNotifications();
+}
+function clearQuickExpense(){pendingQuickExpense=null;const input=document.getElementById('quick-expense-input');if(input)input.value='';const box=document.getElementById('quick-expense-preview');if(box){box.classList.add('hidden');box.innerHTML='';}}
 function localTranslateUserText(text,target='en'){
   const source=String(text||'').trim(); if(!source)return source;
   const heToEn={
@@ -1445,15 +1551,7 @@ function updateFXStatus(failed=false){
   el.innerText=failed ? (d?`עדכון אחרון: ${d}`:'אין חיבור') : (d?`עודכן: ${d}`:'עדיין לא עודכן');
   el.className='text-[10px] '+(failed?'text-amber-400':'text-emerald-400')+' text-left';
 }
-function syncSettingsUI(){updateFXStatus()}
-function convertFX(){const n=Number(v('fx-amount'))||0;const from=v('fx-from');setText('fx-result',money(n*(state.settings.rates[from]||1)))}
-function calculateSplit(){const total=Number(v('split-total'))||0,people=Math.max(1,Number(v('split-people'))||1);setText('split-result',money(total/people))}
 
-function exportCSV(){
-  const rows=[['ID','תיאור','סכום','סוג','קטגוריה','תאריך'],...state.transactions.map(t=>[t.id,t.desc,t.amount,t.type,t.cat,t.date])];
-  const csv='\ufeff'+rows.map(r=>r.map(x=>`"${String(x??'').replaceAll('"','""')}"`).join(',')).join('\n');
-  download(csv,'text/csv;charset=utf-8','budget_transactions.csv')
-}
 function exportJSON(){download(JSON.stringify(state,null,2),'application/json','budget_backup.json')}
 function importJSON(e){
   const input=e.target;
@@ -1872,7 +1970,7 @@ function t(source, fallback='') {
 
 /* Language layer: keeps original source text and translates known UI strings without touching user-entered data. */
 const I18N_HE_EN={
-'עברית':'English','English':'עברית','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','תאריך מערכת לבדיקות':'System date for testing','מצב בדיקה בלבד. מאפשר לדמות את \"היום\" לתאריך אחר.':'Testing mode only. Lets you simulate a different current date.','אפס להיום':'Reset to today','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.'
+'עברית':'English','English':'עברית','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','תאריך מערכת לבדיקות':'System date for testing','מצב בדיקה בלבד. מאפשר לדמות את \"היום\" לתאריך אחר.':'Testing mode only. Lets you simulate a different current date.','אפס להיום':'Reset to today','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.','הוספת הוצאה במשפט':'Add expense from a sentence','כתוב למשל: המבורגר -70 שקל או Burger -70 shekels':'For example: Burger -70 shekels','המבורגר -70 שקל':'Burger -70 shekels','הוסף':'Add','הוסף הוצאה':'Add expense','ביטול':'Cancel','זיהיתי את ההוצאה כך':'I understood the expense as'
 };
 Object.assign(I18N_HE_EN,{
   'הוצאות בתקופה:':'Expenses in period:',
@@ -1943,14 +2041,103 @@ Object.assign(I18N_HE_EN,{
   'יש להזין שם וסכום תקין':'Enter a valid name and amount',
   'הזן תיאור וסכום תקינים':'Enter a valid description and amount'
 });
+
+Object.assign(I18N_HE_EN,{
+  'הגדרות תקציב בסיס':'Base budget settings',
+  'יתרה התחלתית':'Starting balance',
+  'תקציב חודשי':'Monthly budget',
+  'משכורת חודשית ברירת מחדל':'Default monthly salary',
+  'עריכת נתוני בסיס':'Edit basic data',
+  'מתוך ':'of ',
+  '% מהתקציב נוצל':'% of budget used',
+  'ניצלת ':'You used ',
+  'התקציב נוצל':'Budget used',
+  'תיאור':'Description',
+  'סכום':'Amount',
+  'תאריך':'Date',
+  'קטגוריה':'Category',
+  'סוג':'Type',
+  'סיכום חודשי':'Monthly summary',
+  'סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.',
+  'נתוני':'Data',
+  'הודעות':'Notifications',
+  'מרכז הודעות':'Notification center',
+  'הוצאות קבועות':'Fixed expenses',
+  'הוצאות חודשיות קבועות':'Fixed monthly expenses',
+  'מנויים':'Subscriptions',
+  'חסכונות':'Savings',
+  'קופות חיסכון':'Savings pockets',
+  'הפרשות חודשיות לחיסכון':'Monthly savings allocations',
+  'הגדרות':'Settings',
+  'AI מקומי לסיווג הוצאות':'Local AI for expense classification',
+  'מודל רב־לשוני שרץ במכשיר. אין שליחה של תיאורי הוצאות לשרת AI. בהורדה הראשונה המודל נשמר ב-cache של הדפדפן.':'A multilingual model that runs on your device. Expense descriptions are not sent to an AI server. The model is cached in your browser after the first download.',
+  'לא הורד':'Not downloaded',
+  'המודל יורד רק כשצריך או כשלוחצים על הורדה.':'The model is downloaded only when needed or when you press download.',
+  'הורד מודל AI':'Download AI model',
+  'אפס למידה':'Reset learning',
+  'אפליקציה והתקנה':'App & installation',
+  'התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.',
+  'התקן כאפליקציה':'Install as app',
+  'התקנה מהירה':'Quick install',
+  'אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.',
+  'התקן':'Install',
+  'בדיקת חיבור...':'Checking connection...',
+  'בודק אם קיימת גרסה חדשה...':'Checking for a new version...',
+  'בודק...':'Checking...',
+  'בדוק עדכונים':'Check for updates',
+  'עדכן':'Update',
+  'השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.',
+  'הזן תיאור וסכום תקינים':'Enter a valid description and amount',
+  'לא ניתן ליצור את הקובץ להורדה':'Could not create the download file',
+  'נסה שוב. נדרש חיבור אינטרנט רק להורדה הראשונה.':'Try again. An internet connection is required only for the first download.',
+  'הטיול הסתיים בהצלחה וההוצאה שוקללה בחשבון!':'Trip finished successfully and the expenses were added to the account!',
+  'למחוק הוצאה?':'Delete expense?',
+  'למחוק את כל הנתונים? פעולה זו אינה הפיכה.':'Delete all data? This action cannot be undone.',
+  'מצב דיסקרטי':'Discreet mode',
+  'נשאר מהתקציב':'Budget remaining',
+  'מתוך':'of',
+  'כמה אחוזים ניצלת':'How much of the budget you used',
+  'ניצול':'Usage',
+  'נשאר':'Remaining',
+  'הוצאה':'Expense',
+  'הכנסה':'Income',
+  'אוטומטי':'Automatic',
+  'שמור':'Save',
+  'ביטול':'Cancel',
+  'סגור':'Close',
+  'עריכה':'Edit',
+  'מחיקה':'Delete',
+  'אין הוצאות חודשיות קבועות.':'No fixed monthly expenses.',
+  'אין עדיין מספיק נתונים לקטגוריה מובילה':'Not enough data for a leading category yet',
+  'אין הודעות חדשות 🎉':'No new notifications 🎉',
+  'ההוצאות בחודש':'Expenses in',
+  'הגיעו ל-':'reached',
+  'מעל התקציב של':'above the budget of',
+  'מהחיוב האחרון.':'from the last charge.',
+  'שינוי בהוצאה קבועה':'Change in fixed expense',
+  'הסכום המוגדר גבוה ב-':'The configured amount is ',
+  'מתקרבים לתקציב':'Approaching budget',
+  'חריגה מהתקציב':'Over budget',
+  'מגמת הוצאות חיובית':'Positive expense trend',
+  'ההוצאות נמוכות בכ-':'Expenses are lower by about',
+  'לעומת החודש הקודם.':'compared with the previous month.'
+});
+
 const I18N_EN_HE=Object.fromEntries(Object.entries(I18N_HE_EN).map(([a,b])=>[b,a]));
 function normalizeI18nText(s){return String(s||'').replace(/\s+/g,' ').trim();}
+function translateWithDictionary(raw,dict){
+  const source=String(raw??'');
+  const clean=normalizeI18nText(source);
+  if(!clean)return source;
+  if(dict[clean])return dict[clean];
+  let out=source;
+  Object.keys(dict).sort((a,b)=>b.length-a.length).forEach(key=>{
+    if(key && out.includes(key)) out=out.split(key).join(dict[key]);
+  });
+  return out;
+}
 function translateUIString(source,lang){
-  const raw=String(source??'');
-  const clean=normalizeI18nText(raw);
-  if(!clean) return raw;
-  if(lang==='en') return I18N_HE_EN[clean] || raw;
-  return I18N_EN_HE[clean] || raw;
+  return translateWithDictionary(source,lang==='en'?I18N_HE_EN:I18N_EN_HE);
 }
 let languageTranslationBusy=false;
 let languageTranslationTimer=null;
@@ -1986,8 +2173,8 @@ function translateAllVisibleText(){
       if(!parent||parent.closest('script,style,noscript,#language-select,[data-user-original]')||parent.tagName==='OPTION') continue;
       const clean=normalizeI18nText(node.nodeValue);
       if(!clean) continue;
-      const translated=I18N_HE_EN[clean];
-      if(!translated) continue;
+      const translated=translateWithDictionary(node.nodeValue||'',I18N_HE_EN);
+      if(translated===node.nodeValue) continue;
       if(!Object.prototype.hasOwnProperty.call(node,'__i18nCanonical')) node.__i18nCanonical=node.nodeValue||'';
       const canonical=node.__i18nCanonical||node.nodeValue||'';
       const lead=canonical.match(/^\s*/)?.[0]||'',tail=canonical.match(/\s*$/)?.[0]||'';
