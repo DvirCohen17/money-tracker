@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script onerror="this.remove()" src="./config.js"></script>
 <script src="./local-ai.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="./script.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&display=swap');
@@ -136,6 +137,12 @@ html,body{
 }
 
 </style>
+
+<style>
+#receipt-preview-img{max-height:320px;object-fit:contain;width:100%;border-radius:1rem;background:#111827}
+.receipt-field{background:#111827;border:1px solid #374151;border-radius:.75rem;padding:.55rem .7rem;color:#fff;width:100%}
+.receipt-progress{height:8px;border-radius:999px;background:#1f2937;overflow:hidden}.receipt-progress>div{height:100%;width:0;transition:width .2s ease}
+</style>
 </head>
 <body class="pb-24">
 <header class="sticky top-0 z-40 glass-card px-4 py-3 flex items-center justify-between border-b border-gray-800/80">
@@ -203,11 +210,44 @@ html,body{
     <i class="w-5 h-5 text-violet-400" data-lucide="wand-sparkles"></i>
   </div>
   <div class="flex gap-2">
-    <input id="quick-expense-input" class="flex-1 min-w-0 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white" data-i18n-placeholder="המבורגר -70 שקל" placeholder="המבורגר -70 שקל" autocomplete="off">
+    <input id="quick-expense-input" class="flex-1 min-w-0 bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-sm text-white" data-i18n-placeholder="המבורגר -70 שקל" placeholder="המבורגר -70 שקל" autocomplete="off" oninput="previewQuickExpense()">
     <button id="quick-expense-btn" type="button" onclick="processQuickExpense()" class="bg-violet-600 hover:bg-violet-500 text-white rounded-xl px-4 py-2 text-sm font-semibold whitespace-nowrap" data-i18n="הוסף">הוסף</button>
   </div>
   <div id="quick-expense-preview" class="hidden mt-3"></div>
 </div>
+
+<div class="mt-3 rounded-2xl border border-emerald-500/20 bg-emerald-950/10 p-4" id="receipt-scan-box">
+  <div class="flex items-center justify-between gap-3 mb-2">
+    <div>
+      <h3 class="font-bold text-sm text-white" data-i18n="סריקת קבלה">סריקת קבלה</h3>
+      <p class="text-[11px] text-gray-400" data-i18n="צלם קבלה או בחר תמונה. ה-OCR מעבד את התמונה בתוך הדפדפן.">צלם קבלה או בחר תמונה. ה-OCR מעבד את התמונה בתוך הדפדפן.</p>
+    </div>
+    <i class="w-5 h-5 text-emerald-400" data-lucide="scan-line"></i>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <label class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 py-2 text-sm font-semibold cursor-pointer">
+      <span data-i18n="צלם / בחר קבלה">צלם / בחר קבלה</span>
+      <input id="receipt-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="handleReceiptFile(event)">
+    </label>
+    <button type="button" id="receipt-scan-btn" onclick="scanReceipt()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl px-4 py-2 text-sm font-semibold" data-i18n="סרוק קבלה">סרוק קבלה</button>
+  </div>
+  <div id="receipt-status" class="hidden mt-3 text-xs text-gray-400"></div>
+  <p class="text-[10px] text-gray-500 mt-2" data-i18n="מומלץ לצלם ישר, באור טוב, כשהקבלה מלאה בפריים.">מומלץ לצלם ישר, באור טוב, כשהקבלה מלאה בפריים.</p>
+  <div id="receipt-progress-wrap" class="hidden mt-2 receipt-progress"><div id="receipt-progress"></div></div>
+  <div id="receipt-preview" class="hidden mt-3 space-y-3">
+    <img id="receipt-preview-img" alt="Receipt preview">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <label class="text-xs text-gray-400"><span data-i18n="בית עסק">בית עסק</span><input id="receipt-merchant" class="receipt-field mt-1" placeholder="שם העסק"></label>
+      <label class="text-xs text-gray-400"><span data-i18n="סכום">סכום</span><input id="receipt-total" class="receipt-field mt-1" inputmode="decimal" placeholder="0.00"></label>
+      <label class="text-xs text-gray-400"><span data-i18n="תאריך">תאריך</span><input id="receipt-date" class="receipt-field mt-1" type="date"></label>
+      <label class="text-xs text-gray-400"><span data-i18n="קטגוריה">קטגוריה</span><select id="receipt-cat" class="receipt-field mt-1"><option value="auto">אוטומטי</option><option>אוכל ומזון</option><option>מגורים וחשבונות</option><option>תחבורה</option><option>פנאי ובילויים</option><option>קניות</option><option>משכורת</option><option>עבודה/פרילנס</option><option>השקעות</option><option>שונות</option></select></label>
+    </div>
+    <details class="text-xs text-gray-400"><summary class="cursor-pointer" data-i18n="הטקסט שזוהה">הטקסט שזוהה</summary><pre id="receipt-ocr-text" class="mt-2 whitespace-pre-wrap max-h-48 overflow-y-auto bg-gray-950 rounded-xl p-3 text-[11px]"></pre></details>
+    <div class="flex gap-2">
+      <button type="button" onclick="confirmReceiptExpense()" class="bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-4 py-2 text-sm font-semibold" data-i18n="הוסף הוצאה">הוסף הוצאה</button>
+      <button type="button" onclick="clearReceiptScan()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl px-4 py-2 text-sm font-semibold" data-i18n="ביטול">ביטול</button>
+    </div>
+  </div>
 </section>
 <section class="glass-card p-4 rounded-2xl">
 <div class="flex justify-between items-center mb-3">
@@ -701,24 +741,162 @@ function addTransaction(e){
   state.transactions.unshift(tx); save(); if(e&&e.target) e.target.reset(); document.getElementById('tx-date').value=today(); renderAll();
 }
 
+let receiptScanState={file:null,imageUrl:'',ocrText:'',result:null,worker:null};
+function receiptTodayISO(){return (typeof effectiveToday==='function'?effectiveToday():new Date()).toISOString().slice(0,10);}
+function setReceiptStatus(text,show=true){const el=document.getElementById('receipt-status');if(!el)return;el.textContent=text||'';el.classList.toggle('hidden',!show);}
+function setReceiptProgress(v){const wrap=document.getElementById('receipt-progress-wrap'),bar=document.getElementById('receipt-progress');if(!wrap||!bar)return;wrap.classList.remove('hidden');bar.style.width=Math.max(0,Math.min(100,v))+'%';}
+function normalizeReceiptText(text){return String(text||'').replace(/[|]/g,' ').replace(/[\u00a0]/g,' ').replace(/\r/g,'\n').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n').trim();}
+function parseReceiptDate(text){
+  const t=String(text||'');
+  const labeled=t.match(/(?:תאריך|date|invoice date|document date)[^\d]{0,15}(\d{1,2})[./-](\d{1,2})[./-](20\d{2})/i);
+  if(labeled)return `${labeled[3]}-${String(labeled[2]).padStart(2,'0')}-${String(labeled[1]).padStart(2,'0')}`;
+  let m=t.match(/\b(20\d{2})[./-](\d{1,2})[./-](\d{1,2})\b/); if(m)return `${m[1]}-${String(m[2]).padStart(2,'0')}-${String(m[3]).padStart(2,'0')}`;
+  m=t.match(/\b(\d{1,2})[./-](\d{1,2})[./-](20\d{2})\b/); if(m)return `${m[3]}-${String(m[2]).padStart(2,'0')}-${String(m[1]).padStart(2,'0')}`;
+  return receiptTodayISO();
+}
+function parseMoneyToken(raw){
+  let s=String(raw||'').replace(/[₪\s]/g,'');
+  if(!s)return null;
+  if(/\d+\.\d{3}(?:$|\D)/.test(s)&&!/,/.test(s))s=s.replace(/\.(?=\d{3}(?:\D|$))/g,'');
+  else if(/,\d{1,2}$/.test(s))s=s.replace(/,/g,'.').replace(/\.(?=\d{3}\.)/g,'');
+  else s=s.replace(/,/g,'');
+  const n=Number(s); return Number.isFinite(n)&&n>0?n:null;
+}
+function parseReceiptTotals(text){
+  const lines=normalizeReceiptText(text).split('\n').map(x=>x.trim()).filter(Boolean);
+  const candidates=[];
+  const totalRe=/(?:סה\s*["״]?כ|סכום\s+לתשלום|סה.?כ\s*לתשלום|לתשלום|total|grand\s+total|amount\s+due|balance\s+due|total\s+due|אשראי\s+לחיוב)/i;
+  const badRe=/(?:subtotal|sub\s*total|מע.?מ|vat|מס\s*ערך\s*מוסף|הנחה|discount|עודף|change|פריט|qty|כמות|מחיר\s*ליחידה)/i;
+  lines.forEach((line,i)=>{
+    const ms=[...line.matchAll(/(?:₪|ILS|NIS)?\s*(-?\d{1,3}(?:[,.]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(?:₪|ILS|NIS)?/gi)];
+    ms.forEach(m=>{const value=parseMoneyToken(m[1]);if(!value)return;let score=0;if(totalRe.test(line))score+=120;if(badRe.test(line))score-=100;if(/(?:קבלה|חשבונית|receipt|invoice)/i.test(line))score-=10;score+=i/Math.max(1,lines.length)*20; if(value>=10000)score-=15; candidates.push({value,score,line,index:i});});
+  });
+  candidates.sort((a,b)=>b.score-a.score||b.index-a.index);
+  return candidates[0]||null;
+}
+function parseReceiptTotal(text){return parseReceiptTotals(text)?.value||null;}
+function parseReceiptMerchant(text){
+  const lines=normalizeReceiptText(text).split('\n').map(x=>x.trim()).filter(Boolean);
+  const junk=/(?:^receipt$|^invoice$|^tax invoice$|^קבלה$|^חשבונית$|עוסק\s*מורשה|עוסק\s*פטור|מספר|טל|phone|www\.|https?:\/\/|date|תאריך|total|סה.?כ|subtotal|לתשלום|cash|visa|mastercard|מזומן|אשראי|www|ח\.פ\.?|ע\.מ\.?)$/i;
+  const scored=[];
+  lines.slice(0,12).forEach((line,i)=>{if(line.length<2||line.length>70||junk.test(line)||/\d{5,}/.test(line)||!/[A-Za-zא-ת]/.test(line))return;let score=50-i*3;if(i<3)score+=15;if(/[A-Za-zא-ת]{3,}/.test(line))score+=10;if(/(?:בע.?מ|בע״מ|ltd|inc|store|market|super|cafe|restaurant|coffee|שיווק|סופר|מרקט|מסעדה|קפה)/i.test(line))score+=12;scored.push({line,score});});
+  scored.sort((a,b)=>b.score-a.score); return scored[0]?.line||'';
+}
+function parseReceiptExtras(text){
+  const t=normalizeReceiptText(text);
+  const vat=(t.match(/(?:מע.?מ|vat)[^\d]{0,20}(\d{1,3}(?:[.,]\d{1,2})?)/i)||[])[1];
+  const invoice=(t.match(/(?:חשבונית(?:\s*(?:מס|קבלה))?|invoice|receipt)\s*(?:מספר|number|no\.?|#)?\s*[:#-]?\s*(\d{4,})/i)||[])[1];
+  const osek=(t.match(/(?:עוסק\s*מורשה|ע\.מ\.?|מס.?עוסק|vat\s*(?:id|no))[^\d]{0,12}(\d{7,9})/i)||[])[1];
+  return {vatAmount:parseMoneyToken(vat),invoiceNumber:invoice||'',businessId:osek||''};
+}
+function renderReceiptResult(result){
+  const box=document.getElementById('receipt-preview');if(box)box.classList.remove('hidden');
+  const merchant=document.getElementById('receipt-merchant'),total=document.getElementById('receipt-total'),date=document.getElementById('receipt-date'),cat=document.getElementById('receipt-cat'),ocr=document.getElementById('receipt-ocr-text');
+  if(merchant)merchant.value=result.merchant||'';if(total)total.value=result.total??'';if(date)date.value=result.date||receiptTodayISO();if(cat)cat.value=result.category||'auto';if(ocr)ocr.textContent=result.ocrText||'';
+}
+function handleReceiptFile(event){
+  const file=event?.target?.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){alert(state.settings?.language==='en'?'Please choose an image.':'בחר תמונה.');return;}
+  if(receiptScanState.imageUrl)URL.revokeObjectURL(receiptScanState.imageUrl);receiptScanState={file,imageUrl:URL.createObjectURL(file),ocrText:'',result:null,worker:receiptScanState.worker||null};
+  const img=document.getElementById('receipt-preview-img');if(img)img.src=receiptScanState.imageUrl;document.getElementById('receipt-preview')?.classList.remove('hidden');document.getElementById('receipt-scan-btn')?.classList.remove('hidden');setReceiptStatus(state.settings?.language==='en'?'Image ready. Press Scan receipt.':'התמונה מוכנה. לחץ על סרוק קבלה.');setReceiptProgress(0);
+}
+function preprocessReceiptImage(file,mode='clean'){
+  return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>{const maxW=1800,scale=Math.min(2.4,maxW/img.naturalWidth||2.4);const w=Math.max(900,Math.round(img.naturalWidth*scale)),h=Math.round(img.naturalHeight*(w/img.naturalWidth));const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0,w,h);const d=x.getImageData(0,0,w,h);for(let i=0;i<d.data.length;i+=4){const r=d.data[i],g=d.data[i+1],b=d.data[i+2];let gray=.299*r+.587*g+.114*b;if(mode==='threshold')gray=gray>175?255:0;else if(mode==='contrast')gray=Math.max(0,Math.min(255,(gray-128)*1.55+128));d.data[i]=d.data[i+1]=d.data[i+2]=gray;}x.putImageData(d,0,0);c.toBlob(blob=>blob?resolve(blob):reject(new Error('preprocess failed')),'image/jpeg',.92);};img.onerror=reject;img.src=URL.createObjectURL(file);});
+}
+async function getReceiptWorker(){
+  if(!window.Tesseract)throw new Error('OCR engine unavailable');if(receiptScanState.worker)return receiptScanState.worker;
+  setReceiptStatus(state.settings?.language==='en'?'Loading local Hebrew + English OCR model…':'טוען מודל OCR מקומי לעברית + אנגלית…');
+  const worker=await Tesseract.createWorker('eng+heb',1,{logger:m=>{if(typeof m.progress==='number')setReceiptProgress(Math.round(m.progress*100*.55));}});receiptScanState.worker=worker;return worker;
+}
+async function recognizeReceiptVariant(worker,image,psm){
+  try{await worker.setParameters({tessedit_pageseg_mode:String(psm),preserve_interword_spaces:'1'});}catch(e){}
+  const {data}=await worker.recognize(image);return normalizeReceiptText(data?.text||'');
+}
+function chooseReceiptOCR(a,b){
+  const score=t=>{const lines=t.split('\n').filter(Boolean);let s=Math.min(t.length/8,80);s+=Math.min(lines.length*2,30);s+=(t.match(/[א-ת]/g)||[]).length*.4;s+=(t.match(/[A-Za-z]/g)||[]).length*.2;s+=(t.match(/\d/g)||[]).length*.15;return s;};return score(b)>score(a)?b:a;
+}
+async function scanReceipt(){
+  if(!receiptScanState.file){setReceiptStatus(state.settings?.language==='en'?'Choose a receipt image first.':'בחר תמונת קבלה קודם.');return;}
+  const btn=document.getElementById('receipt-scan-btn');if(btn)btn.disabled=true;
+  try{
+    setReceiptStatus(state.settings?.language==='en'?'Enhancing receipt image locally…':'משפר את תמונת הקבלה מקומית…');setReceiptProgress(5);const worker=await getReceiptWorker();
+    const clean=await preprocessReceiptImage(receiptScanState.file,'clean');setReceiptProgress(62);let text=await recognizeReceiptVariant(worker,clean,6);
+    if(text.length<60||!parseReceiptTotal(text)){const sharp=await preprocessReceiptImage(receiptScanState.file,'contrast');setReceiptProgress(78);text=chooseReceiptOCR(text,await recognizeReceiptVariant(worker,sharp,4));}
+    const totals=parseReceiptTotals(text),extras=parseReceiptExtras(text);receiptScanState.ocrText=text;
+    const result={ocrText:text,merchant:parseReceiptMerchant(text),total:totals?.value||null,date:parseReceiptDate(text),category:'auto',...extras};
+    if(result.merchant&&typeof autoCategory==='function')result.category=autoCategory(result.merchant,'expense');receiptScanState.result=result;renderReceiptResult(result);
+    setReceiptStatus(state.settings?.language==='en'?'Receipt scanned locally. Check the detected total and date before adding.':'הקבלה נסרקה מקומית. בדוק את הסכום והתאריך לפני ההוספה.');setReceiptProgress(100);
+  }catch(e){console.error('receipt OCR failed',e);setReceiptStatus(state.settings?.language==='en'?'OCR failed. Try a sharper, brighter photo.':'סריקת ה-OCR נכשלה. נסה צילום חד ובהיר יותר.');}
+  finally{if(btn)btn.disabled=false;}
+}
+async function confirmReceiptExpense(){
+  const merchant=(document.getElementById('receipt-merchant')?.value||'').trim();const amount=Number((document.getElementById('receipt-total')?.value||'').replace(',','.'));const date=document.getElementById('receipt-date')?.value||receiptTodayISO();let cat=document.getElementById('receipt-cat')?.value||'auto';
+  if(!merchant||!Number.isFinite(amount)||amount<=0){alert(state.settings?.language==='en'?'Please enter a business name and valid total.':'הזן בית עסק וסכום תקין.');return;}if(cat==='auto')cat=typeof autoCategory==='function'?autoCategory(merchant,'expense'):'שונות';
+  state.transactions.unshift({id:Date.now(),desc:merchant,amount:Math.abs(amount),type:'expense',cat,date,autoCategorized:true,categoryAIConfidence:.82,categoryAISource:'receipt-ocr',receiptOCR:true,receiptMeta:receiptScanState.result?{invoiceNumber:receiptScanState.result.invoiceNumber||'',vatAmount:receiptScanState.result.vatAmount||null,businessId:receiptScanState.result.businessId||''}:null});save();clearReceiptScan();renderAll();generateSmartNotifications();
+}
+function clearReceiptScan(){if(receiptScanState.imageUrl)URL.revokeObjectURL(receiptScanState.imageUrl);const worker=receiptScanState.worker;receiptScanState={file:null,imageUrl:'',ocrText:'',result:null,worker};const input=document.getElementById('receipt-input');if(input)input.value='';document.getElementById('receipt-preview')?.classList.add('hidden');document.getElementById('receipt-scan-btn')?.classList.add('hidden');document.getElementById('receipt-progress-wrap')?.classList.add('hidden');setReceiptStatus('',false);}
 function parseQuickExpense(text){
   const raw=String(text||'').trim();
   if(!raw)return null;
-  const matches=[...raw.matchAll(/([-+]?\d+(?:[.,]\d{1,2})?)\s*(₪|ILS|NIS|שקל(?:ים)?|שח|shekels?)?/gi)];
+
+  // Supports both short input ("Burger -70 shekels") and natural sentences
+  // ("קניתי המבורגר ב-70 שקל", "Netflix חייבו אותי 49.90", "קיבלתי משכורת 12,000").
+  const amountPattern='([-+]?\\d{1,3}(?:,\\d{3})+(?:\\.\\d{1,2})?|[-+]?\\d+(?:[.,]\\d{1,2})?)';
+  const matches=[...raw.matchAll(new RegExp(amountPattern+'\\s*(₪|ILS|NIS|שקל(?:ים)?|שח|shekels?)?','gi'))];
   if(!matches.length)return null;
+
+  // Prefer the last numeric token: in ordinary sentences it is the price.
   const m=matches[matches.length-1];
-  const numeric=Number(m[1].replace(',','.'));
+  const numericText=String(m[1]).replace(/,(?=\d{3}(?:\D|$))/g,'').replace(',','.');
+  const numeric=Number(numericText);
   if(!Number.isFinite(numeric)||numeric===0)return null;
+
   const amount=Math.abs(numeric);
-  let desc=(raw.slice(0,m.index)+raw.slice(m.index+m[0].length)).replace(/\s+/g,' ').trim().replace(/[-–—:]$/,'').trim();
-  const type=numeric<0?'expense':(/\b(income|salary|received|refund|expense|הכנסה|משכורת|החזר|קיבלתי|הוצאה)\b/i.test(raw)?( /\b(income|salary|received|refund|הכנסה|משכורת|החזר|קיבלתי)\b/i.test(raw)?'income':'expense'):'expense');
-  return buildQuickParsed(raw,desc,amount,type);
+  let desc=(raw.slice(0,m.index)+raw.slice(m.index+m[0].length))
+    .replace(/(?:^|\s)\d{1,2}[\/.-]\d{1,2}(?:[\/.-]\d{2,4})?(?=\s|$)/g,' ')
+    .replace(/\s+/g,' ').trim();
+
+  // Remove common natural-language glue around the amount while keeping the merchant/item.
+  desc=desc
+    .replace(/(^|\s)(?:ב|ל|על|עבור|for|at)\s*[-:]?\s*$/i,'$1')
+    .replace(/(^|\s)(?:ב|ל|על|עבור|for|at)\s+(?=\S)/i,'$1')
+    .replace(/\s*[-–—:]\s*$/,'').trim();
+
+  // Remove common purchase/payment verbs that don't help categorization.
+  desc=desc
+    .replace(/^(?:קניתי|קניתה|קנינו|קנו|רכשתי|שילמתי|שילמנו|הזמנתי|הזמנו|לקחתי|קיבלתי|קיבלתם|חויבתי|חייבו אותי|שילמו לי|i bought|i paid|paid|bought|ordered|charged me|received)\s+/i,'')
+    .replace(/(?:חייבו אותי|charged me|קיבלתי|received)\s*/i,'')
+    .replace(/\s+(?:ב|for|at|on)\s*$/i,'')
+    .replace(/\s+/g,' ').trim();
+
+  const incomeRe=/(income|salary|received|refund|cashback|got paid|paycheck|deposit|הכנסה|משכורת|קיבלתי|החזר|זיכוי|הפקדה|נכנס לחשבון|שילמו לי)/i;
+  const expenseRe=/\b(expense|spent|purchase|bought|paid|ordered|charged|קניתי|רכשתי|שילמתי|הזמנתי|חויבתי|הוצאה)\b/i;
+  const type=numeric<0?'expense':(incomeRe.test(raw)?'income':(expenseRe.test(raw)?'expense':'expense'));
+
+  let date=today();
+  if(/\b(?:today|היום)\b/i.test(raw)) date=today();
+  else if(/\b(?:yesterday|אתמול)\b/i.test(raw)) date=shiftDate(-1);
+  else if(/\b(?:the day before yesterday|שלשום)\b/i.test(raw)) date=shiftDate(-2);
+  else {
+    const dm=raw.match(/(?:^|\s)(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?(?:\s|$)/);
+    if(dm){
+      const day=Number(dm[1]), month=Number(dm[2]), year=dm[3]?Number(dm[3]):new Date().getFullYear();
+      const fullYear=year<100?2000+year:year;
+      const d=new Date(fullYear,month-1,day);
+      if(d.getFullYear()===fullYear&&d.getMonth()===month-1&&d.getDate()===day)
+        date=d.toISOString().slice(0,10);
+    }
+  }
+
+  return buildQuickParsed(raw,desc,amount,type,date);
 }
-function buildQuickParsed(raw,desc,amount,type){
-  let cleanDesc=desc.replace(/\b(?:ב|for)\s+(?:שקל|שקלים|shekels?|ILS|NIS)\b/ig,'').replace(/\s+/g,' ').trim();
+function shiftDate(delta){
+  const d=new Date(); d.setDate(d.getDate()+delta); return d.toISOString().slice(0,10);
+}
+function buildQuickParsed(raw,desc,amount,type,date){
+  let cleanDesc=String(desc||'').replace(/\b(?:שקל|שקלים|shekels?|ILS|NIS)\b/ig,'').replace(/\s+/g,' ').trim();
   cleanDesc=cleanDesc.replace(/^(?:הוצאה|expense)\s*[:\-]?\s*/i,'').trim()||raw;
   const category=autoCategory(cleanDesc,type);
-  return {raw,desc:cleanDesc,amount,type,category,date:today()};
+  return {raw,desc:cleanDesc,amount,type,category,date:date||today()};
 }
 function renderQuickExpensePreview(parsed,categoryResult){
   const box=document.getElementById('quick-expense-preview'); if(!box)return;
@@ -732,7 +910,7 @@ function renderQuickExpensePreview(parsed,categoryResult){
     <div class="text-[10px] text-gray-500 mb-2">${t('זיהיתי את ההוצאה כך','I understood the expense as')}</div>
     <div class="flex items-center justify-between gap-3">
       <div class="min-w-0"><div class="font-bold text-white truncate">${esc(parsed.desc)}</div><div class="text-xs text-gray-400 mt-1">${esc(displayCategory(cat))}${confidence!=null?` · ${Math.round(confidence*100)}%`:''}</div></div>
-      <div class="font-extrabold text-rose-400 amount whitespace-nowrap">-${money(parsed.amount)}</div>
+      <div class="font-extrabold amount whitespace-nowrap ${parsed.type==='income'?'text-emerald-400':'text-rose-400'}">${parsed.type==='income'?'+':'-'}${money(parsed.amount)}</div>
     </div>
     <div class="flex gap-2 mt-3">
       <button type="button" onclick="confirmQuickExpense()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3 py-2 text-sm font-semibold">${t('הוסף הוצאה','Add expense')}</button>
@@ -741,6 +919,13 @@ function renderQuickExpensePreview(parsed,categoryResult){
   </div>`;
 }
 let pendingQuickExpense=null;
+function previewQuickExpense(){
+  const input=document.getElementById('quick-expense-input');
+  const parsed=parseQuickExpense(input?.value||'');
+  if(!parsed){ const box=document.getElementById('quick-expense-preview'); if(box){box.classList.add('hidden');box.innerHTML='';} pendingQuickExpense=null; return; }
+  pendingQuickExpense=parsed;
+  renderQuickExpensePreview(parsed,{category:parsed.category,confidence:.4});
+}
 async function processQuickExpense(){
   const input=document.getElementById('quick-expense-input');
   const parsed=parseQuickExpense(input?.value||'');
@@ -1975,7 +2160,7 @@ function t(source, fallback='') {
 
 /* Language layer: keeps original source text and translates known UI strings without touching user-entered data. */
 const I18N_HE_EN={
-'עברית':'English','English':'עברית','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','תאריך מערכת לבדיקות':'System date for testing','מצב בדיקה בלבד. מאפשר לדמות את \"היום\" לתאריך אחר.':'Testing mode only. Lets you simulate a different current date.','אפס להיום':'Reset to today','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.','הוספת הוצאה במשפט':'Add expense from a sentence','כתוב למשל: המבורגר -70 שקל או Burger -70 shekels':'For example: Burger -70 shekels','המבורגר -70 שקל':'Burger -70 shekels','הוסף':'Add','הוסף הוצאה':'Add expense','ביטול':'Cancel','זיהיתי את ההוצאה כך':'I understood the expense as'
+'עברית':'English','English':'עברית','התקציב שלי — ניהול פיננסי':'My Budget — Personal Finance','התקציב שלי':'My Budget','יתרה כוללת':'Total balance','ערוך':'Edit','הכנסות החודש':'Monthly income','ערוך סכום':'Edit amount','הוצאות החודש':'Monthly expenses','נשאר החודש':'Remaining this month','תקציב יומי להיום':'Today’s daily budget','קבוע לתחילת היום (אינו משתנה מהוצאות היום)':'Locked at the start of the day (today’s expenses do not change it)','מומלץ להיום':'Recommended today','מעקב חודשי':'Monthly tracking','הכנסות':'Income','הוצאות':'Expenses','תקציב':'Budget','נשאר':'Remaining','פילוח הוצאות':'Expense breakdown','הוספת תנועה ידנית':'Add transaction manually','הוצאה / הכנסה':'Expense / income','הוצאה':'Expense','הכנסה':'Income','אוטומטי':'Automatic','אוכל ומזון':'Food & groceries','מגורים וחשבונות':'Housing & bills','תחבורה':'Transport','פנאי ובילויים':'Leisure & entertainment','קניות':'Shopping','משכורת':'Salary','עבודה/פרילנס':'Work / freelance','השקעות':'Investments','שונות':'Other','שמור':'Save','תנועות חודשיות':'Monthly transactions','לחץ לעריכה, החלק ימינה למחיקה':'Tap to edit, swipe right to delete','היסטוריית הוצאות':'Expense history','הנתונים נשמרים לפי חודש ויום':'Data is stored by month and day','חודש':'Month','שנה':'Year','3 שנים':'3 years','סיכום התקופה':'Period summary','סיכום אוטומטי לפי החודש, השנה או ההיסטוריה שנבחרה.':'Automatic summary for the selected month, year, or history.','הצג סיכום':'Show summary','סיכום שנתי':'Annual summary','כל חודשי השנה, כולל חיסכון ומגמות.':'All months of the year, including savings and trends.','מפת חום של הוצאות יומיות':'Daily expense heatmap','מעקב עמידה בתקציב יומי לאורך החודש':'Track daily budget performance throughout the month','עמד בתקציב':'Within budget','חריגה':'Over budget','מגמת הוצאות לאורך זמן':'Expense trend over time','מפת הוצאות / קטגוריות':'Expense / category map','תובנות':'Insights','מרכז הודעות':'Notification center','חריגות, סיכומי תקופה, תשלומים ותובנות.':'Alerts, period summaries, payments and insights.','סמן הכל כנקרא':'Mark all as read','הוצאות חודשיות קבועות':'Fixed monthly expenses','שכר דירה, חשבונות, ביטוחים והוראות קבע.':'Rent, bills, insurance and standing orders.','+ הוצאה':'+ Expense','מנויים':'Subscriptions','בחר שירות ותוכנית וקבל סכום חודשי אוטומטי.':'Choose a service and plan to get the monthly amount automatically.','+ מנוי':'+ Subscription','הפרשות חודשיות לחיסכון':'Monthly savings allocations','הוראות קבע שמתווספות אוטומטית לקופת החיסכון הנבחרת':'Standing orders added automatically to the selected savings pocket','+ הגדר הפרשה':'+ Set allocation','קופות חיסכון':'Savings pockets','סה"כ בכל הקופות:':'Total in all pockets:','+ קופה':'+ Pocket','מצב טיול':'Trip mode','תקציב נפרד להוצאות בחו"ל':'Separate budget for expenses abroad','תקציב טיול':'Trip budget','ימי טיול':'Trip days','סיום טיול ושקלול הוצאות לחשבון':'Finish trip and add expenses to the account','מחשבון המרת מט"ח':'FX converter','תוצאה בשקלים':'Result in ILS','חלוקת חשבון':'Bill split','כל אחד משלם':'Each person pays','אבטחה, נתונים וייצוא':'Security, data & export','ייצוא CSV':'CSV export','תנועות, כולל תאריכים וקטגוריות':'Transactions, including dates and categories','גיבוי JSON':'JSON backup','כל נתוני האפליקציה':'All app data','ייבוא JSON':'JSON import','שחזור מגיבוי':'Restore from backup','הגדרות תקציב':'Budget settings','יתרה, תקציב ומשכורת':'Balance, budget and salary','איפוס הכל':'Reset everything','מחיקה מלאה מהמכשיר':'Complete deletion from this device','אבטחה':'Security','סיסמה, נעילה אוטומטית והגנה על המידע המקומי.':'Password, automatic lock and local data protection.','ניהול אבטחה':'Manage security','מצב':'Status','כבוי':'Off','נעילה אוטומטית':'Automatic lock','30 דקות':'30 minutes','עדכוני אפליקציה':'App updates','בודק אם קיימת גרסה חדשה...':'Checking for a new version...','גרסה':'Version','בודק...':'Checking...','בדוק עדכונים':'Check for updates','עדכן':'Update','עיצוב ותצוגה':'Appearance','Theme, נגישות ומצב דיסקרטי.':'Theme, accessibility and discreet mode.','מצב דיסקרטי':'Discreet mode','אפליקציה והתקנה':'App & installation','התקנה כאפליקציה נפרדת במכשיר. עובדת גם בלי לפתוח את הדפדפן.':'Install as a standalone app. It can work without opening the browser.','התקן כאפליקציה':'Install as app','בדיקת חיבור...':'Checking connection...','שערי מט"ח':'FX rates','מתעדכנים אוטומטית פעם ביום.':'Updated automatically once a day.','התקנה מהירה':'Quick install','אפשר להתקין את MoneyTracker כאפליקציה.':'You can install MoneyTracker as an app.','התקן':'Install','גרסה חדשה זמינה':'New version available','מוכנה לעדכון.':'Ready to update.','ניתוחים':'Analytics','הודעות':'Notifications','קבועות':'Recurring','טיול וכלים':'Trip & tools','הגדרות':'Settings','הודעות אחרונות':'Latest notifications','3 ההודעות האחרונות':'The 3 latest notifications','כל ההודעות':'All notifications','חשבון':'Account','הפרופיל שלי':'My profile','מסד נתונים מקומי':'Local database','נתוני המשתמש':'User data','הנתונים האישיים שלך מבודדים מהמשתמשים האחרים.':'Your personal data is isolated from other users.','עריכה':'Edit','אנשי החשבון המשותף':'Shared account members','כולם משתמשים באותו חשבון ולכן הנתונים והגרפים מסתנכרנים ביניהם.':'Everyone uses the same account, so data and charts stay synchronized.','+ הוסף אדם':'+ Add person','סנכרן עכשיו':'Sync now','התנתק':'Log out','התחבר כדי לטעון את הנתונים שלך':'Sign in to load your data','התחברות':'Sign in','יצירת משתמש':'Create account','שם':'Name','אימייל':'Email','סיסמה':'Password','השאר אותי מחובר במכשיר הזה':'Keep me signed in on this device','התחבר':'Sign in','המשך עם הנתונים הקיימים במכשיר':'Continue with existing device data','האפליקציה נעולה':'App locked','הזן את הסיסמה כדי להמשיך':'Enter your password to continue','פתח':'Unlock','סיסמה שגויה':'Incorrect password','תאריך מערכת לבדיקות':'System date for testing','מצב בדיקה בלבד. מאפשר לדמות את \"היום\" לתאריך אחר.':'Testing mode only. Lets you simulate a different current date.','אפס להיום':'Reset to today','שפה':'Language','השפה משנה את ממשק האפליקציה. נתוני המשתמש נשמרים בשפת המקור.':'Language changes the app interface. User data remains in its original language.','הוספת הוצאה במשפט':'Add expense from a sentence','כתוב למשל: המבורגר -70 שקל או Burger -70 shekels':'For example: Burger -70 shekels','המבורגר -70 שקל':'Burger -70 shekels','הוסף':'Add','הוסף הוצאה':'Add expense','ביטול':'Cancel','זיהיתי את ההוצאה כך':'I understood the expense as','סריקת קבלה':'Scan receipt','צלם קבלה או בחר תמונה. ה-OCR מעבד את התמונה בתוך הדפדפן.':'Take a receipt photo or choose an image. OCR processes the image in your browser.','צלם / בחר קבלה':'Take / choose receipt','סרוק קבלה':'Scan receipt','בית עסק':'Business','סכום':'Amount','תאריך':'Date','קטגוריה':'Category','הטקסט שזוהה':'Recognized text','מומלץ לצלם ישר, באור טוב, כשהקבלה מלאה בפריים.':'For best results, take a straight, well-lit photo with the full receipt in frame.'
 };
 Object.assign(I18N_HE_EN,{
   'הוצאות בתקופה:':'Expenses in period:',
