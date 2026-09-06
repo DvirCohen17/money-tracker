@@ -7,6 +7,24 @@
 let extractorPromise = null;
 const MODEL_ID = 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
 const MODEL_REVISION = '2c4055b';
+const EMBEDDING_CACHE = new Map();
+const EMBEDDING_CACHE_MAX = 160;
+
+function normalizeText(text) {
+  return String(text || '').normalize('NFKC').toLowerCase().replace(/[׳']/g, "'").replace(/["“”]/g, '').replace(/\s+/g, ' ').trim();
+}
+
+const EXTRA_PROTOTYPES = {
+  'אוכל ומזון': ['ארוחת צהריים ארוחת ערב ארוחת בוקר משלוח וולט תן ביס קפה מאפה קינוח גלידה', 'mcdonalds burger king domino pizza hut takeaway lunch dinner breakfast coffee pastry dessert grocery supermarket', 'שופרסל רמי לוי ויקטורי קרפור סופר פארם אוכל מכולת מעדניה'],
+  'מגורים וחשבונות': ['שכר דירה דירה שכירות ועד בית חשבון חשמל חשבון מים חשבון גז חשבון אינטרנט סלולר', 'rent apartment utilities electricity water gas internet mobile phone bill', 'ארנונה ביטוח דירה תחזוקת בית תיקון לבית'],
+  'תחבורה': ['תחנת דלק תדלוק דלקן פז סונול דור אלון חניה חניון דוח חניה', 'gas station fuel parking public transport bus train taxi uber gett', 'טסט טיפול לרכב תיקון רכב מוסך צמיגים כביש אגרה רב קו'],
+  'פנאי ובילויים': ['נטפליקס ספוטיפיי דיסני פלייסטיישן אקסבוקס סטים משחק מחשב', 'streaming cinema movie concert party bar club vacation attraction', 'חופשה מלון בילוי הופעה פסטיבל כרטיס להופעה ספורט'],
+  'קניות': ['קניתי בגדים חולצה מכנס נעליים מתנה מוצר לבית ריהוט', 'shopping clothes shoes electronics furniture amazon ikea zara', 'אוזניות טלפון מחשב מסך מטען כלי בית'],
+  'השקעות': ['הפקדה לתיק השקעות קניתי מניה קרן סל קריפטו ברוקר', 'investment portfolio stock etf bond brokerage trading commission', 'מניה מניות אגח קרן נאמנות מסחר בבורסה עמלה'],
+  'עבודה/פרילנס': ['ציוד למשרד תוכנה לעבודה הוצאה עסקית חשבונית עסק', 'office supplies business expense freelance client software subscription', 'עבודה פרילנס עסק משרד לקוח מקצועי'],
+  'שונות': ['תשלום אחר הוצאה כללית עמלה קנס תרומה', 'miscellaneous general payment fee fine donation other expense']
+};
+
 
 const BASE_PROTOTYPES = {
   'אוכל ומזון': [
@@ -92,13 +110,31 @@ function cosine(a, b) {
 }
 
 async function embed(texts) {
-  const extractor = await getExtractor();
-  const out = await extractor(texts, { pooling: 'mean', normalize: true });
-  const rows = toArray(out);
-  if (Array.isArray(rows[0])) return rows;
-  const dim = 384;
-  const result = [];
-  for (let i = 0; i < rows.length; i += dim) result.push(rows.slice(i, i + dim));
+  const clean = texts.map(normalizeText);
+  const result = new Array(clean.length);
+  const missing = [];
+  const missingKeys = [];
+  clean.forEach((text, i) => {
+    const cached = EMBEDDING_CACHE.get(text);
+    if (cached) result[i] = cached;
+    else { missing.push(text); missingKeys.push(text); }
+  });
+  if (missing.length) {
+    const extractor = await getExtractor();
+    const out = await extractor(missing, { pooling: 'mean', normalize: true });
+    const rows = toArray(out);
+    let vectors;
+    if (Array.isArray(rows[0])) vectors = rows;
+    else {
+      const dim = 384; vectors = [];
+      for (let i = 0; i < rows.length; i += dim) vectors.push(rows.slice(i, i + dim));
+    }
+    missingKeys.forEach((key, i) => {
+      EMBEDDING_CACHE.set(key, vectors[i]);
+      while (EMBEDDING_CACHE.size > EMBEDDING_CACHE_MAX) EMBEDDING_CACHE.delete(EMBEDDING_CACHE.keys().next().value);
+    });
+    clean.forEach((text, i) => { if (!result[i]) result[i] = EMBEDDING_CACHE.get(text); });
+  }
   return result;
 }
 
@@ -123,8 +159,8 @@ self.onmessage = async (event) => {
       const prototypeIndexes = {};
       for (const label of labels) {
         prototypeIndexes[label] = [];
-        for (const text of BASE_PROTOTYPES[label]) { prototypeIndexes[label].push(texts.length); texts.push(text); }
-        for (const text of Array.isArray(examples[label]) ? examples[label].slice(-12) : []) { prototypeIndexes[label].push(texts.length); texts.push(text); }
+        for (const text of [...(BASE_PROTOTYPES[label] || []), ...(EXTRA_PROTOTYPES[label] || [])]) { prototypeIndexes[label].push(texts.length); texts.push(text); }
+        for (const text of Array.isArray(examples[label]) ? examples[label].slice(-20) : []) { prototypeIndexes[label].push(texts.length); texts.push(text); }
       }
       const vectors = await embed(texts);
       const query = vectors[0];
@@ -135,13 +171,15 @@ self.onmessage = async (event) => {
         const base = sims[0] || 0;
         const second = sims[1] || base;
         // Best match + small support from a second close example.
-        const score = base * 0.78 + second * 0.22;
+        const third = sims[2] || second;
+        const score = base * 0.62 + second * 0.23 + third * 0.15;
         return { label, score };
       }).sort((a,b) => b.score - a.score);
       const best = scores[0] || { label: 'שונות', score: 0 };
       const second = scores[1] || { score: 0 };
       // Convert cosine similarity into a conservative confidence estimate.
-      const confidence = Math.max(0, Math.min(1, 0.5 + (best.score - second.score) * 2.2));
+      const margin = best.score - second.score;
+      const confidence = Math.max(0, Math.min(1, 0.45 + margin * 3.0 + Math.max(0, best.score - 0.48) * 0.8));
       post('result', { id, result: { category: best.label, score: best.score, confidence, ranked: scores } });
       return;
     }

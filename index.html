@@ -750,7 +750,7 @@ async function processQuickExpense(){
   if(parsed.type==='expense'){
     try{
       const result=await classifyDescriptionAsync(parsed.desc,'expense',{loadModel:false,quickExpense:true});
-      if(pendingQuickExpense===parsed){pendingQuickExpense.category=result.category||parsed.category;renderQuickExpensePreview(pendingQuickExpense,result);}
+      if(pendingQuickExpense===parsed){pendingQuickExpense.category=result.category||parsed.category;pendingQuickExpense.confidence=result.confidence;pendingQuickExpense.source=result.source;renderQuickExpensePreview(pendingQuickExpense,result);}
     }catch(_e){}
   }
 }
@@ -758,7 +758,8 @@ async function confirmQuickExpense(){
   if(!pendingQuickExpense)return;
   const q={...pendingQuickExpense};
   const cat=q.category||autoCategory(q.desc,q.type);
-  state.transactions.unshift({id:Date.now(),desc:q.desc,amount:q.amount,type:q.type,cat,date:q.date,autoCategorized:true,categoryAIConfidence:.4,categoryAISource:'quick-text'});
+  if(q.type==='expense' && cat && cat!=='שונות')window.localCategoryAI?.remember(q.desc,cat);
+  state.transactions.unshift({id:Date.now(),desc:q.desc,amount:q.amount,type:q.type,cat,date:q.date,autoCategorized:true,categoryAIConfidence:Number(q.confidence||.4),categoryAISource:q.source||'quick-text'});
   save(); clearQuickExpense(); renderAll(); generateSmartNotifications();
 }
 function clearQuickExpense(){pendingQuickExpense=null;const input=document.getElementById('quick-expense-input');if(input)input.value='';const box=document.getElementById('quick-expense-preview');if(box){box.classList.add('hidden');box.innerHTML='';}}
@@ -1707,9 +1708,13 @@ async function classifyDescriptionAsync(desc,type='expense',options={}){
   try{
     if(!localAIIsReady())await window.localCategoryAI.load();
     const result=await window.localCategoryAI.classify(desc);
-    const category=result?.category||fallback;const confidence=Number(result?.confidence||0);
-    if(hint)hint.innerHTML=`AI מקומי: <button type="button" data-category="${esc(category)}" onclick="acceptCategorySuggestion()" class="text-violet-300 underline">${esc(displayCategory(category))}</button> <span class="text-gray-500">${Math.round(confidence*100)}%</span>`;
-    return {category,confidence,source:'local-ai'};
+    const rawResult={category:result?.category||fallback,confidence:Number(result?.confidence||0),source:'local-ai'};
+    const rule=autoCategory(desc,type), aiCat=rawResult.category, aiConf=rawResult.confidence;
+    const finalResult=(rule!=='שונות' && aiCat!==rule && aiConf<0.72)
+      ? {category:rule,confidence:Math.max(.55,aiConf),source:'hybrid-rules'}
+      : rawResult;
+    if(hint)hint.innerHTML=`${finalResult.source==='hybrid-rules'?'כללים + AI מקומי':'AI מקומי'}: <button type="button" data-category="${esc(finalResult.category)}" onclick="acceptCategorySuggestion()" class="text-violet-300 underline">${esc(displayCategory(finalResult.category))}</button> <span class="text-gray-500">${Math.round(finalResult.confidence*100)}%</span>`;
+    return finalResult;
   }catch(e){
     if(hint)hint.innerHTML=`הצעה אוטומטית: <button type="button" data-category="${esc(fallback)}" onclick="acceptCategorySuggestion()" class="text-sky-300 underline">${esc(displayCategory(fallback))}</button>`;
     return {category:fallback,confidence:.35,source:'rules',error:e.message};
